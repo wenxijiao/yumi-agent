@@ -72,6 +72,31 @@ def _truncate(text: str, limit: int = MAX_CONTENT_CHARS) -> str:
     return text[:limit] + f"\n\n... [truncated, showing first {limit} of {len(text)} characters]"
 
 
+_SENSITIVE_FILE_NAMES = {
+    "id_rsa",
+    "id_dsa",
+    "id_ecdsa",
+    "id_ed25519",
+    "authorized_keys",
+    "known_hosts",
+    "credentials",
+    "config.json",
+}
+_SENSITIVE_DIR_NAMES = {".ssh", ".aws", ".gnupg", ".mirai", ".kube"}
+
+
+def _is_sensitive_path(path: Path) -> bool:
+    parts = {p for p in path.parts}
+    if parts & _SENSITIVE_DIR_NAMES:
+        return True
+    name = path.name.lower()
+    if name in _SENSITIVE_FILE_NAMES:
+        return True
+    if name.endswith(".pem") or name.endswith(".key"):
+        return True
+    return False
+
+
 def _safe_resolve(file_path: str) -> Path:
     return Path(file_path).expanduser().resolve()
 
@@ -159,6 +184,12 @@ def _read_json_file(path: Path) -> str:
 def read_file(file_path: str) -> str:
     path = _safe_resolve(file_path)
 
+    if _is_sensitive_path(path):
+        return (
+            f"Error: refusing to read sensitive path '{path}'. "
+            "Credentials, SSH keys, and Mirai's own config are blocked from the read_file tool."
+        )
+
     if not path.exists():
         return f"Error: File not found: {path}"
     if not path.is_file():
@@ -209,6 +240,12 @@ def read_file(file_path: str) -> str:
 
 def list_files(directory_path: str, pattern: str = "*") -> str:
     path = _safe_resolve(directory_path)
+
+    if _is_sensitive_path(path):
+        return (
+            f"Error: refusing to list sensitive path '{path}'. "
+            "SSH/AWS/GnuPG and Mirai's own config directories are blocked from the list_files tool."
+        )
 
     if not path.exists():
         return f"Error: Directory not found: {path}"

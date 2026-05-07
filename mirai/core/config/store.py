@@ -272,10 +272,25 @@ def load_model_config() -> ModelConfig:
 
 def save_model_config(config: ModelConfig) -> None:
     ensure_config_dir()
-    CONFIG_PATH.write_text(
-        json.dumps(config.model_dump(), ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    payload = json.dumps(config.model_dump(), ensure_ascii=False, indent=2).encode("utf-8")
+    # Atomic write with 0o600 perms — config.json holds API keys, bot tokens, and lan_secret.
+    tmp_path = CONFIG_PATH.with_suffix(CONFIG_PATH.suffix + ".tmp")
+    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+    fd = os.open(tmp_path, flags, 0o600)
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(payload)
+    except Exception:
+        try:
+            tmp_path.unlink()
+        except OSError:
+            pass
+        raise
+    os.replace(tmp_path, CONFIG_PATH)
+    try:
+        os.chmod(CONFIG_PATH, 0o600)
+    except OSError:
+        pass
 
 
 def ensure_full_model_config_file() -> ModelConfig:

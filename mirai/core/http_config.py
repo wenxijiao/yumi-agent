@@ -45,9 +45,13 @@ def get_cors_settings(
     origins = _parse_csv_list(env_origins) if env_origins is not None else list(default_origins)
     allow_credentials = _parse_bool_env(allow_credentials_env_var, default=False)
 
-    # Browsers reject wildcard origins together with credentialed requests.
+    # Browsers reject wildcard origins together with credentialed requests; fail fast on misconfig
+    # rather than silently demoting credentials, which produces a confusing CORS error in the browser.
     if "*" in origins and allow_credentials:
-        allow_credentials = False
+        raise ValueError(
+            f"{origins_env_var}='*' cannot be combined with {allow_credentials_env_var}=true; "
+            "list explicit origins or disable credentials."
+        )
 
     return {
         "allow_origins": origins,

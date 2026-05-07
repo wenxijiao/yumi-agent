@@ -12,6 +12,11 @@ LEGACY_MEMORY_DIR = Path(__file__).resolve().parent.parent / "memories" / ".lanc
 
 def ensure_config_dir() -> None:
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    # Restrict to owner-only since config.json holds API keys and tokens.
+    try:
+        CONFIG_DIR.chmod(0o700)
+    except OSError:
+        pass
 
 
 def ensure_memory_dir() -> None:

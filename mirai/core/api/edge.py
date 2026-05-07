@@ -47,12 +47,17 @@ def apply_edge_tool_confirmation_policy(tool_prefix: str, policy: dict | None) -
 def apply_local_tool_confirmation_from_saved_config() -> None:
     cfg = load_saved_model_config()
     names = set(TOOL_REGISTRY.keys())
-    for n in cfg.local_tools_always_allow:
+    always = set(cfg.local_tools_always_allow)
+    for n in always:
         if n in names:
             ALWAYS_ALLOWED_TOOLS.add(n)
     for n in cfg.local_tools_force_confirm:
         if n in names:
             CONFIRMATION_TOOLS.add(n)
+    # Apply per-tool default-confirmation unless the user has explicitly opted into always-allow.
+    for tool_name, entry in TOOL_REGISTRY.items():
+        if entry.get("default_require_confirmation") and tool_name not in always:
+            CONFIRMATION_TOOLS.add(tool_name)
 
 
 def persist_local_tool_confirmation_to_config() -> None:
