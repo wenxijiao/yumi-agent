@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     PENDING_CONFIRMATIONS: dict
     SESSION_LOCKS: dict
     TIMER_TASKS: dict
-    TIMER_SUBSCRIBERS: dict
+    TIMER_SUBSCRIBERS: list[tuple[Any, str | None]]
     bot: Any
     proactive_service: Any
     RELAY_CLIENT: Any

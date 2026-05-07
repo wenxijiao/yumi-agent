@@ -314,6 +314,11 @@ class CleanupMemoryCommand(Command):
 _NON_SERVER_BASE_FLAGS = ("ui", "chat", "edge", "demo", "setup", "config", "cleanup", "cleanup_memory", "tool_routing")
 
 
+def _format_non_server_flag_list() -> str:
+    """Render the flag list as a CLI-formatted slash-joined string."""
+    return "/".join(f"--{flag.replace('_', '-')}" for flag in _NON_SERVER_BASE_FLAGS)
+
+
 def validate_cross_command_flags(args: argparse.Namespace) -> str | None:
     """Reject combinations of flags that span multiple commands.
 
@@ -334,18 +339,17 @@ def validate_cross_command_flags(args: argparse.Namespace) -> str | None:
     ):
         return "Use --edge-tools-limit/--enable-edge-tool-routing/--disable-edge-tool-routing with --tool-routing."
 
+    flag_list = _format_non_server_flag_list()
+
     if getattr(args, "telegram", False) or getattr(args, "line", False):
         if any(getattr(args, flag, False) for flag in _NON_SERVER_BASE_FLAGS):
-            return (
-                "Cannot combine --telegram/--line with --ui/--chat/--edge/--demo/"
-                "--setup/--config/--cleanup/--tool-routing."
-            )
+            return f"Cannot combine --telegram/--line with {flag_list}."
 
     if getattr(args, "voice", False):
-        if any(getattr(args, flag, False) for flag in _NON_SERVER_BASE_FLAGS):
-            return "Cannot combine --voice with --ui/--chat/--edge/--demo/--setup/--config/--cleanup/--tool-routing."
         if getattr(args, "line", False):
             return "Cannot combine --voice with --line."
+        if any(getattr(args, flag, False) for flag in _NON_SERVER_BASE_FLAGS):
+            return f"Cannot combine --voice with {flag_list}."
         if not getattr(args, "server", False):
             return "--voice is a modifier; it must be combined with --server."
     return None

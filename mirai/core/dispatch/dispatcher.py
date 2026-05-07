@@ -125,7 +125,10 @@ class ToolDispatcher:
             if edge_event is not None:
                 events.append(edge_event)
             if edge_inv is not None:
-                ctx.active_edge_tool_names.add(edge_inv.func_name)
+                # active_edge_tool_names becomes "force include in tool schema for the
+                # rest of this turn" (chat_turn.py:367). We add only when the
+                # invocation actually runs — not at prepare-time — so a denied
+                # confirmation does not keep the tool sticky in subsequent loops.
                 invocations.append(edge_inv)
 
         return invocations, events

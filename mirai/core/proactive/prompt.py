@@ -55,14 +55,24 @@ def build_proactive_prompt(
     )
 
 
+_TELEGRAM_PER_PART_LIMIT = 4000
+
+
+def _clamp(part: str) -> str:
+    """Trim each part to Telegram's safe per-message size to avoid 400 errors."""
+    if len(part) <= _TELEGRAM_PER_PART_LIMIT:
+        return part
+    return part[: _TELEGRAM_PER_PART_LIMIT - 3] + "..."
+
+
 def split_proactive_messages(text: str, *, max_parts: int = 3) -> list[str]:
     raw = (text or "").strip()
     if not raw or raw.lower() == "<skip/>":
         return []
     tagged = [m.group(1).strip() for m in _MSG_RE.finditer(raw) if m.group(1).strip()]
     if tagged:
-        return tagged[:max_parts]
+        return [_clamp(p) for p in tagged[:max_parts]]
     chunks = [p.strip() for p in re.split(r"\n\s*\n+", raw) if p.strip()]
     if len(chunks) > 1:
-        return chunks[:max_parts]
-    return [raw]
+        return [_clamp(p) for p in chunks[:max_parts]]
+    return [_clamp(raw)]

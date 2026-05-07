@@ -143,3 +143,19 @@ class OpenAIProvider(BaseLLMProvider):
             return [m.id for m in models.data]
         except Exception:
             return []
+
+    async def shutdown(self, model: str) -> None:
+        """Release the underlying httpx clients so connections / fds don't leak
+        on lifespan teardown or PUT /config/model provider swaps."""
+        client = getattr(self, "_async_client", None)
+        if client is not None:
+            try:
+                await client.close()
+            except Exception:
+                pass
+        sync_client = getattr(self, "_sync_client", None)
+        if sync_client is not None:
+            try:
+                sync_client.close()
+            except Exception:
+                pass

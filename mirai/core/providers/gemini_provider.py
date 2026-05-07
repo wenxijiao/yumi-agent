@@ -486,3 +486,23 @@ class GeminiProvider(BaseLLMProvider):
             return names
         except Exception:
             return []
+
+    async def shutdown(self, model: str) -> None:
+        """Release the underlying genai client (and any httpx connection pool
+        it holds) on lifespan teardown / provider swap."""
+        client = getattr(self, "_client", None)
+        if client is None:
+            return
+        # google-genai exposes either an async close or a context manager;
+        # try the safer paths and fall through silently if the SDK changes.
+        for name in ("aclose", "close"):
+            fn = getattr(client, name, None)
+            if fn is None:
+                continue
+            try:
+                result = fn()
+                if hasattr(result, "__await__"):
+                    await result
+                return
+            except Exception:
+                continue
