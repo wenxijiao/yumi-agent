@@ -353,7 +353,9 @@ def run_server_with_voice() -> None:
     ensure_chat_model_configured(interactive=True)
 
     rows = _server_banner_rows(config)
-    owner = (config.voice_owner_id or os.getenv("USER") or "default").strip() or "default"
+    owner = (
+        config.voice_owner_id or os.getenv("USER") or os.getenv("USERNAME") or "default"
+    ).strip() or "default"
     notes = [
         "Mode: local / LAN (single user)",
         f"Voice: wake-word loop attached (owner={owner}, wake='{config.voice_wake_word}')",
@@ -384,7 +386,9 @@ def run_server_with_telegram_and_voice() -> None:
     ensure_chat_model_configured(interactive=True)
 
     rows = _server_banner_rows(config)
-    owner = (config.voice_owner_id or os.getenv("USER") or "default").strip() or "default"
+    owner = (
+        config.voice_owner_id or os.getenv("USER") or os.getenv("USERNAME") or "default"
+    ).strip() or "default"
     notes = [
         "Mode: local / LAN (single user)",
         "Telegram bot: will start after server is ready",

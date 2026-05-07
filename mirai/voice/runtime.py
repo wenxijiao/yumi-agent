@@ -78,7 +78,16 @@ async def run_voice_session(
     the operator wants (in production: ``voice_dispatch``).
     """
     loop = asyncio.get_running_loop()
-    source.start()
+    try:
+        source.start()
+    except Exception:
+        # Source.start() may fail before any resource is held; still close the wake detector
+        # so the Porcupine native handle isn't leaked for the rest of the process lifetime.
+        try:
+            wake.close()
+        except Exception:
+            pass
+        raise
     logger.info("voice: listening (sample_rate=%d, frame_length=%d)", source.sample_rate, source.frame_length)
     collecting = False
     try:
@@ -130,18 +139,26 @@ def build_voice_components(cfg) -> tuple[AudioSource, WakeDetector, UtteranceCol
         keyword_path=cfg.voice_porcupine_keyword_path,
         sensitivity=cfg.voice_porcupine_sensitivity,
     )
-    source = SoundDeviceSource(
-        sample_rate=wake.sample_rate,
-        frame_length=wake.frame_length,
-        device=cfg.voice_input_device,
-    )
-    collector = UtteranceCollector(
-        sample_rate=wake.sample_rate,
-        frame_length=wake.frame_length,
-        silence_ms=cfg.voice_silence_ms,
-        max_ms=cfg.voice_max_utterance_ms,
-    )
-    vad_backend = _VadBackend(cfg.voice_vad_aggressiveness)
+    try:
+        source = SoundDeviceSource(
+            sample_rate=wake.sample_rate,
+            frame_length=wake.frame_length,
+            device=cfg.voice_input_device,
+        )
+        collector = UtteranceCollector(
+            sample_rate=wake.sample_rate,
+            frame_length=wake.frame_length,
+            silence_ms=cfg.voice_silence_ms,
+            max_ms=cfg.voice_max_utterance_ms,
+        )
+        vad_backend = _VadBackend(cfg.voice_vad_aggressiveness)
+    except Exception:
+        # Release the Porcupine native handle if downstream construction failed.
+        try:
+            wake.close()
+        except Exception:
+            pass
+        raise
 
     def is_speech(frame: bytes, sample_rate: int) -> bool:
         # webrtcvad needs exactly 10/20/30 ms frames. Slice the Porcupine block
@@ -165,11 +182,12 @@ async def start_voice_loop(
     dispatch: DispatchFn,
     cfg=None,
     stop_event: asyncio.Event | None = None,
-) -> tuple[asyncio.Task, asyncio.Event]:
+) -> tuple[asyncio.Task, asyncio.Event, AudioSource]:
     """Build voice components from config, kick off the loop as a background task.
 
-    Returns ``(task, stop_event)`` so the caller (lifespan) can signal
-    shutdown by setting the event and awaiting the task.
+    Returns ``(task, stop_event, source)``. The caller (lifespan) signals
+    shutdown by setting the event AND calling ``source.stop()`` so the
+    blocking ``read_frame`` in the executor returns promptly.
     """
     if cfg is None:
         from mirai.core.config import load_model_config
@@ -190,4 +208,4 @@ async def start_voice_loop(
         )
 
     task = asyncio.create_task(_run(), name=f"voice_loop:{owner_id}")
-    return task, stop
+    return task, stop, source
