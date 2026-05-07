@@ -92,7 +92,11 @@ class OpenAIProvider(BaseLLMProvider):
 
             if delta.tool_calls:
                 for tc in delta.tool_calls:
-                    idx = tc.index
+                    # Some OpenAI-compatible servers (older Azure deployments,
+                    # some self-hosted vLLM builds) emit ``index = None``.
+                    # Mixing ``int`` and ``None`` keys would crash the
+                    # ``sorted(...)`` below, so backfill with the next slot.
+                    idx = tc.index if tc.index is not None else len(collected_tool_calls)
                     if idx not in collected_tool_calls:
                         collected_tool_calls[idx] = {
                             "function": {"name": "", "arguments": ""},

@@ -141,6 +141,16 @@ class MiraiBot:
                         else:
                             full_response += segment
                             yield {"type": "text", "content": segment}
+            # Drain any text the parser was holding back while waiting for a
+            # possible tag completion that never arrived.
+            for kind, segment in parser.flush():
+                if kind == "thought":
+                    if use_think:
+                        full_thought += segment
+                    yield {"type": "thought", "content": segment}
+                else:
+                    full_response += segment
+                    yield {"type": "text", "content": segment}
 
         try:
             async for chunk in _consume_stream(messages):
