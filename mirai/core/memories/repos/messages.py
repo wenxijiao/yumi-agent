@@ -188,7 +188,10 @@ class MessageRepository:
             return []
         if not self.table_exists():
             return []
-        quoted = ",".join("'" + str(s).replace("'", "''") + "'" for s in session_ids)
+        # Use the backend's escape_where_value so backslashes and other Lance-special
+        # characters are escaped consistently with build_where_clause everywhere else.
+        escape = self.backend.escape_where_value
+        quoted = ",".join("'" + escape(str(s)) + "'" for s in session_ids)
         where = f"session_id IN ({quoted})"
         table = self.open_table()
         try:

@@ -74,14 +74,18 @@ class ToolObservationRepository:
         return self.serialize(row)
 
     def list(self, session_id: str | None = None, limit: int = 50) -> list[dict]:
+        # Push the session filter into LanceDB before applying the row limit;
+        # otherwise the global most-recent N rows are taken first and the
+        # session filter trims them in Python, silently dropping older but
+        # session-matching rows.
+        where_clause = self.backend.build_where_clause("session_id", session_id) if session_id is not None else None
         rows = query_rows(
             _BackendAdapter(self.backend),
             self.TABLE_NAME,
             ordering_field_name="timestamp_num",
+            where_clause=where_clause,
             limit=limit,
         )
-        if session_id is not None:
-            rows = [row for row in rows if str(row.get("session_id") or "") == session_id]
         rows.sort(key=lambda row: int(row.get("timestamp_num") or 0), reverse=True)
         return [self.serialize(row) for row in rows[:limit]]
 

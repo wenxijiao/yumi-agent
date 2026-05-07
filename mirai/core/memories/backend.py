@@ -60,7 +60,10 @@ class LanceDBBackend:
 
     @staticmethod
     def format_timestamp() -> str:
-        return datetime.now().strftime("%Y-%m-%d %H:%M:%S %A")
+        # Produce UTC so parse_timestamp_num — which interprets the string as UTC —
+        # round-trips correctly. Prompt-side displays format the timestamp_num
+        # number with the user's tz, so the human-facing wall clock is unaffected.
+        return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S %A")
 
     @staticmethod
     def current_timestamp_num() -> int:

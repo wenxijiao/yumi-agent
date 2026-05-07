@@ -7,15 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
+### Security
 
-- Chat **`[Current Time]`** and proactive context clocks honor **`local_timezone`** (IANA) instead of showing raw UTC when the server runs in UTC (e.g. Docker). When unset, they use the host OS local timezone.
+- `~/.mirai/config.json` is now written atomically with `0o600` and the parent
+  directory chmod'd to `0o700` so cloud API keys, Telegram/LINE tokens, the
+  Picovoice access key, and `lan_secret` aren't readable by other local users.
+- Built-in `read_file` / `list_files` tools default to **require_confirmation**
+  (opt out via `local_tools_always_allow`) and reject paths inside `~/.ssh`,
+  `~/.aws`, `~/.gnupg`, `~/.mirai`, plus `*.pem` / `*.key` / `id_rsa*` /
+  `authorized_keys` / `credentials` files. Mitigates prompt-injection from
+  uploaded data trying to exfiltrate local secrets.
+- `MIRAI_CORS_ORIGINS=*` combined with `_ALLOW_CREDENTIALS=true` now raises at
+  startup rather than silently demoting credentials.
+- Provider exception text on `PUT /config/model` failure is logged
+  server-side; the HTTP response now carries a generic hint so SDK error
+  bodies (which can include URLs / partial credentials) don't leak.
 
 ### Added
 
+- **Microphone wake-word voice mode**: `mirai --server --voice` (composable
+  with `--telegram`) attaches a Picovoice + faster-whisper loop. New optional
+  extras: `[voice]` (sounddevice + webrtcvad + pvporcupine) and `[stt]`
+  (faster-whisper). New config keys: `voice_owner_id`,
+  `voice_porcupine_access_key`, `voice_porcupine_keyword_path`,
+  `voice_porcupine_sensitivity`, `voice_input_device`, `voice_silence_ms`,
+  `voice_max_utterance_ms`, `voice_vad_aggressiveness`, `voice_wake_word`.
+  Environment: `MIRAI_VOICE_ENABLED`, `MIRAI_VOICE_OWNER_ID`, `PV_ACCESS_KEY`.
 - **Proactive messaging modes**: `proactive_mode` (`off` | `smart` | `scheduled`) with `proactive_schedule_times`, `proactive_schedule_interval_minutes`, and `proactive_schedule_require_idle`. Legacy JSON without `proactive_mode` derives mode from `proactive_enabled`; `proactive_enabled` is still saved and synced from mode on load. Environment: `MIRAI_PROACTIVE_MODE`, `MIRAI_PROACTIVE_SCHEDULE_TIMES`, `MIRAI_PROACTIVE_SCHEDULE_INTERVAL_MINUTES`, `MIRAI_PROACTIVE_SCHEDULE_REQUIRE_IDLE`.
 - **`local_timezone`** in `config.json`: IANA zone for user-facing wall time (chat clock, proactive context, proactive quiet hours, proactive daily limit calendar). Legacy JSON key `proactive_quiet_hours_timezone` is still read on load; prefer **`MIRAI_LOCAL_TIMEZONE`** over `MIRAI_PROACTIVE_QUIET_HOURS_TIMEZONE` at runtime.
 - Proactive messaging: `proactive_check_interval_jitter_ratio`, `proactive_unreplied_escalation_jitter_ratio`, and `proactive_check_in_probability` for less rigid scheduling; matching `MIRAI_PROACTIVE_*` environment variables.
+
+### Fixed
+
+- Chat **`[Current Time]`** and proactive context clocks honor **`local_timezone`** (IANA) instead of showing raw UTC when the server runs in UTC (e.g. Docker). When unset, they use the host OS local timezone.
+- LINE webhook handler now ACKs 200 within LINE's ~1s retry window: signature
+  verification stays in the request path, but chat-turn execution runs in a
+  background task. Eliminates duplicate user messages under load.
+- `<thinking>` / `<redacted_thinking>` parser holds back trailing `<` so a tag
+  split across stream chunks is no longer leaked as visible text.
+- Memory `list()` (observations + long_term) now pushes the `session_id`
+  filter into the `WHERE` clause before applying `LIMIT`; busy multi-session
+  DBs no longer silently drop matching rows.
+- `LanceDBBackend.format_timestamp` now produces UTC so it round-trips with
+  `parse_timestamp_num` (which has always interpreted the string as UTC).
+- OpenAI streaming tool-call delta with `index=None` (older Azure / some
+  vLLM builds) no longer crashes the chunk collector.
+- Proactive scheduler releases the session lock before sending so a real
+  user message isn't blocked behind LLM generation + inter-message delays;
+  `record_sent` uses the actual send-start time, not the pre-LLM time.
+- Voice loop no longer leaks the Porcupine native handle when audio source
+  init fails; lifespan shutdown stops the source so the blocking executor
+  read returns immediately instead of leaving a zombie thread.
+- Whisper provider lazy `_load_model` is now lock-guarded so two concurrent
+  first transcriptions don't both download/load the model.
 
 ## [0.2.0] - 2026-04-20
 

@@ -111,20 +111,29 @@ async def lifespan(app: FastAPI):
 
     voice_task: asyncio.Task | None = None
     voice_stop: asyncio.Event | None = None
+    voice_source = None
+    voice_warm_task: asyncio.Task | None = None
     if (os.environ.get("MIRAI_VOICE_ENABLED") or "").strip() == "1":
         try:
             from mirai.voice.dispatch import voice_dispatch
             from mirai.voice.runtime import _warm_whisper_once, start_voice_loop
 
             voice_owner = (
-                os.environ.get("MIRAI_VOICE_OWNER_ID") or config.voice_owner_id or os.getenv("USER") or "default"
+                os.environ.get("MIRAI_VOICE_OWNER_ID")
+                or config.voice_owner_id
+                or os.getenv("USER")
+                or os.getenv("USERNAME")
+                or "default"
             ).strip() or "default"
-            await _warm_whisper_once()
+            # Warm Whisper off the lifespan critical path so /health (and dependent waiters
+            # in the CLI) come up promptly even on cold installs.
+            voice_warm_task = asyncio.create_task(_warm_whisper_once(), name="voice_warm_whisper")
+            log_task_exc_on_done(voice_warm_task, "voice_warm_whisper")
 
             async def _dispatch(text: str, _owner: str = voice_owner) -> None:
                 await voice_dispatch(text, owner_id=_owner)
 
-            voice_task, voice_stop = await start_voice_loop(
+            voice_task, voice_stop, voice_source = await start_voice_loop(
                 owner_id=voice_owner,
                 dispatch=_dispatch,
                 cfg=config,
@@ -135,6 +144,7 @@ async def lifespan(app: FastAPI):
             logger.warning("Voice loop failed to start: %s", exc)
             voice_task = None
             voice_stop = None
+            voice_source = None
 
     yield
 
@@ -142,9 +152,21 @@ async def lifespan(app: FastAPI):
     if voice_task is not None:
         if voice_stop is not None:
             voice_stop.set()
+        # Stop the audio source first so the blocking executor read returns
+        # immediately; otherwise voice_task.cancel() leaves a zombie thread
+        # holding the mic until process exit.
+        if voice_source is not None:
+            try:
+                voice_source.stop()
+            except Exception:
+                pass
         voice_task.cancel()
         with contextlib.suppress(asyncio.CancelledError, Exception):
             await voice_task
+    if voice_warm_task is not None and not voice_warm_task.done():
+        voice_warm_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError, Exception):
+            await voice_warm_task
     if _state.RELAY_CLIENT is not None:
         try:
             await _state.RELAY_CLIENT.stop()

@@ -109,7 +109,15 @@ class LongTermMemoryRepository:
         return self.serialize(row)
 
     def list(self, kind: str | None = None, session_id: str | None = None, limit: int = 50) -> list[dict]:
-        where_clause = self.backend.build_where_clause("kind", kind.strip().lower()) if kind else None
+        clauses: list[str] = []
+        if kind:
+            clauses.append(self.backend.build_where_clause("kind", kind.strip().lower()))
+        if session_id is not None:
+            # Push the session filter into LanceDB before applying limit, otherwise
+            # the global most-recent N rows are taken first and a busy DB silently
+            # drops older but session-matching rows.
+            clauses.append(self.backend.build_where_clause("session_id", session_id))
+        where_clause = " AND ".join(clauses) if clauses else None
         rows = query_rows(
             self._memory_facade(),
             self.TABLE_NAME,
@@ -117,8 +125,6 @@ class LongTermMemoryRepository:
             where_clause=where_clause,
             limit=limit,
         )
-        if session_id is not None:
-            rows = [row for row in rows if str(row.get("session_id") or "") == session_id]
         rows.sort(key=lambda row: int(row.get("updated_at_num") or 0), reverse=True)
         return [self.serialize(row) for row in rows[:limit]]
 

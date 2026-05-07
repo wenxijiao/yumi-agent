@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 
 import uvicorn
 from fastapi import FastAPI, Request, Response
 
+from mirai.core.api.task_logging import log_task_exc_on_done
 from mirai.core.config.line import get_line_bot_port, get_line_channel_secret
 from mirai.logging_config import configure_logging, get_logger
 
@@ -15,6 +17,9 @@ _LOG = get_logger(__name__)
 
 def build_line_app() -> FastAPI:
     app = FastAPI(title="Mirai LINE webhook")
+    # Hold strong refs so background tasks aren't GC'd between webhook calls.
+    pending_tasks: set[asyncio.Task] = set()
+    app.state.line_pending_tasks = pending_tasks
 
     @app.get("/health")
     async def health():
@@ -26,16 +31,22 @@ def build_line_app() -> FastAPI:
             return Response(status_code=503, content="LINE not configured")
         body = await request.body()
         sig = request.headers.get("X-Line-Signature")
-        from mirai.line.handlers import dispatch_line_webhook
+        from mirai.line.handlers import process_line_events, verify_and_parse_line_webhook
 
         try:
-            await dispatch_line_webhook(body, sig, use_http=True)
+            events, line_client = verify_and_parse_line_webhook(body, sig)
         except PermissionError:
             return Response(status_code=401, content="invalid signature")
         except ValueError as exc:
             return Response(status_code=400, content=str(exc)[:500])
         except RuntimeError as exc:
             return Response(status_code=503, content=str(exc)[:500])
+
+        if events:
+            task = asyncio.create_task(process_line_events(events, line_client, use_http=True))
+            pending_tasks.add(task)
+            task.add_done_callback(pending_tasks.discard)
+            log_task_exc_on_done(task, "line_webhook")
         return Response(status_code=200)
 
     return app

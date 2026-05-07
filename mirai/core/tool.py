@@ -137,6 +137,7 @@ def register_tool(
     proactive_context: bool = False,
     proactive_context_args: Dict[str, Any] | None = None,
     proactive_context_description: str | None = None,
+    default_require_confirmation: bool = False,
 ) -> None:
     """Register a plain function as a Mirai tool (non-decorator API).
 
@@ -155,6 +156,10 @@ def register_tool(
         proactive_context: If True, call this tool before proactive generation and inject the result as context.
         proactive_context_args: Fixed arguments used for proactive context calls.
         proactive_context_description: Label for the injected proactive context line.
+        default_require_confirmation: If True, the tool is added to the runtime confirmation set on
+            startup unless the user has explicitly opted into ``local_tools_always_allow``. Use this
+            for tools whose blast radius (filesystem reads, network mutations) warrants prompt
+            injection defense by default.
     """
     schema = _build_tool_schema(
         func,
@@ -175,6 +180,7 @@ def register_tool(
         "proactive_context": proactive_context,
         "proactive_context_args": proactive_context_args,
         "proactive_context_description": proactive_context_description,
+        "default_require_confirmation": default_require_confirmation,
     }
 
 

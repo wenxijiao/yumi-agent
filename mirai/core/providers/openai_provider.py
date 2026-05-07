@@ -92,7 +92,11 @@ class OpenAIProvider(BaseLLMProvider):
 
             if delta.tool_calls:
                 for tc in delta.tool_calls:
-                    idx = tc.index
+                    # Some OpenAI-compatible servers (older Azure deployments,
+                    # some self-hosted vLLM builds) emit ``index = None``.
+                    # Mixing ``int`` and ``None`` keys would crash the
+                    # ``sorted(...)`` below, so backfill with the next slot.
+                    idx = tc.index if tc.index is not None else len(collected_tool_calls)
                     if idx not in collected_tool_calls:
                         collected_tool_calls[idx] = {
                             "function": {"name": "", "arguments": ""},
@@ -139,3 +143,19 @@ class OpenAIProvider(BaseLLMProvider):
             return [m.id for m in models.data]
         except Exception:
             return []
+
+    async def shutdown(self, model: str) -> None:
+        """Release the underlying httpx clients so connections / fds don't leak
+        on lifespan teardown or PUT /config/model provider swaps."""
+        client = getattr(self, "_async_client", None)
+        if client is not None:
+            try:
+                await client.close()
+            except Exception:
+                pass
+        sync_client = getattr(self, "_sync_client", None)
+        if sync_client is not None:
+            try:
+                sync_client.close()
+            except Exception:
+                pass

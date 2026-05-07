@@ -92,6 +92,7 @@ def init_mirai() -> None:
             ),
         },
         returns="The text content extracted from the file",
+        default_require_confirmation=True,
     )
 
     register_tool(
@@ -110,6 +111,7 @@ def init_mirai() -> None:
             ),
         },
         returns="A list of files in the directory with sizes",
+        default_require_confirmation=True,
     )
 
     # ── web tools ──

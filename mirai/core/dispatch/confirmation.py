@@ -49,10 +49,18 @@ class ConfirmationGate:
         policy = self.runtime.tool_policy
         registry = self.runtime.edge_registry.tools
 
+        def _approved(inv: ToolInvocation) -> ToolInvocation:
+            # Mark the edge tool as "force-include in subsequent loops" only when
+            # confirmation actually granted it — not at prepare-time, otherwise a
+            # denied tool would stay sticky in the schema for the rest of the turn.
+            if inv.kind == "edge":
+                ctx.active_edge_tool_names.add(inv.func_name)
+            return inv
+
         for inv in invocations:
             fn = inv.func_name
             if fn in policy.always_allowed_tools:
-                yield None, inv
+                yield None, _approved(inv)
                 continue
 
             edge_requires = False
@@ -62,7 +70,7 @@ class ConfirmationGate:
                     edge_requires = bool(edge_meta.get("require_confirmation"))
             needs_confirm = fn in policy.confirmation_tools or edge_requires
             if not needs_confirm:
-                yield None, inv
+                yield None, _approved(inv)
                 continue
 
             confirm_id = str(uuid.uuid4())
@@ -122,7 +130,7 @@ class ConfirmationGate:
             if decision == "always_allow":
                 await self._mark_always_allowed(inv)
 
-            yield None, inv
+            yield None, _approved(inv)
 
     async def _mark_always_allowed(self, inv: ToolInvocation) -> None:
         """Persist an ``always_allow`` decision so the user isn't asked again."""

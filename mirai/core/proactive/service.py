@@ -85,14 +85,17 @@ class ProactiveMessageService:
 
         lock = get_session_lock(session_id)
         async with lock:
-            # Re-check after acquiring the session lock in case a normal chat turn updated state.
+            # Re-check after acquiring the session lock with a fresh "now" in case a
+            # normal chat turn raced ahead and updated state between the pre-lock peek
+            # and acquisition.
+            now_locked = datetime.now(timezone.utc)
             state = self.state_store.get(session_id)
-            decision = decide_proactive_send(cfg, state, now=now, rng=random.Random())
+            decision = decide_proactive_send(cfg, state, now=now_locked, rng=random.Random())
             if not decision.should_send:
                 return
 
             context = await proactive_context_lines()
-            prompt = build_proactive_prompt(cfg, state, decision, now=now, context_lines=context)
+            prompt = build_proactive_prompt(cfg, state, decision, now=now_locked, context_lines=context)
             text = await self._generate_text(session_id=session_id, prompt=prompt)
             interaction = None
             if (cfg.proactive_mode or "").strip().lower() == "smart":
@@ -101,29 +104,35 @@ class ProactiveMessageService:
             if not parts:
                 return
 
-            from mirai.telegram.notify import send_text_to_telegram
+        # Release the session lock before sending — Telegram delivery + the
+        # inter-part sleeps add seconds, and a real user message arriving on
+        # the same session would otherwise be blocked behind us. Record the
+        # send first (with a fresh "now") so daily-limit accounting reflects
+        # actual send time, not the LLM-generation start time.
+        from mirai.telegram.notify import send_text_to_telegram
 
-            sent_any = False
-            for idx, part in enumerate(parts):
-                if idx:
-                    if interaction and interaction.state in ("waiting", "light_nudge"):
-                        delay = random.uniform(1.4, 3.4)
-                    elif interaction and interaction.state in ("reserved", "give_space"):
-                        delay = random.uniform(0.9, 1.4)
-                    else:
-                        delay = random.uniform(0.7, 1.8)
-                    await asyncio.sleep(delay)
-                sent = await send_text_to_telegram(session_id, part)
-                sent_any = sent_any or sent
-            if sent_any:
-                self.bot.session_memory(session_id).add_message("assistant", "\n\n".join(parts))
-                self.state_store.record_sent(
-                    session_id,
-                    trigger=decision.trigger or "check_in",
-                    at=now,
-                    scheduled_slot_key=decision.scheduled_slot_key,
-                    mark_scheduled_interval=decision.mark_scheduled_interval,
-                )
+        send_started_at = datetime.now(timezone.utc)
+        sent_any = False
+        for idx, part in enumerate(parts):
+            if idx:
+                if interaction and interaction.state in ("waiting", "light_nudge"):
+                    delay = random.uniform(1.4, 3.4)
+                elif interaction and interaction.state in ("reserved", "give_space"):
+                    delay = random.uniform(0.9, 1.4)
+                else:
+                    delay = random.uniform(0.7, 1.8)
+                await asyncio.sleep(delay)
+            sent = await send_text_to_telegram(session_id, part)
+            sent_any = sent_any or sent
+        if sent_any:
+            self.bot.session_memory(session_id).add_message("assistant", "\n\n".join(parts))
+            self.state_store.record_sent(
+                session_id,
+                trigger=decision.trigger or "check_in",
+                at=send_started_at,
+                scheduled_slot_key=decision.scheduled_slot_key,
+                mark_scheduled_interval=decision.mark_scheduled_interval,
+            )
 
     async def _generate_text(self, *, session_id: str, prompt: str) -> str:
         memory = self.bot.session_memory(session_id)
