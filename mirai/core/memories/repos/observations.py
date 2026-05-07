@@ -78,11 +78,7 @@ class ToolObservationRepository:
         # otherwise the global most-recent N rows are taken first and the
         # session filter trims them in Python, silently dropping older but
         # session-matching rows.
-        where_clause = (
-            self.backend.build_where_clause("session_id", session_id)
-            if session_id is not None
-            else None
-        )
+        where_clause = self.backend.build_where_clause("session_id", session_id) if session_id is not None else None
         rows = query_rows(
             _BackendAdapter(self.backend),
             self.TABLE_NAME,

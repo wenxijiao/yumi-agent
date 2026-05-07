@@ -1,7 +1,6 @@
 """CORS configuration helpers for core and Relay apps."""
 
 import pytest
-
 from mirai.core.http_config import DEFAULT_LOCAL_BROWSER_ORIGINS, get_cors_settings
 
 

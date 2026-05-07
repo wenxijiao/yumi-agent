@@ -473,9 +473,7 @@ class Memory:
         lowered = normalized_query.lower()
         # Scope the lexical fallback to the current session so memories from
         # unrelated chats don't bleed into this turn's prompt.
-        session_clause = (
-            self.backend.build_where_clause("session_id", self.session_id) if self.session_id else None
-        )
+        session_clause = self.backend.build_where_clause("session_id", self.session_id) if self.session_id else None
         all_rows = query_rows(
             _BackendAdapter(self.backend),
             table_name,
