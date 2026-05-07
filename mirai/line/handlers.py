@@ -10,7 +10,6 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
-import os
 import uuid
 from collections.abc import AsyncIterator
 from typing import Any
@@ -860,12 +859,15 @@ async def handle_line_postback_event(
         return
 
 
-async def dispatch_line_webhook(
+def verify_and_parse_line_webhook(
     body: bytes,
     x_line_signature: str | None,
-    *,
-    use_http: bool,
-) -> None:
+) -> tuple[list[dict], LineMessagingClient]:
+    """Verify the LINE signature and parse the body. Cheap, synchronous, fail-fast.
+
+    Raises PermissionError on bad signature, ValueError on bad JSON,
+    RuntimeError when LINE secret is not configured.
+    """
     from mirai.core.config.line import get_line_channel_access_token, get_line_channel_secret
 
     secret = get_line_channel_secret()
@@ -884,12 +886,22 @@ async def dispatch_line_webhook(
 
     events = payload.get("events") or []
     if not isinstance(events, list):
-        return
+        return [], LineMessagingClient(token or "")
+    return [e for e in events if isinstance(e, dict)], LineMessagingClient(token or "")
 
-    line_client = LineMessagingClient(token or "")
+
+async def process_line_events(
+    events: list[dict],
+    line_client: LineMessagingClient,
+    *,
+    use_http: bool,
+) -> None:
+    """Run the full chat turn for each LINE event. Caller schedules this off the request path
+    so we can return 200 within LINE's ~1s retry window."""
+    from mirai.logging_config import get_logger
+
+    log = get_logger(__name__)
     for event in events:
-        if not isinstance(event, dict):
-            continue
         et = event.get("type")
         try:
             if et == "message":
@@ -909,10 +921,24 @@ async def dispatch_line_webhook(
                     except Exception:
                         pass
         except Exception:
-            from mirai.logging_config import get_logger
-
-            get_logger(__name__).exception("LINE event handler error")
+            log.exception("LINE event handler error")
 
 
-# silence unused-import lint while keeping the symbol importable for enterprise overrides
-_ = (DEFAULT_LOCAL_SERVER_URL, os)
+async def dispatch_line_webhook(
+    body: bytes,
+    x_line_signature: str | None,
+    *,
+    use_http: bool,
+) -> None:
+    """Synchronous variant kept for back-compat: verify + run events inline."""
+    events, line_client = verify_and_parse_line_webhook(body, x_line_signature)
+    await process_line_events(events, line_client, use_http=use_http)
+
+
+# Re-exported for enterprise overrides that import them by name.
+__all__ = (
+    "dispatch_line_webhook",
+    "verify_and_parse_line_webhook",
+    "process_line_events",
+    "DEFAULT_LOCAL_SERVER_URL",
+)

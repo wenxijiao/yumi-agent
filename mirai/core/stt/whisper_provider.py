@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import tempfile
+import threading
 from pathlib import Path
 
 from mirai.core.config.paths import CONFIG_DIR
@@ -131,31 +132,43 @@ class WhisperSttProvider(SpeechToTextProvider):
         self.model_dir = Path(model_dir).expanduser() if model_dir else CONFIG_DIR / "models" / "whisper"
         self.language = (language or "auto").strip()
         self._model = None
+        # Guard concurrent first-time loads — otherwise two transcriptions racing
+        # the cold path would each run the download/load and double RAM.
+        self._load_lock = threading.Lock()
 
     def _load_model(self):
         if self._model is not None:
             return self._model
-        try:
-            from faster_whisper import WhisperModel
-            from huggingface_hub import get_token
-        except ImportError as exc:
-            raise SttError("faster-whisper is not importable. Install it with: pip install 'mirai-agent[stt]'") from exc
-        self.model_dir.mkdir(parents=True, exist_ok=True)
-        try:
-            hf_token = get_token()
-            self._model = WhisperModel(
-                _FASTER_WHISPER_MODEL_IDS.get(self.model_name, self.model_name),
-                device="auto",
-                compute_type="auto",
-                download_root=str(self.model_dir),
-                use_auth_token=hf_token,
-            )
-        except Exception as exc:
-            raise SttError(f"Failed to load Whisper model '{self.model_name}': {exc}") from exc
-        return self._model
+        with self._load_lock:
+            if self._model is not None:
+                return self._model
+            try:
+                from faster_whisper import WhisperModel
+                from huggingface_hub import get_token
+            except ImportError as exc:
+                raise SttError(
+                    "faster-whisper is not importable. Install it with: pip install 'mirai-agent[stt]'"
+                ) from exc
+            self.model_dir.mkdir(parents=True, exist_ok=True)
+            try:
+                hf_token = get_token()
+                self._model = WhisperModel(
+                    _FASTER_WHISPER_MODEL_IDS.get(self.model_name, self.model_name),
+                    device="auto",
+                    compute_type="auto",
+                    download_root=str(self.model_dir),
+                    use_auth_token=hf_token,
+                )
+            except Exception as exc:
+                raise SttError(f"Failed to load Whisper model '{self.model_name}': {exc}") from exc
+            return self._model
 
     def _transcribe_sync(self, audio: bytes, *, filename: str, language: str | None) -> TranscriptionResult:
-        suffix = Path(filename or "audio").suffix or ".bin"
+        # Allowlist suffixes so a user-controlled filename can't put arbitrary
+        # text in the temp file name (e.g. ".exe").
+        raw_suffix = Path(filename or "audio").suffix.lower()
+        allowed = {".wav", ".mp3", ".ogg", ".m4a", ".flac", ".aac", ".webm"}
+        suffix = raw_suffix if raw_suffix in allowed else ".bin"
         tmp_path = ""
         with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
             tmp.write(audio)
