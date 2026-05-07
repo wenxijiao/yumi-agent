@@ -471,12 +471,18 @@ class Memory:
             return rows
 
         lowered = normalized_query.lower()
+        # Scope the lexical fallback to the current session so memories from
+        # unrelated chats don't bleed into this turn's prompt.
+        session_clause = (
+            self.backend.build_where_clause("session_id", self.session_id) if self.session_id else None
+        )
         all_rows = query_rows(
             _BackendAdapter(self.backend),
             table_name,
             ordering_field_name=(
                 "updated_at_num" if table_name != self.tool_observation_table_name else "timestamp_num"
             ),
+            where_clause=session_clause,
         )
         from mirai.core.memories.retrieval import keyword_score
 

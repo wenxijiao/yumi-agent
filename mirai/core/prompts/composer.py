@@ -58,7 +58,8 @@ _MIME_MAP = {
     ".tif": "image/tiff",
     ".ico": "image/x-icon",
 }
-_MAX_INLINE_IMAGE_BYTES = 20 * 1024 * 1024
+_MAX_INLINE_IMAGE_BYTES = 4 * 1024 * 1024
+_MAX_INLINE_IMAGES_TOTAL_BYTES = 8 * 1024 * 1024
 
 _UPLOAD_IMAGE_PATH_RE = re.compile(
     r"(/[^\s\n]+?\.mirai/uploads/[^\s\n]+\.(?:png|jpg|jpeg|gif|webp|bmp|tiff|tif|ico))",
@@ -103,6 +104,7 @@ def _inline_uploaded_images(messages: list[dict], *, vision_supported: bool = Tr
             continue
 
         valid_images: list[tuple[str, str, str]] = []
+        total_bytes = 0
         for path_str in image_paths:
             try:
                 p = Path(path_str).expanduser().resolve()
@@ -110,7 +112,11 @@ def _inline_uploaded_images(messages: list[dict], *, vision_supported: bool = Tr
                     continue
                 if not p.exists() or not p.is_file():
                     continue
-                if p.stat().st_size > _MAX_INLINE_IMAGE_BYTES:
+                size = p.stat().st_size
+                if size > _MAX_INLINE_IMAGE_BYTES:
+                    continue
+                if total_bytes + size > _MAX_INLINE_IMAGES_TOTAL_BYTES:
+                    # Skip remaining images for this turn rather than blowing the model context.
                     continue
                 ext = p.suffix.lower()
                 if ext not in _IMAGE_EXTENSIONS:
@@ -119,6 +125,7 @@ def _inline_uploaded_images(messages: list[dict], *, vision_supported: bool = Tr
                 b64 = base64.standard_b64encode(data).decode("ascii")
                 mime = _MIME_MAP.get(ext, "image/png")
                 valid_images.append((path_str, b64, mime))
+                total_bytes += size
             except Exception:
                 continue
 
