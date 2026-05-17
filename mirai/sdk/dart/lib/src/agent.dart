@@ -24,8 +24,7 @@ class MiraiAgent {
     loadEnvFile(envPath);
     _policyBaseDir = File(envPath).parent.path;
 
-    _connectionCode = opts.connectionCode ?? '';
-    var cc = _connectionCode;
+    var cc = opts.connectionCode ?? '';
     if (cc.isEmpty) cc = miraiEnv('MIRAI_CONNECTION_CODE');
     if (cc.isEmpty) cc = miraiEnv('BRAIN_URL');
     _connectionCode = cc;

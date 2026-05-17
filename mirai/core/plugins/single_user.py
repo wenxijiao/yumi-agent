@@ -175,6 +175,12 @@ class FlatEdgeScope:
                     out.append(entry["schema"])
         return out
 
+    def on_edge_register(self, connection_key: str, auth_msg: dict) -> None:  # noqa: ARG002
+        return None
+
+    def on_edge_disconnect(self, connection_key: str) -> None:  # noqa: ARG002
+        return None
+
 
 class LoggingAuditSink:
     def event(self, event: str, user_id: str | None = None, **fields: object) -> None:

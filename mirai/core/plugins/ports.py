@@ -104,7 +104,13 @@ class MemoryFactory(Protocol):
 
 @runtime_checkable
 class EdgeScope(Protocol):
-    """Edge connection key / tool prefix scoping (per-user in MT, plain in OSS)."""
+    """Edge connection key / tool prefix scoping (per-user in MT, plain in OSS).
+
+    The two lifecycle hooks (``on_edge_register`` / ``on_edge_disconnect``) let
+    enterprise plugins observe the WebSocket lifecycle without changing the
+    OSS edge protocol or message shapes. The OSS calls them at the natural
+    points in ``handle_edge_peer``; the default implementations do nothing.
+    """
 
     def connection_key(self, owner_user_id: str | None, edge_name: str) -> str: ...
     def tool_register_prefix(self, owner_user_id: str | None, edge_name: str) -> str: ...
@@ -114,6 +120,16 @@ class EdgeScope(Protocol):
         registry: dict[str, dict],
         disabled: set[str],
     ) -> list: ...
+
+    def on_edge_register(self, connection_key: str, auth_msg: dict) -> None:
+        """Called once after a successful edge register handshake.
+
+        ``auth_msg`` is the raw register payload (``edge_name``, ``tools``,
+        ``access_token``, etc.). Default: no-op.
+        """
+
+    def on_edge_disconnect(self, connection_key: str) -> None:
+        """Called when an edge connection is being torn down. Default: no-op."""
 
 
 @runtime_checkable

@@ -17,6 +17,7 @@ from mirai.core.api.state import (
     parse_edge_connection_key,
 )
 from mirai.core.config import load_saved_model_config, save_model_config
+from mirai.core.plugins import get_edge_scope
 from mirai.core.tool import TOOL_REGISTRY
 
 # ── edge tool confirmation helpers ──
@@ -113,6 +114,10 @@ def cleanup_edge_connection(connection_key: str, peer):
     if ACTIVE_CONNECTIONS.get(connection_key) is peer:
         del ACTIVE_CONNECTIONS[connection_key]
         EDGE_TOOLS_REGISTRY.pop(connection_key, None)
+        try:
+            get_edge_scope().on_edge_disconnect(connection_key)
+        except Exception as exc:
+            logger.debug("EdgeScope.on_edge_disconnect raised: %s", exc)
 
     for call_id, pending in list(PENDING_TOOL_CALLS.items()):
         if pending["edge_name"] != connection_key or pending["peer"] is not peer:
@@ -202,6 +207,11 @@ async def handle_edge_peer(peer):
             tool_prefix,
             auth_msg.get("tool_confirmation_policy"),
         )
+
+        try:
+            get_edge_scope().on_edge_register(connection_key, auth_msg)
+        except Exception as exc:
+            logger.debug("EdgeScope.on_edge_register raised: %s", exc)
 
         logger.info("Edge connected: device [%s] with %s mounted tools.", edge_name, len(tools))
 
