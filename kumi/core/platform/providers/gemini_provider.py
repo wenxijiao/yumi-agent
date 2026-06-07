@@ -137,7 +137,7 @@ def _decode_gemini_thought_signature(value: str) -> bytes | None:
         return None
     try:
         return base64.b64decode(raw)
-    except Exception:
+    except (ValueError, TypeError):  # binascii.Error is a ValueError subclass
         _logger.debug("Gemini: ignoring invalid thought_signature on persisted tool call")
         return None
 

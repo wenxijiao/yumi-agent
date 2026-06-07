@@ -5,6 +5,7 @@ import os
 
 from kumi.core.features.config.model import ModelConfig
 from kumi.core.features.config.paths import CONFIG_PATH, ensure_config_dir
+from pydantic import ValidationError
 
 
 def load_saved_model_config() -> ModelConfig:
@@ -232,7 +233,7 @@ def load_model_config() -> ModelConfig:
                 config.proactive_schedule_times = ModelConfig.model_validate(
                     {**config.model_dump(), "proactive_schedule_times": times}
                 ).proactive_schedule_times
-            except Exception:
+            except ValidationError:
                 pass
     proactive_sched_interval = os.getenv("KUMI_PROACTIVE_SCHEDULE_INTERVAL_MINUTES")
     if proactive_sched_interval and proactive_sched_interval.strip():
