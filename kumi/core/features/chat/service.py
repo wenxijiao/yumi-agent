@@ -19,12 +19,12 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 
 from kumi.core.features.chat.context import reset_chat_owner_user_id, set_chat_owner_user_id
+from kumi.core.features.chat.trace_sink import ChatTraceSink
 from kumi.core.platform.dispatch import (
     LOCAL_TOOL_TIMEOUT_DEFAULT,
     MAX_TOOL_CALL_FORMAT_RETRIES,
     MAX_TOOL_LOOPS,
     TOOL_CALL_TIMEOUT_DEFAULT,
-    ChatTraceSink,
     ConfirmationGate,
     EdgeToolExecutor,
     LocalToolExecutor,

@@ -4,15 +4,16 @@ from __future__ import annotations
 
 import kumi.core.platform.runtime.accessors as _state
 from fastapi import APIRouter, HTTPException
-from kumi.core.api.http_helpers import get_system_prompt_payload
 from kumi.core.features.config import (
     CONFIG_PATH,
+    DEFAULT_SYSTEM_PROMPT,
     delete_session_prompt,
     ensure_config_dir,
     ensure_embedding_provider_not_deepseek,
     ensure_provider_available,
     get_api_credentials,
     get_session_prompt,
+    get_system_prompt,
     load_model_config,
     load_saved_model_config,
     reset_system_prompt,
@@ -39,7 +40,11 @@ logger = get_logger(__name__)
 
 @router.get("/config/system-prompt")
 async def get_system_prompt_endpoint():
-    return get_system_prompt_payload()
+    system_prompt = get_system_prompt()
+    return {
+        "system_prompt": system_prompt,
+        "is_default": system_prompt == DEFAULT_SYSTEM_PROMPT,
+    }
 
 
 @router.put("/config/system-prompt")

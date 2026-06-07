@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from kumi.core.api import chat_debug_trace
+from kumi.core.features.chat import debug_trace as chat_debug_trace
 from kumi.core.platform.dispatch.context import TurnContext
 from kumi.core.platform.http.events import ChatEvent
 from kumi.core.platform.providers.diagnostics import write_chat_diagnostic, write_chat_loop_diagnostic

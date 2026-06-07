@@ -4,7 +4,6 @@ Decomposed from the legacy ``_generate_chat_events_impl`` god function:
 
 * ``TurnContext``           — turn-scoped mutable state.
 * ``ToolInvocation``/``ToolResult`` — value objects across the boundary.
-* ``ChatTraceSink``         — observability (debug trace + diagnostics).
 * ``UsageRecorder``         — token accounting (context manager).
 * ``ToolCallNormalizer``    — model-emit format normalization + retry budget.
 * ``ConfirmationGate``      — user-confirmation flow for sensitive tools.
@@ -25,11 +24,9 @@ from kumi.core.platform.dispatch.limits import (
 )
 from kumi.core.platform.dispatch.local import LocalToolExecutor
 from kumi.core.platform.dispatch.normalizer import NormalizationOutcome, ToolCallNormalizer, summarize_tool_args
-from kumi.core.platform.dispatch.trace_sink import ChatTraceSink
 from kumi.core.platform.dispatch.usage import UsageRecorder
 
 __all__ = [
-    "ChatTraceSink",
     "ConfirmationGate",
     "EdgeToolExecutor",
     "LOCAL_TOOL_TIMEOUT_DEFAULT",

@@ -5,7 +5,6 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, HTTPException, Query
-from kumi.core.api.http_helpers import get_session_payload
 from kumi.core.features.memory.store import get_memory_store_for_identity
 from kumi.core.platform.http.dependencies import CurrentIdentity
 from kumi.core.platform.http.schemas import (
@@ -44,7 +43,11 @@ async def create_memory_session_endpoint(
 @router.get("/memory/sessions/{session_id}")
 async def get_memory_session_endpoint(identity: CurrentIdentity, session_id: str):
     sid = get_session_scope().qualify_session_http(identity, session_id)
-    return get_session_payload(sid)
+    mem = get_memory_store_for_identity(identity)
+    session = mem.get_session(sid)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found.")
+    return session
 
 
 @router.put("/memory/sessions/{session_id}")
