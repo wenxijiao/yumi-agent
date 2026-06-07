@@ -32,7 +32,7 @@ from kumi.core.platform.runtime.edge_naming import (
     resolve_edge_for_prefixed_tool_name,
 )
 from kumi.core.platform.tools.tool import TOOL_REGISTRY
-from kumi.core.platform.tools.tool_trace import record_tool_trace
+from kumi.core.platform.tools.trace import record_tool_trace
 
 
 def canonical_local_tool_name(raw: str) -> str:

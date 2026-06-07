@@ -6,7 +6,7 @@ import uuid
 from typing import Any, AsyncIterator
 
 from kumi.core.platform.providers.base import BaseLLMProvider
-from kumi.core.platform.tools.tool_call_normalize import normalize_tool_calls
+from kumi.core.platform.tools.normalize import normalize_tool_calls
 
 
 def _normalize_messages_for_strict_openai_compat(
@@ -18,7 +18,7 @@ def _normalize_messages_for_strict_openai_compat(
     strict OpenAI-compatible providers (DeepSeek, some vLLM builds) reject:
 
     1. ``assistant.tool_calls[].function.arguments`` is stored as a Python
-       ``dict`` (see :func:`kumi.core.platform.tools.tool_call_normalize.normalize_tool_calls`)
+       ``dict`` (see :func:`kumi.core.platform.tools.normalize.normalize_tool_calls`)
        but the OpenAI spec says it MUST be a JSON-encoded string. OpenAI's
        own server accepts the dict form; DeepSeek returns
        ``messages[N]: invalid type: map, expected a string``.

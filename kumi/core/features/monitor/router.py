@@ -8,7 +8,7 @@ from kumi.core.platform.http.dependencies import CurrentIdentity
 from kumi.core.platform.plugins import get_session_scope
 from kumi.core.platform.runtime.accessors import ACTIVE_CONNECTIONS, DISABLED_TOOLS, EDGE_TOOLS_REGISTRY
 from kumi.core.platform.tools.tool import TOOL_REGISTRY
-from kumi.core.platform.tools.tool_trace import export_traces_json_lines, list_traces
+from kumi.core.platform.tools.trace import export_traces_json_lines, list_traces
 
 router = APIRouter()
 

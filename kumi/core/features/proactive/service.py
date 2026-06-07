@@ -13,7 +13,7 @@ from kumi.core.features.proactive.planner import decide_proactive_send
 from kumi.core.features.proactive.prompt import build_proactive_prompt, split_proactive_messages
 from kumi.core.features.proactive.state import ProactiveStateStore
 from kumi.core.features.proactive.tools import proactive_context_lines, proactive_tool_schemas
-from kumi.core.platform.tools.tool_call_normalize import normalize_tool_calls
+from kumi.core.platform.tools.normalize import normalize_tool_calls
 from kumi.logging_config import get_logger
 
 logger = get_logger(__name__)

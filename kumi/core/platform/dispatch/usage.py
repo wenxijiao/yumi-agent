@@ -11,7 +11,7 @@ from typing import Any
 
 from kumi.core.platform.dispatch.context import TurnContext
 from kumi.core.platform.plugins import SINGLE_USER_ID, get_current_identity, get_quota_policy
-from kumi.core.platform.tools.tool_routing import record_tool_routing_usage
+from kumi.core.platform.tools.routing import record_tool_routing_usage
 from kumi.logging_config import get_logger
 
 logger = get_logger(__name__)

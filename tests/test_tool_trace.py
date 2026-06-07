@@ -2,7 +2,7 @@
 
 import json
 
-from kumi.core.platform.tools.tool_trace import (
+from kumi.core.platform.tools.trace import (
     clear_memory_buffer,
     export_traces_json_lines,
     list_traces,
