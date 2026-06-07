@@ -99,15 +99,15 @@ class PassThroughSessionScope:
 
 
 class SharedBotPool:
-    """Always returns the singleton bot from :mod:`kumi.core.api.state`."""
+    """Always returns the singleton bot from :mod:`kumi.core.platform.runtime.accessors`."""
 
     async def get_bot_for_identity(self, identity: Identity) -> "KumiBot":  # noqa: ARG002
-        from kumi.core.api.state import get_bot
+        from kumi.core.platform.runtime.accessors import get_bot
 
         return get_bot()
 
     async def get_bot_for_session_owner(self, owner_user_id: str) -> "KumiBot":  # noqa: ARG002
-        from kumi.core.api.state import get_bot
+        from kumi.core.platform.runtime.accessors import get_bot
 
         return get_bot()
 
@@ -122,12 +122,12 @@ class SharedMemoryFactory:
     """Always returns the shared OSS LanceDB :class:`Memory`."""
 
     def get_for_identity(self, identity: Identity) -> "Memory":  # noqa: ARG002
-        from kumi.core.api.state import get_memory_store
+        from kumi.core.features.memory.store import get_memory_store
 
         return get_memory_store()
 
     def get_for_session_owner(self, owner_user_id: str) -> "Memory":  # noqa: ARG002
-        from kumi.core.api.state import get_memory_store
+        from kumi.core.features.memory.store import get_memory_store
 
         return get_memory_store()
 

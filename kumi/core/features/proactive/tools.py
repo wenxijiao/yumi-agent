@@ -5,7 +5,8 @@ import uuid
 from copy import deepcopy
 from typing import Any
 
-from kumi.core.api.state import (
+from kumi.core.platform.dispatch.limits import LOCAL_TOOL_TIMEOUT_DEFAULT
+from kumi.core.platform.runtime.accessors import (
     ACTIVE_CONNECTIONS,
     CONFIRMATION_TOOLS,
     DISABLED_TOOLS,
@@ -16,7 +17,6 @@ from kumi.core.api.state import (
     get_tool_timeout,
     parse_edge_connection_key,
 )
-from kumi.core.platform.dispatch.limits import LOCAL_TOOL_TIMEOUT_DEFAULT
 from kumi.core.platform.tools.tool import TOOL_REGISTRY, execute_registered_tool
 from kumi.logging_config import get_logger
 

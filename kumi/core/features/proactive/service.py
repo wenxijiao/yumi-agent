@@ -81,7 +81,7 @@ class ProactiveMessageService:
         if not decision.should_send:
             return
 
-        from kumi.core.api.state import get_session_lock
+        from kumi.core.platform.runtime.accessors import get_session_lock
 
         lock = get_session_lock(session_id)
         async with lock:
@@ -170,7 +170,8 @@ class ProactiveMessageService:
         if not name:
             return "unknown", "Error: tool name missing."
 
-        from kumi.core.api.state import (
+        from kumi.core.platform.dispatch.limits import LOCAL_TOOL_TIMEOUT_DEFAULT
+        from kumi.core.platform.runtime.accessors import (
             ACTIVE_CONNECTIONS,
             CONFIRMATION_TOOLS,
             DISABLED_TOOLS,
@@ -182,7 +183,6 @@ class ProactiveMessageService:
             parse_edge_connection_key,
             resolve_edge_for_prefixed_tool_name,
         )
-        from kumi.core.platform.dispatch.limits import LOCAL_TOOL_TIMEOUT_DEFAULT
         from kumi.core.platform.tools.tool import TOOL_REGISTRY, execute_registered_tool
 
         if name in TOOL_REGISTRY:
