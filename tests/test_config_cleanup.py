@@ -1,7 +1,7 @@
 """Cleanup helpers for config and memory storage."""
 
-import kumi.core.config as config
-import kumi.core.config.paths as config_paths
+import kumi.core.features.config as config
+import kumi.core.features.config.paths as config_paths
 
 
 def test_cleanup_memory_data_preserves_config_and_removes_memory(tmp_path, monkeypatch):

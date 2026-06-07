@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from kumi.core.config.paths import CONFIG_DIR, ensure_config_dir
+from kumi.core.features.config.paths import CONFIG_DIR, ensure_config_dir
 
 _BRIDGE_FILE = "telegram_bridge.json"
 

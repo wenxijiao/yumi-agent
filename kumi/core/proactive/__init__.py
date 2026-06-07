@@ -1,5 +1,9 @@
-"""Opt-in proactive messaging support."""
+"""Deprecated shim package — moved to kumi.core.features.proactive.
 
-from kumi.core.proactive.state import ProactiveStateStore, record_user_message
+Aliases the relocated package so top-level ``from kumi.core.proactive import X`` keeps
+working. Submodule imports should use the new path. Removed in phase E.
+"""
+import sys as _sys
+from importlib import import_module as _imp
 
-__all__ = ["ProactiveStateStore", "record_user_message"]
+_sys.modules[__name__] = _imp("kumi.core.features.proactive")

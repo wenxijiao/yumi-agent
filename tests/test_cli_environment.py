@@ -38,8 +38,8 @@ def test_main_dispatches_cleanup_memory(monkeypatch):
 
 def test_tool_routing_cli_updates_config(monkeypatch, tmp_path, capsys):
     p = tmp_path / "config.json"
-    monkeypatch.setattr("kumi.core.config.paths.CONFIG_PATH", p)
-    monkeypatch.setattr("kumi.core.config.store.CONFIG_PATH", p)
+    monkeypatch.setattr("kumi.core.features.config.paths.CONFIG_PATH", p)
+    monkeypatch.setattr("kumi.core.features.config.store.CONFIG_PATH", p)
     monkeypatch.setattr(cli, "CONFIG_PATH", p)
     monkeypatch.setattr(
         sys, "argv", ["kumi", "--tool-routing", "--edge-tools-limit", "7", "--disable-edge-tool-routing"]
@@ -58,8 +58,8 @@ def test_tool_routing_cli_updates_config(monkeypatch, tmp_path, capsys):
 
 def test_config_cli_writes_full_config(monkeypatch, tmp_path, capsys):
     p = tmp_path / "config.json"
-    monkeypatch.setattr("kumi.core.config.paths.CONFIG_PATH", p)
-    monkeypatch.setattr("kumi.core.config.store.CONFIG_PATH", p)
+    monkeypatch.setattr("kumi.core.features.config.paths.CONFIG_PATH", p)
+    monkeypatch.setattr("kumi.core.features.config.store.CONFIG_PATH", p)
     monkeypatch.setattr(cli, "CONFIG_PATH", p)
     monkeypatch.setattr(sys, "argv", ["kumi", "--config"])
     monkeypatch.setattr(cli, "configure_logging", lambda: None)

@@ -6,7 +6,7 @@ import logging
 import uuid
 from typing import Any
 
-from kumi.core.config.line import get_line_channel_access_token, line_push_disabled
+from kumi.core.features.config.line import get_line_channel_access_token, line_push_disabled
 from kumi.line.client import LineMessagingClient, flex_message, text_message
 from kumi.line.flex_builders import timer_done_card
 from kumi.line.pending import register_timer_card_context

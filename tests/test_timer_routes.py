@@ -1,10 +1,10 @@
 from fastapi.testclient import TestClient
 from kumi.core.api.app_factory import app
-from kumi.tools.timer_tools import ACTIVE_TIMERS
+from kumi.core.features.proactive.timer_tools import ACTIVE_TIMERS
 
 
 def test_list_timers_endpoint(monkeypatch, tmp_path):
-    monkeypatch.setattr("kumi.tools.timer_tools._SCHEDULES_PATH", tmp_path / "schedules.json")
+    monkeypatch.setattr("kumi.core.features.proactive.timer_tools._SCHEDULES_PATH", tmp_path / "schedules.json")
     ACTIVE_TIMERS.clear()
     ACTIVE_TIMERS["abc123"] = {
         "id": "abc123",
@@ -21,7 +21,7 @@ def test_list_timers_endpoint(monkeypatch, tmp_path):
 
 
 def test_cancel_timer_endpoint(monkeypatch, tmp_path):
-    monkeypatch.setattr("kumi.tools.timer_tools._SCHEDULES_PATH", tmp_path / "schedules.json")
+    monkeypatch.setattr("kumi.core.features.proactive.timer_tools._SCHEDULES_PATH", tmp_path / "schedules.json")
     ACTIVE_TIMERS.clear()
     ACTIVE_TIMERS["abc123"] = {
         "id": "abc123",

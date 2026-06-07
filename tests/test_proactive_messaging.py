@@ -2,15 +2,19 @@ import asyncio
 import random
 from datetime import datetime, timedelta, timezone
 
-from kumi.core.config import ModelConfig
-from kumi.core.config.store import load_model_config
-from kumi.core.proactive.interaction import smart_followup_delay_multiplier, smart_interaction, smart_interaction_state
-from kumi.core.proactive.planner import ProactiveDecision, decide_proactive_send, in_quiet_hours
-from kumi.core.proactive.prompt import build_proactive_prompt
-from kumi.core.proactive.service import ProactiveMessageService
-from kumi.core.proactive.state import ProactiveSessionState, ProactiveStateStore
-from kumi.core.proactive.timezone_utils import format_user_facing_time
-from kumi.core.proactive.tools import proactive_context_lines, proactive_tool_schemas
+from kumi.core.features.config import ModelConfig
+from kumi.core.features.config.store import load_model_config
+from kumi.core.features.proactive.interaction import (
+    smart_followup_delay_multiplier,
+    smart_interaction,
+    smart_interaction_state,
+)
+from kumi.core.features.proactive.planner import ProactiveDecision, decide_proactive_send, in_quiet_hours
+from kumi.core.features.proactive.prompt import build_proactive_prompt
+from kumi.core.features.proactive.service import ProactiveMessageService
+from kumi.core.features.proactive.state import ProactiveSessionState, ProactiveStateStore
+from kumi.core.features.proactive.timezone_utils import format_user_facing_time
+from kumi.core.features.proactive.tools import proactive_context_lines, proactive_tool_schemas
 from kumi.core.tool import TOOL_REGISTRY, register_tool
 
 
@@ -32,8 +36,8 @@ def test_proactive_config_defaults_disabled():
 def test_proactive_env_overrides(monkeypatch, tmp_path):
     p = tmp_path / "config.json"
     p.write_text("{}", encoding="utf-8")
-    monkeypatch.setattr("kumi.core.config.paths.CONFIG_PATH", p)
-    monkeypatch.setattr("kumi.core.config.store.CONFIG_PATH", p)
+    monkeypatch.setattr("kumi.core.features.config.paths.CONFIG_PATH", p)
+    monkeypatch.setattr("kumi.core.features.config.store.CONFIG_PATH", p)
     monkeypatch.setenv("KUMI_PROACTIVE_ENABLED", "1")
     monkeypatch.setenv("KUMI_PROACTIVE_SESSION_IDS", "tg_1,tg_2")
     monkeypatch.setenv("KUMI_PROACTIVE_PROFILE", "writing_partner")
@@ -65,8 +69,8 @@ def test_proactive_env_overrides(monkeypatch, tmp_path):
 def test_proactive_env_local_timezone_override_precedence(monkeypatch, tmp_path):
     p = tmp_path / "config.json"
     p.write_text("{}", encoding="utf-8")
-    monkeypatch.setattr("kumi.core.config.paths.CONFIG_PATH", p)
-    monkeypatch.setattr("kumi.core.config.store.CONFIG_PATH", p)
+    monkeypatch.setattr("kumi.core.features.config.paths.CONFIG_PATH", p)
+    monkeypatch.setattr("kumi.core.features.config.store.CONFIG_PATH", p)
     monkeypatch.setenv("KUMI_LOCAL_TIMEZONE", "Europe/London")
     monkeypatch.setenv("KUMI_PROACTIVE_QUIET_HOURS_TIMEZONE", "Pacific/Auckland")
 
@@ -206,8 +210,8 @@ def test_proactive_scheduled_does_not_use_unreplied_escalation():
 def test_proactive_env_mode_scheduled(monkeypatch, tmp_path):
     p = tmp_path / "config.json"
     p.write_text("{}", encoding="utf-8")
-    monkeypatch.setattr("kumi.core.config.paths.CONFIG_PATH", p)
-    monkeypatch.setattr("kumi.core.config.store.CONFIG_PATH", p)
+    monkeypatch.setattr("kumi.core.features.config.paths.CONFIG_PATH", p)
+    monkeypatch.setattr("kumi.core.features.config.store.CONFIG_PATH", p)
     monkeypatch.setenv("KUMI_PROACTIVE_MODE", "scheduled")
     monkeypatch.setenv("KUMI_PROACTIVE_SCHEDULE_TIMES", "08:00,20:00")
     monkeypatch.setenv("KUMI_PROACTIVE_SCHEDULE_INTERVAL_MINUTES", "120")
@@ -446,8 +450,8 @@ def test_proactive_prompt_adds_smart_style_only_for_smart_mode():
 def test_proactive_service_sends_and_records(monkeypatch, tmp_path):
     p_cfg = tmp_path / "kumi_config.json"
     p_cfg.write_text("{}", encoding="utf-8")
-    monkeypatch.setattr("kumi.core.config.paths.CONFIG_PATH", p_cfg)
-    monkeypatch.setattr("kumi.core.config.store.CONFIG_PATH", p_cfg)
+    monkeypatch.setattr("kumi.core.features.config.paths.CONFIG_PATH", p_cfg)
+    monkeypatch.setattr("kumi.core.features.config.store.CONFIG_PATH", p_cfg)
 
     class FakeMemory:
         def __init__(self):
@@ -626,8 +630,8 @@ def test_scheduled_not_configured_when_empty():
 def test_record_sent_updates_scheduled_dedupe_fields(monkeypatch, tmp_path):
     p_cfg = tmp_path / "kumi_config.json"
     p_cfg.write_text('{"local_timezone": "UTC"}', encoding="utf-8")
-    monkeypatch.setattr("kumi.core.config.paths.CONFIG_PATH", p_cfg)
-    monkeypatch.setattr("kumi.core.config.store.CONFIG_PATH", p_cfg)
+    monkeypatch.setattr("kumi.core.features.config.paths.CONFIG_PATH", p_cfg)
+    monkeypatch.setattr("kumi.core.features.config.store.CONFIG_PATH", p_cfg)
 
     store = ProactiveStateStore(tmp_path / "st.json")
     now = datetime(2026, 5, 3, 12, 0, tzinfo=timezone.utc)

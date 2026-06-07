@@ -32,8 +32,9 @@ from kumi.core.api.routers.uploads import router as uploads_router
 from kumi.core.api.task_logging import log_task_exc_on_done
 from kumi.core.api.timers import cancel_timer, schedule_timer
 from kumi.core.chatbot import KumiBot
-from kumi.core.config import ensure_chat_model_configured, ensure_embedding_provider_not_deepseek
-from kumi.core.memories.embedding_state import set_embed_provider
+from kumi.core.features.config import ensure_chat_model_configured, ensure_embedding_provider_not_deepseek
+from kumi.core.features.memory.embedding_state import set_embed_provider
+from kumi.core.features.proactive.timer_tools import restore_schedules, set_timer_callbacks
 from kumi.core.platform.plugins import (
     get_bot_pool,
     get_middleware_extender,
@@ -44,7 +45,6 @@ from kumi.core.platform.providers import create_provider
 from kumi.core.platform.security.http_config import get_cors_settings
 from kumi.logging_config import configure_logging, get_logger
 from kumi.tools.bootstrap import init_kumi
-from kumi.tools.timer_tools import restore_schedules, set_timer_callbacks
 
 logger = get_logger(__name__)
 
@@ -83,7 +83,7 @@ async def lifespan(app: FastAPI):
     await _state.get_bot().warm_up()
 
     if config.proactive_mode != "off":
-        from kumi.core.proactive.service import ProactiveMessageService
+        from kumi.core.features.proactive.service import ProactiveMessageService
 
         _state.set_proactive_service(ProactiveMessageService(_state.get_bot()))
         _state.proactive_service.start()

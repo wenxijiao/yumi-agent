@@ -11,7 +11,7 @@ in enterprise tests) is one assignment and every reader sees it immediately.
 import asyncio
 from typing import TYPE_CHECKING, Any
 
-from kumi.core.memories.memory import Memory
+from kumi.core.features.memory.memory import Memory
 from kumi.core.platform.runtime import RuntimeState, get_default_runtime
 from kumi.core.platform.runtime.tool_catalog import model_visible_tool_schema as _model_visible_tool_schema
 from kumi.logging_config import get_logger
@@ -156,7 +156,7 @@ def model_visible_tool_schema(schema: dict) -> dict:
 
 
 def get_tool_timeout(prefixed_name: str) -> int:
-    from kumi.core.services.chat_turn import TOOL_CALL_TIMEOUT_DEFAULT
+    from kumi.core.features.chat.service import TOOL_CALL_TIMEOUT_DEFAULT
 
     return _runtime.tool_catalog.tool_timeout(prefixed_name, TOOL_CALL_TIMEOUT_DEFAULT)
 

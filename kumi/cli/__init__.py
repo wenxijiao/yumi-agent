@@ -7,7 +7,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from kumi.core.config import (
+from kumi.core.features.config import (
     CONFIG_PATH,
     cleanup_memory_data,
     cleanup_user_data,

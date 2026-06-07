@@ -20,11 +20,25 @@ from fastapi import HTTPException
 from kumi.core.api.events import ErrorEvent, TextEvent, ToolConfirmationEvent
 from kumi.core.api.stream_consumer import BaseChannelHandler, consume_chat_stream
 from kumi.core.api.uploads import MAX_UPLOAD_BYTES, save_uploaded_file
-from kumi.core.config import load_saved_model_config
-from kumi.core.config.line import (
+from kumi.core.features.config import load_saved_model_config
+from kumi.core.features.config.line import (
     get_line_allowed_user_ids,
     get_line_model_candidates,
     line_push_disabled,
+)
+from kumi.core.features.proactive import record_user_message
+from kumi.core.features.prompts.http_bridge import (
+    format_effective_prompt_reply,
+    http_delete_session_prompt,
+    http_get_global_system_prompt,
+    http_get_session_prompt,
+    http_put_session_prompt,
+)
+from kumi.core.features.prompts.store import (
+    delete_session_prompt,
+    get_effective_system_prompt,
+    get_session_prompt,
+    set_session_prompt,
 )
 from kumi.core.platform.plugins import (
     LOCAL_IDENTITY,
@@ -34,20 +48,6 @@ from kumi.core.platform.plugins import (
 )
 from kumi.core.platform.security.audit import audit_event
 from kumi.core.platform.security.connection import DEFAULT_LOCAL_SERVER_URL, ConnectionConfig
-from kumi.core.proactive import record_user_message
-from kumi.core.prompts.http_bridge import (
-    format_effective_prompt_reply,
-    http_delete_session_prompt,
-    http_get_global_system_prompt,
-    http_get_session_prompt,
-    http_put_session_prompt,
-)
-from kumi.core.prompts.store import (
-    delete_session_prompt,
-    get_effective_system_prompt,
-    get_session_prompt,
-    set_session_prompt,
-)
 from kumi.line.bridge import chat_connection_config
 from kumi.line.client import LineMessagingClient, flex_message, text_message
 from kumi.line.flex_builders import (
@@ -173,7 +173,7 @@ async def _transcribe_audio_bytes(
                 raise RuntimeError(r.text[:500])
             return str(r.json().get("text") or "").strip()
 
-    from kumi.core.stt import transcribe_audio
+    from kumi.core.features.stt import transcribe_audio
 
     result = await transcribe_audio(data, filename=filename)
     return result.text.strip()
@@ -472,7 +472,7 @@ async def _get_model_dict(line_user_id: str, *, use_http: bool) -> dict[str, Any
                 return None
             return r.json()
     cfg = load_saved_model_config()
-    from kumi.core.config import get_api_credentials
+    from kumi.core.features.config import get_api_credentials
 
     creds = get_api_credentials()
     return {
@@ -510,7 +510,7 @@ async def _apply_chat_model(line_user_id: str, model_name: str, *, use_http: boo
                 return False, r.text[:500]
         return True, ""
 
-    from kumi.core.config import save_model_config
+    from kumi.core.features.config import save_model_config
 
     cfg = load_saved_model_config()
     cfg.chat_model = name
@@ -868,7 +868,7 @@ def verify_and_parse_line_webhook(
     Raises PermissionError on bad signature, ValueError on bad JSON,
     RuntimeError when LINE secret is not configured.
     """
-    from kumi.core.config.line import get_line_channel_access_token, get_line_channel_secret
+    from kumi.core.features.config.line import get_line_channel_access_token, get_line_channel_secret
 
     secret = get_line_channel_secret()
     token = get_line_channel_access_token()

@@ -2,8 +2,8 @@
 
 import tempfile
 
-from kumi.core.memories.memory import Memory, _is_degenerate_vector
-from kumi.core.memories.tool_replay import message_hidden_from_chat_ui
+from kumi.core.features.memory.memory import Memory, _is_degenerate_vector
+from kumi.core.features.memory.tool_replay import message_hidden_from_chat_ui
 
 
 def test_is_degenerate_vector():

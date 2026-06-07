@@ -1,6 +1,6 @@
 """Public entry points for the ``/chat`` HTTP route and timer callbacks.
 
-The implementation lives in ``kumi.core.services.chat_turn``. This module
+The implementation lives in ``kumi.core.features.chat.service``. This module
 keeps the historical ``generate_chat_events`` / ``clear_session`` API stable
 for the three call sites:
 
@@ -22,8 +22,8 @@ from collections.abc import AsyncIterator
 
 from kumi.core.api.events import ChatEvent
 from kumi.core.api.state import SESSION_LOCKS
+from kumi.core.features.chat.service import ChatTurnService
 from kumi.core.platform.plugins import get_bot_pool, get_session_scope
-from kumi.core.services.chat_turn import ChatTurnService
 
 
 async def generate_chat_events(

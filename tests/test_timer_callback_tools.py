@@ -1,6 +1,6 @@
 """Timer follow-up turns must not offer ``set_timer`` / ``schedule_task`` (loops chain delays)."""
 
-from kumi.core.services.chat_turn import _exclude_delay_scheduling_tools
+from kumi.core.features.chat.service import _exclude_delay_scheduling_tools
 
 
 def test_excludes_delay_tools_from_openai_schemas():

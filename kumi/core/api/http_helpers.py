@@ -1,7 +1,7 @@
 """Shared HTTP helpers for FastAPI routes."""
 
 from fastapi import HTTPException
-from kumi.core.config import DEFAULT_SYSTEM_PROMPT, get_system_prompt
+from kumi.core.features.config import DEFAULT_SYSTEM_PROMPT, get_system_prompt
 from kumi.core.platform.plugins import get_current_identity, get_memory_factory
 
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import tempfile
 
-from kumi.core.memories.memory import Memory
+from kumi.core.features.memory.memory import Memory
 
 
 def test_message_write_extracts_long_term_preference():
@@ -86,7 +86,7 @@ def test_context_dedupes_consecutive_identical_user_repeats():
 
 
 def test_context_drops_leading_orphan_assistant_tool_call_when_window_truncates(monkeypatch):
-    from kumi.core.memories import context as ctx_mod
+    from kumi.core.features.memory import context as ctx_mod
 
     real_load = ctx_mod.load_model_config
 

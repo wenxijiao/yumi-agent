@@ -16,10 +16,10 @@ import asyncio
 from collections.abc import AsyncIterator
 
 import pytest
+from kumi.core.features.chat.service import ChatTurnService
 from kumi.core.platform.dispatch import MAX_TOOL_LOOPS
 from kumi.core.platform.plugins.identity import Identity, set_current_identity
 from kumi.core.platform.runtime import RuntimeState
-from kumi.core.services.chat_turn import ChatTurnService
 
 
 class _FakeBot:
@@ -64,7 +64,7 @@ def install_fakes(monkeypatch):
     token = set_current_identity(LOCAL_IDENTITY)
 
     def install(bot: _FakeBot):
-        import kumi.core.services.chat_turn as svc
+        import kumi.core.features.chat.service as svc
 
         monkeypatch.setattr(svc, "get_bot_pool", lambda: _FakeBotPool(bot))
 
@@ -137,7 +137,7 @@ def test_owner_mismatch_yields_forbidden(runtime, install_fakes, monkeypatch):
     bot = _FakeBot(scripted_chunks=[[{"type": "text", "content": "hi"}]])
     install_fakes(bot)
 
-    import kumi.core.services.chat_turn as svc_mod
+    import kumi.core.features.chat.service as svc_mod
 
     class _Scope:
         def owner_user_from_session_id(self, _sid: str) -> str:

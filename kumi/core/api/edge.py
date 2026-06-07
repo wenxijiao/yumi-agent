@@ -16,7 +16,7 @@ from kumi.core.api.state import (
     logger,
     parse_edge_connection_key,
 )
-from kumi.core.config import load_saved_model_config, save_model_config
+from kumi.core.features.config import load_saved_model_config, save_model_config
 from kumi.core.platform.plugins import get_edge_scope
 from kumi.core.platform.tools.tool import TOOL_REGISTRY
 

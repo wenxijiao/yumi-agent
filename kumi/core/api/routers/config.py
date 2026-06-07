@@ -13,7 +13,7 @@ from kumi.core.api.schemas import (
     SystemPromptUpdateRequest,
     UIPreferencesRequest,
 )
-from kumi.core.config import (
+from kumi.core.features.config import (
     CONFIG_PATH,
     delete_session_prompt,
     ensure_config_dir,
@@ -115,7 +115,7 @@ async def update_model_config_endpoint(request: ModelConfigUpdateRequest):
     if request.stt_backend and request.stt_backend != "faster-whisper":
         raise HTTPException(status_code=400, detail="Unsupported STT backend. Use 'faster-whisper'.")
     if request.stt_model:
-        from kumi.core.stt import WHISPER_MULTILINGUAL_MODELS
+        from kumi.core.features.stt import WHISPER_MULTILINGUAL_MODELS
 
         if request.stt_model not in WHISPER_MULTILINGUAL_MODELS:
             raise HTTPException(

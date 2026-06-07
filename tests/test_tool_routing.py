@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from kumi.core.config import ModelConfig
+from kumi.core.features.config import ModelConfig
 from kumi.core.platform.plugins import LOCAL_IDENTITY
 from kumi.core.tool import TOOL_REGISTRY
 from kumi.core.tool_routing import (

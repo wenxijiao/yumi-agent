@@ -18,7 +18,7 @@ from kumi.core.platform.plugins.identity import Identity
 if TYPE_CHECKING:
     from fastapi import FastAPI
     from kumi.core.chatbot import KumiBot
-    from kumi.core.memories.memory import Memory
+    from kumi.core.features.memory.memory import Memory
 
 
 @runtime_checkable

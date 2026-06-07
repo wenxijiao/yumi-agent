@@ -16,7 +16,7 @@ async def stt_transcribe_endpoint(identity: CurrentIdentity, request: Transcribe
     _ = get_session_scope().qualify_session_http(identity, request.session_id)
     raw = decode_upload_payload(request.content_base64)
     try:
-        from kumi.core.stt import SttError, SttNotConfiguredError, transcribe_audio
+        from kumi.core.features.stt import SttError, SttNotConfiguredError, transcribe_audio
 
         result = await transcribe_audio(raw, filename=request.filename, language=request.language)
     except SttNotConfiguredError as exc:

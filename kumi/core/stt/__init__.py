@@ -1,17 +1,9 @@
-"""Optional speech-to-text providers for Kumi."""
+"""Deprecated shim package — moved to kumi.core.features.stt.
 
-from kumi.core.stt.base import SpeechToTextProvider, SttError, SttNotConfiguredError
-from kumi.core.stt.factory import create_stt_provider, transcribe_audio
-from kumi.core.stt.types import WHISPER_MULTILINGUAL_MODELS, TranscriptionResult
-from kumi.core.stt.whisper_provider import ensure_whisper_weights_cached
+Aliases the relocated package so top-level ``from kumi.core.stt import X`` keeps
+working. Submodule imports should use the new path. Removed in phase E.
+"""
+import sys as _sys
+from importlib import import_module as _imp
 
-__all__ = [
-    "SpeechToTextProvider",
-    "SttError",
-    "SttNotConfiguredError",
-    "TranscriptionResult",
-    "WHISPER_MULTILINGUAL_MODELS",
-    "create_stt_provider",
-    "transcribe_audio",
-    "ensure_whisper_weights_cached",
-]
+_sys.modules[__name__] = _imp("kumi.core.features.stt")

@@ -13,8 +13,8 @@ import logging
 
 from kumi.core.api.state import TIMER_SUBSCRIBERS, TIMER_TASKS
 from kumi.core.api.task_logging import log_task_exc_on_done
-from kumi.tools.timer_tools import ACTIVE_TIMERS as TIMER_DATA
-from kumi.tools.timer_tools import calc_next_recurring_delay
+from kumi.core.features.proactive.timer_tools import ACTIVE_TIMERS as TIMER_DATA
+from kumi.core.features.proactive.timer_tools import calc_next_recurring_delay
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +83,7 @@ async def _timer_fire(timer_id: str, delay: int, description: str, session_id: s
             pass
 
     if recurring and schedule:
-        from kumi.tools.timer_tools import _save_schedules
+        from kumi.core.features.proactive.timer_tools import _save_schedules
 
         next_delay = calc_next_recurring_delay(schedule)
         _save_schedules()

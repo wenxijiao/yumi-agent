@@ -45,7 +45,7 @@ def pcm_to_wav_bytes(pcm: bytes, *, sample_rate: int) -> bytes:
 
 async def _default_transcribe(wav_bytes: bytes) -> str:
     """Hand a WAV blob to the configured Whisper provider."""
-    from kumi.core.stt.factory import transcribe_audio
+    from kumi.core.features.stt.factory import transcribe_audio
 
     result = await transcribe_audio(wav_bytes, filename="voice.wav")
     return (getattr(result, "text", "") or "").strip()
@@ -190,7 +190,7 @@ async def start_voice_loop(
     blocking ``read_frame`` in the executor returns promptly.
     """
     if cfg is None:
-        from kumi.core.config import load_model_config
+        from kumi.core.features.config import load_model_config
 
         cfg = load_model_config()
     source, wake, collector, is_speech = build_voice_components(cfg)

@@ -12,7 +12,7 @@ def load_kumi_dotenv() -> None:
     except ImportError:
         return
 
-    from kumi.core.config.paths import CONFIG_DIR
+    from kumi.core.features.config.paths import CONFIG_DIR
 
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     load_dotenv(CONFIG_DIR / ".env", override=False)

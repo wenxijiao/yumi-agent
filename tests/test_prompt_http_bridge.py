@@ -1,7 +1,7 @@
-"""Unit tests for kumi.core.prompts.http_bridge helpers."""
+"""Unit tests for kumi.core.features.prompts.http_bridge helpers."""
 
-from kumi.core.prompts.defaults import UPLOAD_FILE_INSTRUCTION, build_tool_use_instruction
-from kumi.core.prompts.http_bridge import format_effective_prompt_reply, truncate_for_bot_display
+from kumi.core.features.prompts.defaults import UPLOAD_FILE_INSTRUCTION, build_tool_use_instruction
+from kumi.core.features.prompts.http_bridge import format_effective_prompt_reply, truncate_for_bot_display
 
 
 def test_truncate_for_bot_display() -> None:

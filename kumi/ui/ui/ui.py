@@ -10,7 +10,7 @@ from typing import Any
 
 import reflex as rx
 import requests
-from kumi.core.memories.tool_replay import message_hidden_from_chat_ui
+from kumi.core.features.memory.tool_replay import message_hidden_from_chat_ui
 from kumi.logging_config import get_logger
 from kumi.ui.ui.constants import (
     _MONITOR_POLL_JS,

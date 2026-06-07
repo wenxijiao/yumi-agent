@@ -14,7 +14,7 @@ def create_provider(
 
     Credentials default to env var > ~/.kumi/config.json; pass *credentials* to override.
     """
-    from kumi.core.config import get_api_credentials
+    from kumi.core.features.config import get_api_credentials
 
     creds = credentials if credentials is not None else get_api_credentials()
 
@@ -42,7 +42,7 @@ def create_provider(
         return ClaudeProvider(api_key=creds["claude_api_key"])
 
     if provider_name == "deepseek":
-        from kumi.core.config.model import DEFAULT_DEEPSEEK_BASE_URL
+        from kumi.core.features.config.model import DEFAULT_DEEPSEEK_BASE_URL
         from kumi.core.platform.providers.openai_provider import OpenAIProvider
 
         base = creds["deepseek_base_url"] or DEFAULT_DEEPSEEK_BASE_URL

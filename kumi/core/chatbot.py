@@ -3,16 +3,16 @@ from __future__ import annotations
 from collections import OrderedDict
 
 from kumi.core.api import chat_debug_trace
-from kumi.core.config import load_model_config
-from kumi.core.config.model import ModelConfig
-from kumi.core.config.paths import CONFIG_DIR, ensure_config_dir
-from kumi.core.memories.memory import Memory
+from kumi.core.features.config import load_model_config
+from kumi.core.features.config.model import ModelConfig
+from kumi.core.features.config.paths import CONFIG_DIR, ensure_config_dir
+from kumi.core.features.memory.memory import Memory
+from kumi.core.features.prompts.composer import compose_messages, messages_have_multimodal_images
 from kumi.core.platform.plugins import get_session_scope
 from kumi.core.platform.providers.base import BaseLLMProvider
 from kumi.core.platform.providers.diagnostics import provider_name, write_provider_failure_diagnostic
 from kumi.core.platform.providers.error_classify import is_multimodal_vision_rejection
 from kumi.core.platform.streaming.think_parser import ThinkTagParser
-from kumi.core.prompts.composer import compose_messages, messages_have_multimodal_images
 from kumi.logging_config import get_logger
 
 logger = get_logger(__name__)

@@ -8,7 +8,7 @@ import json
 import kumi.core.api.app_factory as api
 import pytest
 from fastapi.testclient import TestClient
-from kumi.core.config.model import ModelConfig
+from kumi.core.features.config.model import ModelConfig
 from kumi.line.client import LineMessagingClient
 
 
@@ -94,7 +94,7 @@ def test_line_webhook_audio_message_transcribes_single_user(monkeypatch):
     seen: list[str] = []
 
     async def _fake_transcribe(audio: bytes, *, filename: str, language: str | None = None):
-        from kumi.core.stt import TranscriptionResult
+        from kumi.core.features.stt import TranscriptionResult
 
         assert audio == b"voice-bytes"
         assert filename == "line_audio_mid-audio.m4a"
@@ -109,7 +109,7 @@ def test_line_webhook_audio_message_transcribes_single_user(monkeypatch):
         assert message_id == "mid-audio"
         return b"voice-bytes"
 
-    monkeypatch.setattr("kumi.core.stt.transcribe_audio", _fake_transcribe)
+    monkeypatch.setattr("kumi.core.features.stt.transcribe_audio", _fake_transcribe)
     monkeypatch.setattr("kumi.line.handlers.stream_line_chat", _stream_capture)
     monkeypatch.setattr(LineMessagingClient, "get_message_content", _content)
     monkeypatch.setattr(LineMessagingClient, "reply_message", _noop_coro)

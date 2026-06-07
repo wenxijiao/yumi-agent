@@ -16,8 +16,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
-from kumi.core.config import load_model_config
-from kumi.core.memories.embedding_state import get_embed_provider, is_degenerate_vector
+from kumi.core.features.config import load_model_config
+from kumi.core.features.memory.embedding_state import get_embed_provider, is_degenerate_vector
 from kumi.core.platform.plugins import get_current_identity, get_edge_scope
 from kumi.core.platform.runtime.tool_catalog import model_visible_tool_schema
 from kumi.core.platform.tools.tool import TOOL_REGISTRY

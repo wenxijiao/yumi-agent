@@ -1,7 +1,7 @@
 _ASSETS_CHECKED = False
 _MISSING_EMBEDDING_WARNED = False
 
-from kumi.core.config import is_model_available, load_model_config
+from kumi.core.features.config import is_model_available, load_model_config
 
 
 def assets_check(interactive: bool = False) -> bool:
@@ -22,7 +22,7 @@ def assets_check(interactive: bool = False) -> bool:
     try:
         if not is_model_available(config.embedding_provider, config.embedding_model):
             if interactive:
-                from kumi.core.config import _get_provider
+                from kumi.core.features.config import _get_provider
 
                 provider = _get_provider("ollama")
                 provider.pull_model(config.embedding_model)

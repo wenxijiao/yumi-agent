@@ -6,14 +6,14 @@ import asyncio
 
 from fastapi import FastAPI, Request, Response
 from kumi.core.api.task_logging import log_task_exc_on_done
-from kumi.core.config.line import get_line_channel_secret
+from kumi.core.features.config.line import get_line_channel_secret
 
 
 def try_register_line_webhook(app: FastAPI) -> None:
     """Register ``POST /line/webhook`` once when in-core LINE mode is enabled."""
     if getattr(app.state, "line_webhook_registered", False):
         return
-    from kumi.core.config.line import line_incore_enabled
+    from kumi.core.features.config.line import line_incore_enabled
 
     if not line_incore_enabled() or not get_line_channel_secret():
         return

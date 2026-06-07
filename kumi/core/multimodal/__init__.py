@@ -1,5 +1,9 @@
-"""Multimodal helpers; image inlining lives in ``kumi.core.prompts.composer``."""
+"""Deprecated shim package — moved to kumi.core.features.uploads.multimodal.
 
-from kumi.core.prompts.composer import messages_have_multimodal_images
+Aliases the relocated package so top-level ``from kumi.core.multimodal import X`` keeps
+working. Submodule imports should use the new path. Removed in phase E.
+"""
+import sys as _sys
+from importlib import import_module as _imp
 
-__all__ = ["messages_have_multimodal_images"]
+_sys.modules[__name__] = _imp("kumi.core.features.uploads.multimodal")

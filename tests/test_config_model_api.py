@@ -14,8 +14,8 @@ from kumi.core.api.schemas import ModelConfigUpdateRequest
 
 def _patch_config_path(monkeypatch, tmp_path: Path, name: str = "c.json") -> Path:
     p = tmp_path / name
-    monkeypatch.setattr("kumi.core.config.paths.CONFIG_PATH", p)
-    monkeypatch.setattr("kumi.core.config.store.CONFIG_PATH", p)
+    monkeypatch.setattr("kumi.core.features.config.paths.CONFIG_PATH", p)
+    monkeypatch.setattr("kumi.core.features.config.store.CONFIG_PATH", p)
     monkeypatch.setattr("kumi.core.api.routers.config.CONFIG_PATH", p)
     return p
 

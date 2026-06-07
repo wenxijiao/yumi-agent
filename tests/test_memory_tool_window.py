@@ -2,8 +2,8 @@
 
 import json
 
-from kumi.core.memories.constants import KUMI_V1_TOOL_CALLS, KUMI_V1_TOOL_RESULT
-from kumi.core.memories.memory import (
+from kumi.core.features.memory.constants import KUMI_V1_TOOL_CALLS, KUMI_V1_TOOL_RESULT
+from kumi.core.features.memory.memory import (
     _assistant_tool_call_count_from_stored_raw,
     _dedupe_consecutive_user_rows,
     _trim_leading_orphan_assistant_tool_calls,

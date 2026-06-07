@@ -8,7 +8,7 @@ from typing import Any
 
 import httpx
 
-from kumi.core.config import get_telegram_bot_token
+from kumi.core.features.config import get_telegram_bot_token
 
 logger = logging.getLogger(__name__)
 
