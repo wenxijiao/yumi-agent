@@ -19,7 +19,7 @@ from kumi.core.api.state import (
     PENDING_CONFIRMATIONS,
     resolve_edge_for_prefixed_tool_name,
 )
-from kumi.core.tool import TOOL_REGISTRY
+from kumi.core.platform.tools.tool import TOOL_REGISTRY
 
 router = APIRouter()
 

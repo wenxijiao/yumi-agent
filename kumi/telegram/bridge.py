@@ -51,7 +51,7 @@ def chat_connection_config(telegram_user_id: int | None):
     """Like ``resolve_connection_config("chat")`` but attach Kumi user token when linked."""
     import os
 
-    from kumi.core.connection import (
+    from kumi.core.platform.security.connection import (
         DEFAULT_LOCAL_SERVER_URL,
         ConnectionConfig,
         resolve_connection_config,

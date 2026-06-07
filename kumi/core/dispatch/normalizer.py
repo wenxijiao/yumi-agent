@@ -16,7 +16,7 @@ import json
 from dataclasses import dataclass
 
 from kumi.core.dispatch.context import TurnContext
-from kumi.core.tool_call_normalize import normalize_tool_calls, tool_call_format_retry_user_content
+from kumi.core.platform.tools.tool_call_normalize import normalize_tool_calls, tool_call_format_retry_user_content
 
 
 def summarize_tool_args(args: dict | None, max_len: int = 500) -> str:

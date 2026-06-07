@@ -6,7 +6,7 @@ from typing import Any
 from urllib.parse import quote
 
 import httpx
-from kumi.core.connection import ConnectionConfig
+from kumi.core.platform.security.connection import ConnectionConfig
 
 
 def _api_url(connection: ConnectionConfig, path: str) -> str:

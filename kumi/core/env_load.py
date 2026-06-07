@@ -1,19 +1,10 @@
-"""Load optional dotenv files so ``KUMI_*``, ``HF_*``, etc. apply without manual export."""
+"""Deprecated shim — moved to kumi.core.platform.env_load.
 
-from __future__ import annotations
+Re-exports the relocated module so existing ``kumi.core.env_load`` imports keep
+working. Kept for one release; remove after consumers (incl. L2/L3) migrate.
+"""
+import sys as _sys
 
-from pathlib import Path
+from kumi.core.platform import env_load as _moved
 
-
-def load_kumi_dotenv() -> None:
-    """Load ``~/.kumi/.env`` then ``./.env``; never override existing OS environment."""
-    try:
-        from dotenv import load_dotenv
-    except ImportError:
-        return
-
-    from kumi.core.config.paths import CONFIG_DIR
-
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    load_dotenv(CONFIG_DIR / ".env", override=False)
-    load_dotenv(Path.cwd() / ".env", override=False)
+_sys.modules[__name__] = _moved

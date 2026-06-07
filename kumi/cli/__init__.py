@@ -7,7 +7,6 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from kumi.core.auth import _LEGACY_LAN_PREFIXES, LAN_TOKEN_PREFIX
 from kumi.core.config import (
     CONFIG_PATH,
     cleanup_memory_data,
@@ -30,7 +29,8 @@ from kumi.core.config import (
     save_model_config,
     save_telegram_bot_token,
 )
-from kumi.core.connection import (
+from kumi.core.platform.security.auth import _LEGACY_LAN_PREFIXES, LAN_TOKEN_PREFIX
+from kumi.core.platform.security.connection import (
     build_lan_server_url,
     discover_lan_ips,
     issue_lan_code,
@@ -237,7 +237,7 @@ def _subprocess_env_ensure_platform_tokens() -> dict:
 
 
 def _server_banner_rows(config) -> list[tuple[str, str]]:
-    from kumi.core.tool import TOOL_REGISTRY
+    from kumi.core.platform.tools.tool import TOOL_REGISTRY
     from kumi.tools.bootstrap import init_kumi
 
     init_kumi()
@@ -972,7 +972,7 @@ def main():
     keyboard-interrupt safety net.
     """
     from kumi.cli.commands import build_default_registry, validate_cross_command_flags
-    from kumi.core.env_load import load_kumi_dotenv
+    from kumi.core.platform.env_load import load_kumi_dotenv
 
     load_kumi_dotenv()
 

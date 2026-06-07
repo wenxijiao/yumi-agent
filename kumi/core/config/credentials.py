@@ -5,7 +5,7 @@ import sys
 
 from kumi.core.config.model import ModelConfig
 from kumi.core.config.store import load_model_config, load_saved_model_config
-from kumi.core.exceptions import ProviderNotReadyError
+from kumi.core.platform.exceptions import ProviderNotReadyError
 
 
 def get_api_credentials() -> dict[str, str | None]:

@@ -18,13 +18,13 @@ from collections.abc import AsyncIterator
 
 from kumi.core.api.events import ChatEvent, ToolConfirmationEvent, ToolStatusEvent
 from kumi.core.dispatch.context import ToolInvocation, TurnContext
+from kumi.core.platform.tools.tool_trace import record_tool_trace
 from kumi.core.runtime import RuntimeState
 from kumi.core.runtime.edge_naming import (
     edge_tool_key_prefix,
     edge_tool_register_prefix,
     parse_edge_connection_key,
 )
-from kumi.core.tool_trace import record_tool_trace
 
 
 class ConfirmationGate:

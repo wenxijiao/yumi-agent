@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from fastapi import HTTPException
-from kumi.core.exceptions import ProviderNotReadyError
+from kumi.core.platform.exceptions import ProviderNotReadyError
 from kumi.logging_config import get_logger
 
 _log = get_logger(__name__)

@@ -20,14 +20,14 @@ from fastapi import HTTPException
 from kumi.core.api.events import ErrorEvent, TextEvent, ToolConfirmationEvent
 from kumi.core.api.stream_consumer import BaseChannelHandler, consume_chat_stream
 from kumi.core.api.uploads import MAX_UPLOAD_BYTES, save_uploaded_file
-from kumi.core.audit import audit_event
 from kumi.core.config import load_saved_model_config
 from kumi.core.config.line import (
     get_line_allowed_user_ids,
     get_line_model_candidates,
     line_push_disabled,
 )
-from kumi.core.connection import DEFAULT_LOCAL_SERVER_URL, ConnectionConfig
+from kumi.core.platform.security.audit import audit_event
+from kumi.core.platform.security.connection import DEFAULT_LOCAL_SERVER_URL, ConnectionConfig
 from kumi.core.plugins import (
     LOCAL_IDENTITY,
     get_current_identity,

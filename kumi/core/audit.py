@@ -1,14 +1,10 @@
-"""Light-weight audit event logger (delegates to the registered :class:`AuditSink`)."""
+"""Deprecated shim — moved to kumi.core.platform.security.audit.
 
-from __future__ import annotations
+Re-exports the relocated module so existing ``kumi.core.audit`` imports keep
+working. Kept for one release; remove after consumers (incl. L2/L3) migrate.
+"""
+import sys as _sys
 
-from kumi.core.plugins import get_audit_sink
+from kumi.core.platform.security import audit as _moved
 
-
-def audit_event(event: str, user_id: str | None = None, **fields: object) -> None:
-    """Emit an audit event through the active sink.
-
-    OSS default writes to the standard logger only. Enterprise plugins can
-    swap in a sink that also persists rows to SQLite/Postgres.
-    """
-    get_audit_sink().event(event, user_id, **fields)
+_sys.modules[__name__] = _moved

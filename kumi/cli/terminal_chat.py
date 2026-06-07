@@ -8,7 +8,7 @@ from pathlib import Path
 
 import requests
 
-from kumi.core.connection import resolve_connection_config
+from kumi.core.platform.security.connection import resolve_connection_config
 
 DEFAULT_SESSION_ID = f"chat_{uuid.uuid4().hex[:12]}"
 

@@ -17,8 +17,8 @@ from kumi.core.api.state import (
     parse_edge_connection_key,
 )
 from kumi.core.config import load_saved_model_config, save_model_config
+from kumi.core.platform.tools.tool import TOOL_REGISTRY
 from kumi.core.plugins import get_edge_scope
-from kumi.core.tool import TOOL_REGISTRY
 
 # ── edge tool confirmation helpers ──
 

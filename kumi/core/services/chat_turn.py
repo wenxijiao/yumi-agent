@@ -35,6 +35,7 @@ from kumi.core.dispatch import (
     UsageRecorder,
 )
 from kumi.core.dispatch.normalizer import summarize_tool_args
+from kumi.core.platform.tools.tool_routing import select_tool_schemas
 from kumi.core.plugins import (
     SINGLE_USER_ID,
     get_bot_pool,
@@ -42,7 +43,6 @@ from kumi.core.plugins import (
     get_session_scope,
 )
 from kumi.core.runtime import RuntimeState, get_default_runtime
-from kumi.core.tool_routing import select_tool_schemas
 from kumi.logging_config import get_logger
 
 logger = get_logger(__name__)

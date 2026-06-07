@@ -10,8 +10,8 @@ from __future__ import annotations
 from typing import Any
 
 from kumi.core.dispatch.context import TurnContext
+from kumi.core.platform.tools.tool_routing import record_tool_routing_usage
 from kumi.core.plugins import SINGLE_USER_ID, get_current_identity, get_quota_policy
-from kumi.core.tool_routing import record_tool_routing_usage
 from kumi.logging_config import get_logger
 
 logger = get_logger(__name__)

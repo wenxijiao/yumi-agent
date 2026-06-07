@@ -33,8 +33,8 @@ from kumi.core.api.task_logging import log_task_exc_on_done
 from kumi.core.api.timers import cancel_timer, schedule_timer
 from kumi.core.chatbot import KumiBot
 from kumi.core.config import ensure_chat_model_configured, ensure_embedding_provider_not_deepseek
-from kumi.core.http_config import get_cors_settings
 from kumi.core.memories.embedding_state import set_embed_provider
+from kumi.core.platform.security.http_config import get_cors_settings
 from kumi.core.plugins import (
     get_bot_pool,
     get_middleware_extender,

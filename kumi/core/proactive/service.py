@@ -8,12 +8,12 @@ from datetime import datetime, timezone
 from typing import Any
 
 from kumi.core.config import load_model_config
+from kumi.core.platform.tools.tool_call_normalize import normalize_tool_calls
 from kumi.core.proactive.interaction import smart_interaction
 from kumi.core.proactive.planner import decide_proactive_send
 from kumi.core.proactive.prompt import build_proactive_prompt, split_proactive_messages
 from kumi.core.proactive.state import ProactiveStateStore
 from kumi.core.proactive.tools import proactive_context_lines, proactive_tool_schemas
-from kumi.core.tool_call_normalize import normalize_tool_calls
 from kumi.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -183,7 +183,7 @@ class ProactiveMessageService:
             resolve_edge_for_prefixed_tool_name,
         )
         from kumi.core.dispatch.limits import LOCAL_TOOL_TIMEOUT_DEFAULT
-        from kumi.core.tool import TOOL_REGISTRY, execute_registered_tool
+        from kumi.core.platform.tools.tool import TOOL_REGISTRY, execute_registered_tool
 
         if name in TOOL_REGISTRY:
             meta = TOOL_REGISTRY[name]

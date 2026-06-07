@@ -6,7 +6,7 @@ import json
 from typing import Any
 
 from kumi.core.memories.constants import KUMI_V1_TOOL_CALLS, KUMI_V1_TOOL_RESULT
-from kumi.core.tool_call_normalize import normalize_tool_calls
+from kumi.core.platform.tools.tool_call_normalize import normalize_tool_calls
 
 
 def message_hidden_from_chat_ui(message: dict) -> bool:

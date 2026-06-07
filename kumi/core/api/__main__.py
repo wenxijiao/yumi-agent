@@ -2,7 +2,7 @@
 
 import logging
 
-from kumi.core.env_load import load_kumi_dotenv
+from kumi.core.platform.env_load import load_kumi_dotenv
 
 load_kumi_dotenv()
 

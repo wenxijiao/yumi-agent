@@ -16,7 +16,7 @@ from kumi.core.api.chat_debug_trace import (
 from kumi.core.api.dependencies import CurrentIdentity
 from kumi.core.api.schemas import ChatDebugRequest, ChatRequest
 from kumi.core.api.state import stream_event
-from kumi.core.audit import audit_event
+from kumi.core.platform.security.audit import audit_event
 from kumi.core.plugins import get_quota_policy, get_session_scope
 
 router = APIRouter()

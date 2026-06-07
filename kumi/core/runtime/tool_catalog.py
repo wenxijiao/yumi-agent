@@ -25,8 +25,8 @@ class ToolCatalog:
         self._runtime = runtime
 
     def all_tool_schemas(self, identity=None) -> list:
+        from kumi.core.platform.tools.tool import TOOL_REGISTRY
         from kumi.core.plugins import get_current_identity, get_edge_scope
-        from kumi.core.tool import TOOL_REGISTRY
 
         if identity is None:
             identity = get_current_identity()

@@ -24,6 +24,8 @@ from kumi.core.dispatch.context import ToolInvocation, ToolResult, TurnContext
 from kumi.core.dispatch.edge import EdgeToolExecutor
 from kumi.core.dispatch.local import LocalToolExecutor
 from kumi.core.dispatch.normalizer import summarize_tool_args
+from kumi.core.platform.tools.tool import TOOL_REGISTRY
+from kumi.core.platform.tools.tool_trace import record_tool_trace
 from kumi.core.runtime import RuntimeState
 from kumi.core.runtime.edge_naming import (
     edge_tool_key_prefix,
@@ -31,8 +33,6 @@ from kumi.core.runtime.edge_naming import (
     parse_edge_connection_key,
     resolve_edge_for_prefixed_tool_name,
 )
-from kumi.core.tool import TOOL_REGISTRY
-from kumi.core.tool_trace import record_tool_trace
 
 
 def canonical_local_tool_name(raw: str) -> str:

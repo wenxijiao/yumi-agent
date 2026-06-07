@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 
 from kumi.core.dispatch.context import ToolInvocation, ToolResult
-from kumi.core.tool import execute_registered_tool
+from kumi.core.platform.tools.tool import execute_registered_tool
 
 
 class LocalToolExecutor:

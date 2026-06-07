@@ -1,12 +1,12 @@
 """Server-side tool registration — mirrors the edge ``init_kumi`` pattern.
 
 Built-in tools are plain functions registered explicitly via
-:func:`~kumi.core.tool.register_tool`.
+:func:`~kumi.core.platform.tools.tool.register_tool`.
 """
 
 from __future__ import annotations
 
-from kumi.core.tool import register_tool
+from kumi.core.platform.tools.tool import register_tool
 from kumi.tools.file_tools import list_files, read_file
 from kumi.tools.timer_tools import cancel_timer, list_timers, schedule_task, set_timer
 from kumi.tools.web_tools import get_weather, web_search
