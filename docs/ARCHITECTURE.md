@@ -40,6 +40,51 @@ flowchart LR
 
 Kumi is **local-first**: it ships a runnable server, terminal UI, Reflex web UI, and first-class edge-tool hosts so your game, app, or device can expose tools from its own process. The same FastAPI app accepts traffic from local clients (loopback HTTP), the LINE/Telegram bridges, and — in enterprise builds — relay frames forwarded from a public gateway.
 
+## Module Layout (platform / features / api)
+
+`kumi/core/` is organized as a deliberate hybrid — infrastructure by layer,
+business capabilities by feature:
+
+```
+kumi/core/
+  platform/     cross-cutting infrastructure (no feature knowledge)
+                runtime/ dispatch/ providers/ streaming/ plugins/
+                tools/ security/ http/  exceptions.py  env_load.py
+  features/     self-contained capabilities; each owns its router + service + domain
+                chat/ memory/ proactive/ config/ stt/ prompts/
+                uploads/ edge/ tools/ monitor/ health/
+  api/          HTTP composition root (app_factory, __main__) — wires features
+                onto the FastAPI app; may import both platform and features
+  chatbot.py    central KumiBot composition object
+```
+
+**Dependency rule (enforced):**
+
+* `features/*` depend on `platform/*`, **never** the reverse.
+* `features/*` do **not** import each other; shared needs go through `platform`.
+* `api/` (the composition root) may import both `platform` and `features`.
+* `platform/` has **no import-time dependency on features** — the few residual
+  needs (config + embeddings in tool routing; the OSS default memory/bot
+  factories) are deferred via lazy default-wiring through the plugin ports.
+
+To understand or delete one capability, look in one folder: e.g. everything for
+chat lives in `features/chat/` (`router.py` → `pipeline.py` → `service.py`,
+plus `context.py`, `debug_trace.py`, `trace_sink.py`).
+
+> **Note on legacy import paths.** Modules were relocated here from a flatter
+> `kumi/core/` layout; deprecated re-export shims remain at the old paths.
+> See [`MIGRATION_PLATFORM_FEATURES.md`](MIGRATION_PLATFORM_FEATURES.md) for the
+> full old→new map.
+
+## Web UI direction
+
+The current web UI (`kumi/ui/`) is built with Reflex (Python→React). It talks to
+the server **only** over the HTTP/NDJSON API (no in-process imports of core), so
+the recommended direction is to migrate it to a standalone React app: that
+decouples UI releases from the Python package, removes Reflex from the
+`pip install kumi-agent` dependency surface, and lets the UI ship as a static
+artifact. `kumi/ui/` is otherwise frozen pending that migration.
+
 ## HTTP Entry Layer
 
 `kumi/core/api/app_factory.py` is the single source of truth for HTTP composition. It owns:

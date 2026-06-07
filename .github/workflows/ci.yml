@@ -53,6 +53,28 @@ jobs:
       - name: Pyright
         run: python -m pyright kumi tests
 
+  standalone-install:
+    name: Standalone install
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build wheel
+        run: python -m pip install --upgrade pip build && python -m build --wheel
+
+      - name: Install wheel into a clean venv and smoke-test
+        run: |
+          python -m venv /tmp/clean
+          /tmp/clean/bin/pip install dist/kumi_agent-*.whl
+          /tmp/clean/bin/python -c "import kumi; from kumi.core.platform.runtime import get_default_runtime; from kumi.core.features.chat.service import ChatTurnService; print('standalone import OK')"
+          /tmp/clean/bin/kumi --help
+
   typescript:
     name: TypeScript SDK
     runs-on: ubuntu-latest
