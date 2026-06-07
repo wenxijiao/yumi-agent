@@ -1,4 +1,9 @@
-"""IANA timezone helpers for proactive quiet hours and daily limit rollover."""
+"""IANA timezone helpers (quiet-hours windows, daily rollover, user-facing clocks).
+
+Cross-cutting infrastructure: lives in ``platform`` so any feature (prompt
+composition, proactive scheduling, ...) can share it without a feature->feature
+import edge.
+"""
 
 from __future__ import annotations
 

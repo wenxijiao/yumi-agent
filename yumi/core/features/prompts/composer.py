@@ -8,12 +8,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
-from yumi.core.features.proactive.timezone_utils import format_user_facing_time
 from yumi.core.features.prompts.defaults import (
     NO_VISION_IMAGE_UPLOAD_INSTRUCTION,
     UPLOAD_FILE_INSTRUCTION,
     build_tool_use_instruction,
 )
+from yumi.core.platform.timezone import format_user_facing_time
 
 if TYPE_CHECKING:
     from yumi.core.features.config import ModelConfig

@@ -135,9 +135,21 @@ exclude = [
     "venv",
 ]
 
-# Slightly tighter diagnostics for memory subsystem (incremental typing).
+# Slightly tighter diagnostics for the most critical subsystems (incremental
+# typing). Optional-access bugs are the most common runtime trap here, so we
+# re-enable them as warnings without flipping the whole tree to strict.
 [[tool.pyright.executionEnvironments]]
 root = "yumi/core/features/memory"
+reportOptionalMemberAccess = "warning"
+reportOptionalSubscript = "warning"
+
+[[tool.pyright.executionEnvironments]]
+root = "yumi/core/platform/dispatch"
+reportOptionalMemberAccess = "warning"
+reportOptionalSubscript = "warning"
+
+[[tool.pyright.executionEnvironments]]
+root = "yumi/core/features/chat"
 reportOptionalMemberAccess = "warning"
 reportOptionalSubscript = "warning"
 

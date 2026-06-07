@@ -8,7 +8,7 @@ from yumi.core.features.proactive.interaction import smart_interaction
 from yumi.core.features.proactive.planner import ProactiveDecision
 from yumi.core.features.proactive.profiles import profile_hint
 from yumi.core.features.proactive.state import ProactiveSessionState
-from yumi.core.features.proactive.timezone_utils import format_user_facing_time
+from yumi.core.platform.timezone import format_user_facing_time
 
 _MSG_RE = re.compile(r"<msg>(.*?)</msg>", re.DOTALL | re.IGNORECASE)
 

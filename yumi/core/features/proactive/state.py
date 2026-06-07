@@ -8,7 +8,7 @@ from typing import Any
 
 from yumi.core.features.config.paths import CONFIG_DIR, ensure_config_dir
 from yumi.core.features.config.store import load_model_config
-from yumi.core.features.proactive.timezone_utils import proactive_calendar_date_iso
+from yumi.core.platform.timezone import proactive_calendar_date_iso
 from yumi.logging_config import get_logger
 
 logger = get_logger(__name__)

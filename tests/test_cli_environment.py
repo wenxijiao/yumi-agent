@@ -5,13 +5,14 @@ import os
 import sys
 
 import yumi.cli as cli
+import yumi.cli.runners as cli_runners
 
 
 def test_prepare_client_environment_prefers_reachable_direct_server(monkeypatch):
     monkeypatch.setenv("YUMI_SERVER_URL", "http://127.0.0.1:8000")
     monkeypatch.delenv("YUMI_RELAY_URL", raising=False)
     monkeypatch.delenv("YUMI_ACCESS_TOKEN", raising=False)
-    monkeypatch.setattr(cli, "is_server_running", lambda url: True)
+    monkeypatch.setattr(cli_runners, "is_server_running", lambda url: True)
 
     env = cli.prepare_client_environment("chat")
 
@@ -40,7 +41,7 @@ def test_tool_routing_cli_updates_config(monkeypatch, tmp_path, capsys):
     p = tmp_path / "config.json"
     monkeypatch.setattr("yumi.core.features.config.paths.CONFIG_PATH", p)
     monkeypatch.setattr("yumi.core.features.config.store.CONFIG_PATH", p)
-    monkeypatch.setattr(cli, "CONFIG_PATH", p)
+    monkeypatch.setattr(cli_runners, "CONFIG_PATH", p)
     monkeypatch.setattr(
         sys, "argv", ["yumi", "--tool-routing", "--edge-tools-limit", "7", "--disable-edge-tool-routing"]
     )
@@ -60,11 +61,11 @@ def test_config_cli_writes_full_config(monkeypatch, tmp_path, capsys):
     p = tmp_path / "config.json"
     monkeypatch.setattr("yumi.core.features.config.paths.CONFIG_PATH", p)
     monkeypatch.setattr("yumi.core.features.config.store.CONFIG_PATH", p)
-    monkeypatch.setattr(cli, "CONFIG_PATH", p)
+    monkeypatch.setattr(cli_runners, "CONFIG_PATH", p)
     monkeypatch.setattr(sys, "argv", ["yumi", "--config"])
     monkeypatch.setattr(cli, "configure_logging", lambda: None)
     opened = []
-    monkeypatch.setattr(cli, "_open_path_with_default_app", lambda path: opened.append(path) or True)
+    monkeypatch.setattr(cli_runners, "_open_path_with_default_app", lambda path: opened.append(path) or True)
 
     cli.main()
 

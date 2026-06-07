@@ -13,8 +13,8 @@ from yumi.core.features.proactive.planner import ProactiveDecision, decide_proac
 from yumi.core.features.proactive.prompt import build_proactive_prompt
 from yumi.core.features.proactive.service import ProactiveMessageService
 from yumi.core.features.proactive.state import ProactiveSessionState, ProactiveStateStore
-from yumi.core.features.proactive.timezone_utils import format_user_facing_time
 from yumi.core.features.proactive.tools import proactive_context_lines, proactive_tool_schemas
+from yumi.core.platform.timezone import format_user_facing_time
 from yumi.core.platform.tools.tool import TOOL_REGISTRY, register_tool
 
 

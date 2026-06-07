@@ -388,7 +388,8 @@ def chat_stream(prompt, session_id=DEFAULT_SESSION_ID):
         print(f"\n[Error] Something unexpected happened: {exc}\n")
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Run the interactive terminal chat REPL."""
     print("Yumi terminal chat started. Type 'exit' or 'q' to quit.")
     print("Type /help for available commands.")
     print(f"Session: {DEFAULT_SESSION_ID}\n")
@@ -409,4 +410,8 @@ if __name__ == "__main__":
         if _handle_slash_command(user_input, DEFAULT_SESSION_ID):
             continue
 
-        chat_stream(user_input)
+        chat_stream(user_input, DEFAULT_SESSION_ID)
+
+
+if __name__ == "__main__":
+    main()

@@ -233,7 +233,7 @@ jobs:
         run: dotnet build -c Release
 
   coverage:
-    name: Coverage (yumi.core.api)
+    name: Coverage (yumi.core)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -247,5 +247,9 @@ jobs:
       - name: Install package
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev,providers]"
 
+      # Coverage spans the whole core package (platform + features + api) so
+      # regressions in any subsystem are visible. The run is reported but not
+      # gated on a threshold yet; tighten with --cov-fail-under once the
+      # baseline stabilises.
       - name: Pytest with coverage
-        run: python -m pytest --cov=yumi.core.api --cov-report=term-missing -q
+        run: python -m pytest --cov=yumi.core --cov-report=term-missing -q

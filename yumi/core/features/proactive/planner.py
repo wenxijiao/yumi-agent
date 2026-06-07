@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from yumi.core.features.config.model import ModelConfig
 from yumi.core.features.proactive.interaction import should_give_space, smart_followup_delay_multiplier
 from yumi.core.features.proactive.state import ProactiveSessionState, parse_iso
-from yumi.core.features.proactive.timezone_utils import (
+from yumi.core.platform.timezone import (
     in_quiet_hours,
     proactive_calendar_date_iso,
     proactive_tzinfo,

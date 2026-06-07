@@ -5,6 +5,10 @@ import io
 import json
 from pathlib import Path
 
+from yumi.logging_config import get_logger
+
+logger = get_logger(__name__)
+
 MAX_CONTENT_CHARS = 50_000
 _TEXT_EXTENSIONS = {
     ".txt",
@@ -208,7 +212,9 @@ def read_file(file_path: str) -> str:
                 w, h = img.size
                 info += f" Dimensions: {w}x{h} pixels. Format: {img.format or ext.upper()}."
         except Exception:
-            pass
+            # PIL missing or the image is unreadable/corrupt — fall back to
+            # metadata-only output. Logged at debug so it isn't silent.
+            logger.debug("Could not read image metadata for %s", path, exc_info=True)
         info += (
             " If this chat uses a vision-capable model, the image may be embedded in the user message. "
             "If vision is disabled or the model is text-only, you cannot see pixel content—"

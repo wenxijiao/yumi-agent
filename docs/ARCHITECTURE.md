@@ -123,19 +123,18 @@ The enterprise relay client (`yumi_enterprise.relay_client.RelayClient`) receive
 `POST /chat` flows through five well-separated layers:
 
 ```
-routers/chat.py    — quota check + audit + StreamingResponse envelope
-core/api/chat.py   — facade: yields wire-format dicts (legacy contract)
-services/chat_turn.py — ChatTurnService orchestrator (~400 lines, state machine)
-core/dispatch/*    — domain pipeline (one collaborator per concern)
-core/runtime/*     — mutable state registries (locks, edge peers, tool policy, ...)
+features/chat/router.py   — quota check + audit + StreamingResponse envelope
+features/chat/pipeline.py — facade: yields wire-format dicts (legacy contract)
+features/chat/service.py  — ChatTurnService orchestrator (~400 lines, state machine)
+platform/dispatch/*       — domain pipeline (one collaborator per concern)
+platform/runtime/*        — mutable state registries (locks, edge peers, tool policy, ...)
 ```
 
-`ChatTurnService.stream_chat_turn` is a small state machine; every per-turn concern lives in `core/dispatch/`:
+`ChatTurnService.stream_chat_turn` is a small state machine; every per-turn concern lives in `platform/dispatch/`:
 
 | Module | Responsibility |
 |---|---|
 | `dispatch/context.py` | `TurnContext` value object, `ToolInvocation`, `ToolResult` |
-| `dispatch/trace_sink.py` | `ChatTraceSink` — debug-trace recording, diagnostic file writes |
 | `dispatch/usage.py` | `UsageRecorder` context manager — token totals + quota persistence |
 | `dispatch/normalizer.py` | `ToolCallNormalizer` — model-emit normalisation + retry budget |
 | `dispatch/confirmation.py` | `ConfirmationGate` — user confirmation flow + always-allow persistence |
@@ -143,7 +142,10 @@ core/runtime/*     — mutable state registries (locks, edge peers, tool policy,
 | `dispatch/edge.py` | `EdgeToolExecutor` — WebSocket RPC to an edge peer |
 | `dispatch/dispatcher.py` | `ToolDispatcher` — argument parsing, classification, parallel run |
 
-The orchestrator yields `ChatEvent` model instances (see below); the `core/api/chat.py` facade serialises them to dicts at the public boundary so existing dict-shaped consumers (LINE bridge, timer callback, SDK clients) keep working unchanged.
+Debug-trace recording and diagnostic file writes live alongside the orchestrator in
+`features/chat/trace_sink.py` (`ChatTraceSink`).
+
+The orchestrator yields `ChatEvent` model instances (see below); the `features/chat/pipeline.py` facade serialises them to dicts at the public boundary so existing dict-shaped consumers (LINE bridge, timer callback, SDK clients) keep working unchanged.
 
 ## Chat Event Protocol
 

@@ -75,7 +75,6 @@ _FOUNDATIONAL_FEATURES = {"config", "prompts"}
 # Known, accepted cross-feature edges that are not foundational. Candidates for
 # future cleanup (e.g. share the bit via platform), but not regressions today.
 _ALLOWED_FEATURE_EDGES = {
-    ("prompts", "proactive"),  # prompt composition reuses proactive timezone utils
     ("stt", "uploads"),  # stt router reuses the uploads service
     ("tools", "edge"),  # tools router pushes confirmation policy to edge peers
 }
