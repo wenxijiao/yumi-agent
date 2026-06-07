@@ -1,8 +1,8 @@
 """FastAPI assembly for the Yumi core API.
 
 This module owns process lifecycle and HTTP composition only. Every resource
-endpoint lives in ``yumi.core.api.routers``; this file does not declare any
-route, alias, or compatibility re-export.
+endpoint lives in its feature package (``yumi.core.features.<feature>.router``);
+this file does not declare any route, alias, or compatibility re-export.
 """
 
 from __future__ import annotations

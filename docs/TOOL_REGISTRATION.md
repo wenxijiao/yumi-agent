@@ -6,14 +6,14 @@ Use this page for function/tool registration. Use [`CONFIGURATION.md`](CONFIGURA
 
 ## Two Places To Register Tools
 
-Server-local tools run inside the Yumi server process. They use `yumi.core.tool.register_tool(...)` and are best for built-in or trusted server functions.
+Server-local tools run inside the Yumi server process. They use `yumi.core.platform.tools.tool.register_tool(...)` and are best for built-in or trusted server functions.
 
 Edge tools run inside your own app or device process. They connect to Yumi over WebSocket using an SDK such as Python, TypeScript, Go, Rust, Swift, Kotlin, Java, C#, C++, Dart, or UE5. This is the recommended path for app/device actions.
 
 ## Server-Local Registration
 
 ```python
-from yumi.core.tool import register_tool
+from yumi.core.platform.tools.tool import register_tool
 
 
 def get_weather(city: str) -> str:

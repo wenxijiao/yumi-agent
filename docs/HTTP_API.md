@@ -108,7 +108,7 @@ All paths are relative to the core base URL (e.g. `http://127.0.0.1:8000`).
 
 ### Multi-tenant routes (enterprise only)
 
-`yumi-agent` (this OSS package) is single-user / LAN. Multi-tenant routes (`/tenancy/*`, `/admin/*`, `/auth/*`, `/relay/*`, `/telegram/link`, `/line/link`, …) are added by the closed-source `yumi-enterprise` plugin via the `yumi.core.plugins` port system. See [UPGRADING_TO_ENTERPRISE.md](UPGRADING_TO_ENTERPRISE.md) for details.
+`yumi-agent` (this OSS package) is single-user / LAN. Multi-tenant routes (`/tenancy/*`, `/admin/*`, `/auth/*`, `/relay/*`, `/telegram/link`, `/line/link`, …) are added by the closed-source `yumi-enterprise` plugin via the `yumi.core.platform.plugins` port system. See [UPGRADING_TO_ENTERPRISE.md](UPGRADING_TO_ENTERPRISE.md) for details.
 
 ### Sessions and memory
 

@@ -12,12 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Internal restructure (`yumi/core/`): platform / features split.** Modules
   were reorganized into `yumi/core/platform/` (cross-cutting infra),
   `yumi/core/features/<feature>/` (self-contained capabilities), and a slim
-  `yumi/core/api/` HTTP composition root. Deprecated re-export **shims remain at
-  every old import path**, so existing code keeps working unchanged. New code
-  should use the new paths. See `docs/MIGRATION_PLATFORM_FEATURES.md` for the
-  full old→new map. Downstream packages (`yumi-enterprise`, `yumi-nexus`) still
-  import several old paths via the shims and should migrate before the shims are
-  removed in a future release.
+  `yumi/core/api/` HTTP composition root, with a strict dependency rule
+  (features → platform, never the reverse) enforced by tests. The old import
+  paths were retired — no compatibility shims remain, so only the new paths are
+  importable. See `docs/MIGRATION_PLATFORM_FEATURES.md` for the full old→new map.
 
 ### Security
 
@@ -77,25 +75,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Repository split**: this `yumi-agent` package is now the open-source single-user / LAN core. Multi-tenant, relay, billing, admin, and remote-pairing features moved to the closed-source `yumi-enterprise` package, which extends the core via the new `yumi.core.plugins` port system (`IdentityProvider`, `QuotaPolicy`, `BotPool`, `MemoryFactory`, `SessionScope`, `EdgeScope`, `AuditSink`, `BillingHook`, `RouteExtender`, `MiddlewareExtender`).
+- **Repository split**: this `yumi-agent` package is now the open-source single-user / LAN core. Multi-tenant, relay, billing, admin, and remote-pairing features moved to the closed-source `yumi-enterprise` package, which extends the core via the `yumi.core.platform.plugins` port system (`IdentityProvider`, `QuotaPolicy`, `BotPool`, `MemoryFactory`, `SessionScope`, `EdgeScope`, `AuditSink`, `BillingHook`, `RouteExtender`, `MiddlewareExtender`).
 - The OSS HTTP API now boots with `single_user` defaults: requests resolve to the local identity (`_local`), there is no Bearer auth requirement, and there are no quotas, billing, or per-tenant scoping.
 - CLI surface trimmed to `--server`, `--ui`, `--chat`, `--telegram`, `--line`, `--edge`, `--demo`, `--setup`, `--cleanup`, `--cleanup-memory`. The provisioning / migration / relay flags (`--admin`, `--tenant-create`, `--user-add`, `--user-token`, `--user-token-revoke`, `--user-set-scope`, `--rotate-user-keys`, `--migrate-tenancy`, `--db-upgrade`, `--db-current`, `--db-stamp`, `--memory-prune`, `--relay`) ship in the enterprise CLI.
-- `yumi.core.connection` is now LAN-only (`mode="direct"`); relay profile bootstrap, persistence, and the `mode="relay"` connection variant moved to enterprise.
-- `yumi.core.auth` now exposes only `YumiLanCode` and helpers; `YumiCredential` (signed Bearer tokens) and refresh-token flows moved to enterprise.
+- `yumi.core.platform.security.connection` is now LAN-only (`mode="direct"`); relay profile bootstrap, persistence, and the `mode="relay"` connection variant moved to enterprise.
+- `yumi.core.platform.security.auth` now exposes only `YumiLanCode` and helpers; `YumiCredential` (signed Bearer tokens) and refresh-token flows moved to enterprise.
 - LINE bridge (`yumi.line.handlers`, `yumi.line.bridge`) is now stateless single-user; `/link`, `/usage`, per-LINE-user token persistence, and per-user model overrides moved to enterprise.
 - Removed dependency pins on `slowapi` and `alembic` (multi-tenant rate-limit + DB migrations live in enterprise). The optional `postgres` extra is no longer published from OSS.
 
 ### Internal
 
-- New `yumi/core/plugins/` package with `Identity`, `LOCAL_IDENTITY`, `Protocol` ports, single-user defaults, a runtime registry, and `entry_points`-based plugin discovery (`yumi.plugins` group).
+- New `yumi/core/platform/plugins/` package with `Identity`, `LOCAL_IDENTITY`, `Protocol` ports, single-user defaults, a runtime registry, and `entry_points`-based plugin discovery (`yumi.plugins` group).
 
 ## [0.1.x]
 
 ### Changed
 
-- Internal Python layout: split user config into `yumi.core.config` package, prompts into `yumi.core.prompts`, memory helpers (`constants`, `tool_replay`, `embedding_state`), CLI as `yumi.cli` package with `terminal_chat`, streaming/error helpers, and renamed `yumi/tools/bootstrap.py` (was `setup.py`) for tool registration. User-facing HTTP routes, CLI commands, and SDKs are unchanged.
+- Internal Python layout: split user config into `yumi.core.features.config` package, prompts into `yumi.core.features.prompts`, memory helpers (`constants`, `tool_replay`, `embedding_state`), CLI as `yumi.cli` package with `terminal_chat`, streaming/error helpers, and renamed `yumi/tools/bootstrap.py` (was `setup.py`) for tool registration. User-facing HTTP routes, CLI commands, and SDKs are unchanged.
 - Restricted default browser CORS for the core API and Relay to localhost-style origins, with explicit env vars for widening access.
-- Refactored the core HTTP server into the `yumi.core.api` package (`routes`, `state`, `chat`, `edge`, `timers`, `peers`, `schemas`) to reduce module-level global state and improve testability.
+- Refactored the core HTTP server into the `yumi.core.api` composition root, with shared HTTP infrastructure in `yumi.core.platform.http` and per-feature routers under `yumi.core.features.*`, to reduce module-level global state and improve testability.
 - Expanded CI-safe tests: chat streaming, credential validation, Relay bootstrap/auth, CLI environment selection, edge WebSocket handshake, health endpoint, and cross-SDK contract tests (Python/Go/TypeScript/Java schema shape verification).
 - Clarified public API stability, deployment hardening, and package metadata for external users.
 - Replaced deprecated LanceDB `table_names()` checks with `list_tables()`-first compatibility helpers in memory storage to remove deprecation warnings on current releases.

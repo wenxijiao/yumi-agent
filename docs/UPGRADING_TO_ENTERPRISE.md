@@ -20,7 +20,7 @@ change to switch.
 ## Architecture in one paragraph
 
 The OSS core defines a **plugin port** layer at
-[`yumi/core/plugins/`](../yumi/core/plugins/) — small abstract interfaces
+[`yumi/core/platform/plugins/`](../yumi/core/platform/plugins/) — small abstract interfaces
 for identity, quotas, billing, session scoping, bot pooling, memory
 factory, edge scoping, audit, route extension, and middleware extension.
 The OSS package registers permissive single-user defaults for every port.
@@ -103,7 +103,7 @@ mode at any time.
 `yumi-enterprise` pins a narrow OSS range (`yumi-agent>=0.2,<0.3`).
 Within that range the OSS team commits to:
 
-- not removing or renaming any class in `yumi.core.plugins`
+- not removing or renaming any class in `yumi.core.platform.plugins`
 - not changing the on-the-wire shape of `/health`, `/chat`, `/config/*`,
   `/ws/edge`
 - bumping the OSS minor version when introducing breaking changes that

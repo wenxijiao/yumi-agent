@@ -21,6 +21,11 @@ from yumi.core.platform.runtime.tool_catalog import model_visible_tool_schema as
 from yumi.logging_config import get_logger
 
 if TYPE_CHECKING:
+    # Type-only imports (resolved outside ``platform``); skipped at import time
+    # so the platform → features rule still holds.
+    from yumi.core.chatbot import YumiBot
+    from yumi.core.features.proactive.service import ProactiveMessageService
+
     # Static type stubs for the names resolved through ``__getattr__``.
     ACTIVE_CONNECTIONS: dict
     EDGE_TOOLS_REGISTRY: dict
@@ -34,8 +39,8 @@ if TYPE_CHECKING:
     SESSION_LOCKS: dict
     TIMER_TASKS: dict
     TIMER_SUBSCRIBERS: list[tuple[Any, str | None]]
-    bot: Any
-    proactive_service: Any
+    bot: YumiBot | None
+    proactive_service: ProactiveMessageService | None
     RELAY_CLIENT: Any
     server_draining: bool
 
@@ -77,7 +82,7 @@ def __getattr__(name: str) -> Any:
 # ── bot accessor ──
 
 
-def get_bot():
+def get_bot() -> "YumiBot":
     """Return the active YumiBot instance or raise RuntimeError."""
     if _runtime.bot is None:
         raise RuntimeError(
@@ -97,11 +102,11 @@ def get_runtime() -> RuntimeState:
     return _runtime
 
 
-def set_bot(active_bot) -> None:
+def set_bot(active_bot: "YumiBot") -> None:
     _runtime.bot = active_bot
 
 
-def set_proactive_service(service) -> None:
+def set_proactive_service(service: "ProactiveMessageService | None") -> None:
     _runtime.proactive_service = service
 
 

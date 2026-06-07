@@ -38,6 +38,10 @@ class ProactiveMessageService:
         self.state_store = state_store or ProactiveStateStore()
         self._task: asyncio.Task | None = None
         self._stop = asyncio.Event()
+        # Per-session signature of the last failure. A standing error the loop
+        # cannot fix (e.g. a bad API key) is logged loudly once and then quietly,
+        # instead of dumping a full traceback every check interval forever.
+        self._last_failure_sig: dict[str, str] = {}
 
     def start(self) -> None:
         if self._task is not None and not self._task.done():
@@ -64,12 +68,28 @@ class ProactiveMessageService:
                         await self._maybe_send_for_session(session_id, cfg=cfg)
                     except asyncio.CancelledError:
                         raise
-                    except Exception:
-                        logger.exception("Proactive messaging failed for session_id=%s", session_id)
+                    except Exception as exc:
+                        self._log_session_failure(session_id, exc)
+                    else:
+                        self._last_failure_sig.pop(session_id, None)
             try:
                 await asyncio.wait_for(self._stop.wait(), timeout=_sample_sleep_seconds(cfg))
             except asyncio.TimeoutError:
                 pass
+
+    def _log_session_failure(self, session_id: str, exc: Exception) -> None:
+        """Log a per-session failure, collapsing repeats of the same error.
+
+        The first occurrence — or any change in the error — is logged with a
+        full traceback; identical follow-ups become a one-line warning, so a
+        standing misconfiguration doesn't bury the logs in stack traces.
+        """
+        sig = f"{type(exc).__name__}: {exc}"
+        if self._last_failure_sig.get(session_id) == sig:
+            logger.warning("Proactive messaging still failing for session_id=%s: %s", session_id, sig)
+        else:
+            self._last_failure_sig[session_id] = sig
+            logger.exception("Proactive messaging failed for session_id=%s", session_id)
 
     async def _maybe_send_for_session(self, session_id: str, *, cfg) -> None:
         if not session_id or "telegram" not in {c.lower() for c in cfg.proactive_channels}:

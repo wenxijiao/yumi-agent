@@ -137,7 +137,7 @@ exclude = [
 
 # Slightly tighter diagnostics for memory subsystem (incremental typing).
 [[tool.pyright.executionEnvironments]]
-root = "yumi/core/memories"
+root = "yumi/core/features/memory"
 reportOptionalMemberAccess = "warning"
 reportOptionalSubscript = "warning"
 

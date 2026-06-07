@@ -147,7 +147,7 @@ The orchestrator yields `ChatEvent` model instances (see below); the `core/api/c
 
 ## Chat Event Protocol
 
-The `/chat` NDJSON stream is a **discriminated Pydantic union** keyed by `type` (`yumi/core/api/events.py`):
+The `/chat` NDJSON stream is a **discriminated Pydantic union** keyed by `type` (`yumi/core/platform/http/events.py`):
 
 ```python
 ChatEvent = Annotated[
@@ -156,11 +156,11 @@ ChatEvent = Annotated[
 ]
 ```
 
-The wire format is unchanged — `model_dump()` produces the same JSON the legacy code did — but producers and consumers can opt into typed dispatch via `parse_chat_event()` and `serialize_chat_event()`. Adding a new event type is one model + one `case` in `yumi/core/api/stream_consumer.py`; every existing channel adapter inherits a no-op default until it explicitly opts in.
+The wire format is unchanged — `model_dump()` produces the same JSON the legacy code did — but producers and consumers can opt into typed dispatch via `parse_chat_event()` and `serialize_chat_event()`. Adding a new event type is one model + one `case` in `yumi/core/platform/http/stream_consumer.py`; every existing channel adapter inherits a no-op default until it explicitly opts in.
 
 ## Channel Adapters
 
-Channel-specific rendering (LINE, Telegram, terminal CLI, future Discord/Slack/WhatsApp) implements the `ChannelHandler` Protocol from `yumi/core/api/stream_consumer.py`:
+Channel-specific rendering (LINE, Telegram, terminal CLI, future Discord/Slack/WhatsApp) implements the `ChannelHandler` Protocol from `yumi/core/platform/http/stream_consumer.py`:
 
 ```python
 class ChannelHandler(Protocol):
@@ -175,10 +175,10 @@ class ChannelHandler(Protocol):
 
 ## Memory Layer
 
-`yumi/core/memories/` exposes a single public class — `Memory` — which is a **façade** over focused collaborators:
+`yumi/core/features/memory/` exposes a single public class — `Memory` — which is a **façade** over focused collaborators:
 
 ```
-memories/
+memory/
 ├── memory.py              # Memory façade (delegates to the collaborators below)
 ├── backend.py             # LanceDBBackend: connection cache, table helpers, time/SQL primitives
 ├── embedding_runner.py    # EmbeddingProcessor: dim migration + background re-embed
@@ -220,7 +220,7 @@ When the LLM selects an edge tool, `EdgeToolExecutor` sends a `tool_call` messag
 
 ## Plugin Ports
 
-`yumi/core/plugins/ports.py` declares the protocols every commercial / enterprise build implements. The OSS core MUST only depend on these abstractions — never import anything from a commercial package directly.
+`yumi/core/platform/plugins/ports.py` declares the protocols every commercial / enterprise build implements. The OSS core MUST only depend on these abstractions — never import anything from a commercial package directly.
 
 | Port | OSS default | Enterprise replacement |
 |---|---|---|
@@ -258,7 +258,7 @@ Yumi is in the **0.x** stage. The interfaces intended for users to build on are:
 
 - The `yumi` CLI (sub-commands and flags documented in `yumi --help`).
 - The documented HTTP routes in [HTTP_API.md](HTTP_API.md).
-- The `ChatEvent` schema in `yumi/core/api/events.py` and the `ChannelHandler` protocol in `yumi/core/api/stream_consumer.py` (for non-Python channel adapters or external SDK clients that want typed events).
+- The `ChatEvent` schema in `yumi/core/platform/http/events.py` and the `ChannelHandler` protocol in `yumi/core/platform/http/stream_consumer.py` (for non-Python channel adapters or external SDK clients that want typed events).
 - The SDKs and templates under [`yumi/sdk/`](../yumi/sdk/README.md) and `yumi --edge`.
 
-Internal Python modules such as `yumi.core.dispatch.*`, `yumi.core.memories.repos.*`, and `yumi.core.api.routers.*` are implementation details and may change between releases. Breaking changes to user-facing surfaces are called out in the changelog and release notes.
+Internal Python modules such as `yumi.core.platform.dispatch.*`, `yumi.core.features.memory.repos.*`, and `yumi.core.features.*.router` are implementation details and may change between releases. Breaking changes to user-facing surfaces are called out in the changelog and release notes.

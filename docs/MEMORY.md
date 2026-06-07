@@ -7,7 +7,7 @@ This document describes what Yumi persists and how it reaches the model.
 The OSS implementation is split into a façade plus per-aggregate repositories so backends (LanceDB today, PostgreSQL in enterprise) can be swapped without rewriting the public surface:
 
 ```
-yumi/core/memories/
+yumi/core/features/memory/
 ├── memory.py              # Memory façade (public class)
 ├── backend.py             # LanceDBBackend: connection, table helpers, time/SQL primitives
 ├── embedding_runner.py    # EmbeddingProcessor: dim migration + background re-embed

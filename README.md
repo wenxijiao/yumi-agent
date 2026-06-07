@@ -200,7 +200,7 @@ Yumi is **not** another Python-only LLM chaining library. It ships a runnable se
 
 This package (`yumi-agent`) is the **open-source single-user / LAN core**. It runs locally or on your home network, has no Bearer auth, no per-tenant scoping, and no quotas. Everything you need to chat with an agent and register tools across languages is here.
 
-A separate **`yumi-enterprise`** package extends this core via the `yumi.core.plugins` port system to add multi-tenant identity, per-user encryption, billing/usage metering, an admin API, the public **relay** for remote pairing, and PostgreSQL-backed storage. It depends on this OSS package, registers itself via Python `entry_points` (group `yumi.plugins`), and ships its own CLI (`yumi-enterprise serve`). It is distributed privately and not on PyPI.
+A separate **`yumi-enterprise`** package extends this core via the `yumi.core.platform.plugins` port system to add multi-tenant identity, per-user encryption, billing/usage metering, an admin API, the public **relay** for remote pairing, and PostgreSQL-backed storage. It depends on this OSS package, registers itself via Python `entry_points` (group `yumi.plugins`), and ships its own CLI (`yumi-enterprise serve`). It is distributed privately and not on PyPI.
 
 If you only need a personal or LAN agent, you do **not** need the enterprise package. When you do need multi-tenant identity, billing, relay, or PostgreSQL-backed storage, see [Upgrading to Enterprise](docs/UPGRADING_TO_ENTERPRISE.md).
 

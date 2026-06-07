@@ -19,7 +19,7 @@ Static analysis (also run in CI):
 python -m pyright yumi tests
 ```
 
-Pyright settings and excludes (for example Reflex UI and edge templates) live under `[tool.pyright]` in the repo root [pyproject.toml](../pyproject.toml). The `yumi/core/memories` tree uses a slightly stricter `executionEnvironments` entry (`reportOptionalMemberAccess` / `reportOptionalSubscript` as warnings) as a first step toward stronger typing there.
+Pyright settings and excludes (for example Reflex UI and edge templates) live under `[tool.pyright]` in the repo root [pyproject.toml](../pyproject.toml). The `yumi/core/features/memory` tree uses a slightly stricter `executionEnvironments` entry (`reportOptionalMemberAccess` / `reportOptionalSubscript` as warnings) as a first step toward stronger typing there.
 
 Run a single file or match a test name:
 
@@ -51,9 +51,9 @@ By default, tests **do not** start the full `yumi --server` / FastAPI lifespan (
 |------|-----------------|
 | HTTP stream shape | NDJSON lines from `stream_event`, plus `/chat` response streaming with a mocked generator |
 | Config | `ModelConfig` defaults and CORS env parsing helpers |
-| API models | Pydantic models in `yumi.core.api.schemas` |
+| API models | Pydantic models in `yumi.core.platform.http.schemas` |
 | App object | `create_app()` returns the same instance as the module-level `app` (no listening socket) |
-| Credentials | Encode/decode round-trip plus expiry / kind / scope / signature failures in `yumi.core.auth` |
+| Credentials | Encode/decode round-trip plus expiry / kind / scope / signature failures in `yumi.core.platform.security.auth` |
 | Relay auth | Bearer enforcement, scope rejection, and one-time join-code bootstrap behavior |
 | CLI env | Direct-mode environment selection without launching subprocesses |
 | Edge WebSocket | Register handshake, tool mounting, and disconnect cleanup via TestClient WebSocket |

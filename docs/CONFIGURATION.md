@@ -341,7 +341,7 @@ This pulls in `sounddevice` (mic capture), `webrtcvad-wheels` (voice activity de
 
 Voice / Telegram / `--chat` each persist to their own session (`voice_alice`, `tg_alice`, `chat_alice`). Each chat turn fetches the most recent N messages from the **current** session **plus** any sibling sessions that share the owner suffix, merges them by timestamp, and renders sibling turns with a `(via voice)` / `(via telegram)` / `(via chat)` tag so the model can distinguish channels. `yumi --chat` uses random UUID session ids by default, so its history is included only when you pass an explicit `session_id` matching the voice owner.
 
-The merge happens in `yumi/core/memories/context.py::ContextBuilder._recent_transcript`. The cap is roughly twice `memory_max_recent_messages` after merge to keep peers from crowding out the current channel. There is no schema change — peer messages are read with a single `session_id IN (...)` query against the existing `chat_history` LanceDB table.
+The merge happens in `yumi/core/features/memory/context.py::ContextBuilder._recent_transcript`. The cap is roughly twice `memory_max_recent_messages` after merge to keep peers from crowding out the current channel. There is no schema change — peer messages are read with a single `session_id IN (...)` query against the existing `chat_history` LanceDB table.
 
 ### Voice loop details
 

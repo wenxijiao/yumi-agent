@@ -14,23 +14,23 @@ not import each other except through platform; `api` (composition) may import
 both.** Verified: `platform/` and `features/` no longer import `yumi.core.api`,
 and `platform/` has no import-time dependency on `features/`.
 
-## Compatibility shims (deprecated)
+## Compatibility shims (removed)
 
-Every moved module/package left a thin re-export shim at its **old** import path
-so existing consumers keep working. The shims are **deprecated** and will be
-removed in a future release. L1's own source and tests no longer use them —
-they exist only for downstream consumers (notably `yumi-enterprise` /
-`yumi-nexus`), which still import several old paths and should migrate using the
-map below before the shims are deleted.
+During the migration every moved module/package kept a thin re-export shim at
+its **old** import path so existing consumers would keep working. Those shims
+have since been **removed** — no shim remains at any old path, so importing one
+now raises `ModuleNotFoundError`. Downstream consumers (notably
+`yumi-enterprise` / `yumi-nexus`) must import the **new** paths directly, using
+the map below.
 
 ## Old → new import map
 
 | Old path | New path |
 |---|---|
 | `yumi.core.tool` | `yumi.core.platform.tools.tool` |
-| `yumi.core.tool_routing` | `yumi.core.platform.tools.tool_routing` |
-| `yumi.core.tool_call_normalize` | `yumi.core.platform.tools.tool_call_normalize` |
-| `yumi.core.tool_trace` | `yumi.core.platform.tools.tool_trace` |
+| `yumi.core.tool_routing` | `yumi.core.platform.tools.routing` |
+| `yumi.core.tool_call_normalize` | `yumi.core.platform.tools.normalize` |
+| `yumi.core.tool_trace` | `yumi.core.platform.tools.trace` |
 | `yumi.core.auth` | `yumi.core.platform.security.auth` |
 | `yumi.core.audit` | `yumi.core.platform.security.audit` |
 | `yumi.core.connection` | `yumi.core.platform.security.connection` |
