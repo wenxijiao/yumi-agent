@@ -1,6 +1,6 @@
 """Gemini rejects edge tool names with spaces or other disallowed characters."""
 
-from kumi.core.platform.runtime.accessors import edge_tool_key_prefix, gemini_safe_edge_segment
+from yumi.core.platform.runtime.accessors import edge_tool_key_prefix, gemini_safe_edge_segment
 
 
 def test_gemini_safe_edge_segment_strips_spaces_and_unicode():

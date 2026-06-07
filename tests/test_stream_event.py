@@ -2,7 +2,7 @@
 
 import json
 
-from kumi.core.api import stream_event
+from yumi.core.api import stream_event
 
 
 def test_stream_event_is_single_ndjson_line():

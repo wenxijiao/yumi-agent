@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from kumi.core.platform.tools.normalize import (
+from yumi.core.platform.tools.normalize import (
     normalize_tool_calls,
     tool_call_format_retry_user_content,
 )
@@ -71,4 +71,4 @@ def test_tool_call_format_retry_user_content_includes_diagnosis():
     msg = tool_call_format_retry_user_content(raw)
     assert "Diagnosis:" in msg
     assert "function.name" in msg
-    assert "Kumi" in msg
+    assert "Yumi" in msg

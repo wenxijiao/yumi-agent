@@ -1,0 +1,12 @@
+[package]
+name = "yumi_edge"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+yumi_sdk = { path = "yumi_sdk" }
+tokio = { version = "1", features = ["full", "signal", "macros"] }
+
+[[bin]]
+name = "yumi_edge"
+path = "src/main.rs"

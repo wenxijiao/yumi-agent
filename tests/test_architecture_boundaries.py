@@ -15,7 +15,7 @@ from __future__ import annotations
 import ast
 import pathlib
 
-CORE = pathlib.Path(__file__).resolve().parent.parent / "kumi" / "core"
+CORE = pathlib.Path(__file__).resolve().parent.parent / "yumi" / "core"
 
 
 def _runtime_imports(path: pathlib.Path) -> list[str]:
@@ -53,7 +53,7 @@ def test_platform_has_no_import_time_dependency_on_features_or_api():
     offenders: list[str] = []
     for path in _modules_under("platform"):
         for mod in _runtime_imports(path):
-            if mod.startswith("kumi.core.features") or mod.startswith("kumi.core.api"):
+            if mod.startswith("yumi.core.features") or mod.startswith("yumi.core.api"):
                 offenders.append(f"{path.relative_to(CORE)} imports {mod}")
     assert not offenders, "platform must not import features/api at module load:\n" + "\n".join(offenders)
 
@@ -62,7 +62,7 @@ def test_features_do_not_import_api():
     offenders: list[str] = []
     for path in _modules_under("features"):
         for mod in _runtime_imports(path):
-            if mod.startswith("kumi.core.api"):
+            if mod.startswith("yumi.core.api"):
                 offenders.append(f"{path.relative_to(CORE)} imports {mod}")
     assert not offenders, "features must not import the api composition layer:\n" + "\n".join(offenders)
 
@@ -86,7 +86,7 @@ def test_features_do_not_import_each_other():
     for path in _modules_under("features"):
         own_feature = path.relative_to(CORE / "features").parts[0]
         for mod in _runtime_imports(path):
-            prefix = "kumi.core.features."
+            prefix = "yumi.core.features."
             if not mod.startswith(prefix):
                 continue
             target_feature = mod[len(prefix) :].split(".")[0]

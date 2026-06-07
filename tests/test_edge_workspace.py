@@ -1,11 +1,11 @@
-"""Edge workspace scaffolding (``kumi --edge``) helpers."""
+"""Edge workspace scaffolding (``yumi --edge``) helpers."""
 
 import os
 import tempfile
 
-import kumi.cli as cli
 import pytest
-from kumi.edge.client import init_workspace
+import yumi.cli as cli
+from yumi.edge.client import init_workspace
 
 
 def test_parse_edge_langs_none():
@@ -31,8 +31,8 @@ def test_parse_edge_langs_mixed():
 def test_init_workspace_multi_lang_creates_both_trees():
     with tempfile.TemporaryDirectory() as tmp:
         init_workspace(tmp, lang=["python", "rust"])
-        assert os.path.isfile(os.path.join(tmp, "kumi_tools", "python", "kumi_setup.py"))
-        assert os.path.isfile(os.path.join(tmp, "kumi_tools", "rust", "Cargo.toml"))
+        assert os.path.isfile(os.path.join(tmp, "yumi_tools", "python", "yumi_setup.py"))
+        assert os.path.isfile(os.path.join(tmp, "yumi_tools", "rust", "Cargo.toml"))
 
 
 def test_init_workspace_creates_root_agent_guide():
@@ -45,9 +45,9 @@ def test_init_workspace_creates_root_agent_guide():
         with open(guide_path, encoding="utf-8") as fh:
             guide = fh.read()
 
-        assert "Kumi Edge Agent Guide" in guide
-        assert "kumi_tools/python/kumi_setup.py" in guide
-        assert "kumi/sdk/AGENTS.md" in guide
+        assert "Yumi Edge Agent Guide" in guide
+        assert "yumi_tools/python/yumi_setup.py" in guide
+        assert "yumi/sdk/AGENTS.md" in guide
 
 
 def test_init_workspace_creates_agent_guide_when_target_dir_is_missing():
@@ -56,7 +56,7 @@ def test_init_workspace_creates_agent_guide_when_target_dir_is_missing():
         init_workspace(workspace, lang=["python"])
 
         assert os.path.isfile(os.path.join(workspace, "AGENTS.md"))
-        assert os.path.isfile(os.path.join(workspace, "kumi_tools", "python", "kumi_setup.py"))
+        assert os.path.isfile(os.path.join(workspace, "yumi_tools", "python", "yumi_setup.py"))
 
 
 def test_init_workspace_does_not_overwrite_existing_agent_guide():

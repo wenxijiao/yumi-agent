@@ -6,10 +6,10 @@ import asyncio
 import io
 import wave
 
-from kumi.voice.audio_source import FakeAudioSource
-from kumi.voice.runtime import pcm_to_wav_bytes, run_voice_session
-from kumi.voice.segmenter import FakeVad, UtteranceCollector
-from kumi.voice.wake import FakeWake
+from yumi.voice.audio_source import FakeAudioSource
+from yumi.voice.runtime import pcm_to_wav_bytes, run_voice_session
+from yumi.voice.segmenter import FakeVad, UtteranceCollector
+from yumi.voice.wake import FakeWake
 
 
 def _speech_frame(frame_length: int) -> bytes:

@@ -1,9 +1,9 @@
 # Defensive: never accidentally commit closed-source enterprise code into
 # this OSS repo. Keep the directory name reserved.
 _enterprise_seed/
-kumi_enterprise/
+yumi_enterprise/
 
-# Cursor / Claude local worktrees (not part of the Kumi source tree)
+# Cursor / Claude local worktrees (not part of the Yumi source tree)
 .claude/
 
 **/.lancedb/
@@ -16,16 +16,16 @@ kumi_enterprise/
 **/.mypy_cache/
 **/.ruff_cache/
 *.egg-info/
-kumi/ui/.web/
-kumi/ui/.states/
-kumi/sdk/swift/.build/
-kumi/sdk/swift/.swiftpm/
-kumi/sdk/typescript/node_modules/
-kumi/sdk/typescript/dist/
-kumi/sdk/cpp/build/
-kumi/sdk/cpp/.cache/
-kumi/sdk/go/vendor/
-kumi/sdk/java/target/
-kumi/sdk/java/.idea/
-kumi/sdk/csharp/bin/
-kumi/sdk/csharp/obj/
+yumi/ui/.web/
+yumi/ui/.states/
+yumi/sdk/swift/.build/
+yumi/sdk/swift/.swiftpm/
+yumi/sdk/typescript/node_modules/
+yumi/sdk/typescript/dist/
+yumi/sdk/cpp/build/
+yumi/sdk/cpp/.cache/
+yumi/sdk/go/vendor/
+yumi/sdk/java/target/
+yumi/sdk/java/.idea/
+yumi/sdk/csharp/bin/
+yumi/sdk/csharp/obj/

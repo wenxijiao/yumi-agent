@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import pytest
-from kumi.core.features.config import ModelConfig
-from kumi.core.platform.plugins import LOCAL_IDENTITY
-from kumi.core.platform.tools.routing import (
+from yumi.core.features.config import ModelConfig
+from yumi.core.platform.plugins import LOCAL_IDENTITY
+from yumi.core.platform.tools.routing import (
     clear_tool_routing_traces,
     list_tool_routing_traces,
     record_tool_routing_usage,
     select_tool_schemas,
 )
-from kumi.core.platform.tools.tool import TOOL_REGISTRY
+from yumi.core.platform.tools.tool import TOOL_REGISTRY
 
 
 def _schema(name: str, description: str) -> dict:
@@ -61,7 +61,7 @@ def _restore_tool_registry(monkeypatch):
         }
     )
     monkeypatch.setattr(
-        "kumi.core.platform.tools.routing.load_model_config",
+        "yumi.core.platform.tools.routing.load_model_config",
         lambda: ModelConfig(edge_tools_enable_dynamic_routing=True, edge_tools_retrieval_limit=3),
     )
     clear_tool_routing_traces()
@@ -157,14 +157,14 @@ def test_embedding_routing_is_preferred_over_lexical_matching(monkeypatch):
             return [0.0, 1.0]
 
     monkeypatch.setattr(
-        "kumi.core.platform.tools.routing.load_model_config",
+        "yumi.core.platform.tools.routing.load_model_config",
         lambda: ModelConfig(
             embedding_model="fake-embedding",
             edge_tools_enable_dynamic_routing=True,
             edge_tools_retrieval_limit=1,
         ),
     )
-    monkeypatch.setattr("kumi.core.platform.tools.routing.get_embed_provider", lambda: FakeEmbedProvider())
+    monkeypatch.setattr("yumi.core.platform.tools.routing.get_embed_provider", lambda: FakeEmbedProvider())
     registry = {
         "lab": {
             "edge_lab__generic_match": {"schema": _schema("edge_lab__generic_match", "semantic request target")},
@@ -248,7 +248,7 @@ def test_disabled_tools_are_not_loaded():
 
 def test_dynamic_routing_can_be_disabled(monkeypatch):
     monkeypatch.setattr(
-        "kumi.core.platform.tools.routing.load_model_config",
+        "yumi.core.platform.tools.routing.load_model_config",
         lambda: ModelConfig(edge_tools_enable_dynamic_routing=False, edge_tools_retrieval_limit=3),
     )
 
@@ -265,7 +265,7 @@ def test_dynamic_routing_can_be_disabled(monkeypatch):
 
 def test_zero_edge_limit_hides_unforced_edge_tools(monkeypatch):
     monkeypatch.setattr(
-        "kumi.core.platform.tools.routing.load_model_config",
+        "yumi.core.platform.tools.routing.load_model_config",
         lambda: ModelConfig(edge_tools_enable_dynamic_routing=True, edge_tools_retrieval_limit=0),
     )
 
@@ -283,7 +283,7 @@ def test_zero_edge_limit_hides_unforced_edge_tools(monkeypatch):
 
 def test_always_include_edge_tool_bypasses_dynamic_routing_limit(monkeypatch):
     monkeypatch.setattr(
-        "kumi.core.platform.tools.routing.load_model_config",
+        "yumi.core.platform.tools.routing.load_model_config",
         lambda: ModelConfig(edge_tools_enable_dynamic_routing=True, edge_tools_retrieval_limit=0),
     )
     registry = _edge_registry(12)

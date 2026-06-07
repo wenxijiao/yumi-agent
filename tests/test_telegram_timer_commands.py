@@ -1,4 +1,4 @@
-from kumi.telegram.bot import _format_timer_list_for_telegram
+from yumi.telegram.bot import _format_timer_list_for_telegram
 
 
 def test_format_timer_list_for_telegram_empty():

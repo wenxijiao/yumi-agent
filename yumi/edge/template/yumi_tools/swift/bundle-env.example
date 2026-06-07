@@ -1,0 +1,14 @@
+# Optional: only if you prefer a bundle file instead of literals in YumiSetup.swift.
+#
+# Copy into your Xcode app target as a bundle resource.
+#
+# For iPhone / iPad when using this approach:
+#   1. Duplicate this file in your project.
+#   2. Rename the copy to: env   (no extension, or use yumi.env — see swift/README.md)
+#   3. Put it in a folder group named yumi_tools (so it ends up at yumi_tools/env in the bundle).
+#   4. Target membership: your app → Copy Bundle Resources.
+#
+# Same key=value format as yumi_tools/.env on disk:
+
+YUMI_CONNECTION_CODE=
+EDGE_NAME=

@@ -2,9 +2,9 @@
 
 import json
 
-import kumi.core.features.chat.router as chat_router_module
+import yumi.core.features.chat.router as chat_router_module
 from fastapi.testclient import TestClient
-from kumi.core.api.app_factory import app
+from yumi.core.api.app_factory import app
 
 
 def test_chat_endpoint_streams_ndjson(monkeypatch):

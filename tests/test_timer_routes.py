@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
-from kumi.core.api.app_factory import app
-from kumi.core.features.proactive.timer_tools import scheduler
+from yumi.core.api.app_factory import app
+from yumi.core.features.proactive.timer_tools import scheduler
 
 
 def test_list_timers_endpoint(monkeypatch, tmp_path):

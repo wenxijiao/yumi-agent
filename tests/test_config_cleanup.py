@@ -1,11 +1,11 @@
 """Cleanup helpers for config and memory storage."""
 
-import kumi.core.features.config as config
-import kumi.core.features.config.paths as config_paths
+import yumi.core.features.config as config
+import yumi.core.features.config.paths as config_paths
 
 
 def test_cleanup_memory_data_preserves_config_and_removes_memory(tmp_path, monkeypatch):
-    config_dir = tmp_path / ".kumi"
+    config_dir = tmp_path / ".yumi"
     memory_dir = config_dir / "memory"
     legacy_dir = tmp_path / "legacy-memory"
 
@@ -31,7 +31,7 @@ def test_cleanup_memory_data_preserves_config_and_removes_memory(tmp_path, monke
 
 
 def test_cleanup_user_data_removes_config_dir_and_legacy_memory(tmp_path, monkeypatch):
-    config_dir = tmp_path / ".kumi"
+    config_dir = tmp_path / ".yumi"
     memory_dir = config_dir / "memory"
     legacy_dir = tmp_path / "legacy-memory"
 

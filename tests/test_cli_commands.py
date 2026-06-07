@@ -7,11 +7,11 @@ or touching the network.
 import argparse
 
 import pytest
-from kumi.cli.commands import build_default_registry, validate_cross_command_flags
+from yumi.cli.commands import build_default_registry, validate_cross_command_flags
 
 
 def _parse(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(prog="kumi")
+    parser = argparse.ArgumentParser(prog="yumi")
     build_default_registry().install(parser)
     return parser.parse_args(argv)
 

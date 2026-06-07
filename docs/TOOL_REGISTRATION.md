@@ -1,19 +1,19 @@
 # Tool Registration Reference
 
-Kumi tools are normal functions that the model may call. Good tool registration tells the model what the function does, what arguments it needs, whether it is safe to run automatically, and whether proactive messaging may use it.
+Yumi tools are normal functions that the model may call. Good tool registration tells the model what the function does, what arguments it needs, whether it is safe to run automatically, and whether proactive messaging may use it.
 
 Use this page for function/tool registration. Use [`CONFIGURATION.md`](CONFIGURATION.md) for project settings.
 
 ## Two Places To Register Tools
 
-Server-local tools run inside the Kumi server process. They use `kumi.core.tool.register_tool(...)` and are best for built-in or trusted server functions.
+Server-local tools run inside the Yumi server process. They use `yumi.core.tool.register_tool(...)` and are best for built-in or trusted server functions.
 
-Edge tools run inside your own app or device process. They connect to Kumi over WebSocket using an SDK such as Python, TypeScript, Go, Rust, Swift, Kotlin, Java, C#, C++, Dart, or UE5. This is the recommended path for app/device actions.
+Edge tools run inside your own app or device process. They connect to Yumi over WebSocket using an SDK such as Python, TypeScript, Go, Rust, Swift, Kotlin, Java, C#, C++, Dart, or UE5. This is the recommended path for app/device actions.
 
 ## Server-Local Registration
 
 ```python
-from kumi.core.tool import register_tool
+from yumi.core.tool import register_tool
 
 
 def get_weather(city: str) -> str:
@@ -62,9 +62,9 @@ Type hints are converted into JSON schema. Supported common types include `str`,
 ## Python Edge SDK
 
 ```python
-from kumi.sdk import KumiAgent
+from yumi.sdk import YumiAgent
 
-agent = KumiAgent(edge_name="Weather App")
+agent = YumiAgent(edge_name="Weather App")
 
 
 def get_weather(city: str) -> str:
@@ -96,13 +96,13 @@ Common Python Edge options:
 - `proactive_context_args`: Fixed arguments for proactive context calls.
 - `proactive_context_description`: Label for the injected proactive context result.
 
-The shortcut API in `kumi/__init__.py` mirrors the Python Edge SDK:
+The shortcut API in `yumi/__init__.py` mirrors the Python Edge SDK:
 
 ```python
-import kumi
+import yumi
 
-kumi.register(get_weather, "Get weather", allow_proactive=True)
-kumi.run(edge_name="Weather App")
+yumi.register(get_weather, "Get weather", allow_proactive=True)
+yumi.run(edge_name="Weather App")
 ```
 
 ## Other Edge SDKs
@@ -114,7 +114,7 @@ Universal fields:
 - `name`: Tool name shown to the model.
 - `description`: What the tool does and when to use it.
 - `parameters`: JSON-schema-style parameter descriptors.
-- `handler`: Function/closure called when Kumi invokes the tool.
+- `handler`: Function/closure called when Yumi invokes the tool.
 - `timeout`: Optional timeout in seconds, where supported.
 - `requireConfirmation` / `require_confirmation` / `RequireConfirmation`: Require user approval.
 - `alwaysInclude` / `always_include` / `AlwaysInclude`: Always expose this Edge tool to the model.
@@ -141,14 +141,14 @@ agent.register({
 Example Go:
 
 ```go
-agent.Register(kumi.RegisterOptions{
+agent.Register(yumi.RegisterOptions{
     Name:        "get_weather",
     Description: "Get current weather for a city.",
     AllowProactive: true,
     ProactiveContext: true,
     ProactiveContextArgs: map[string]interface{}{"city": "Auckland"},
     ProactiveContextDescription: "Current weather",
-    Handler: func(args kumi.ToolArguments) string {
+    Handler: func(args yumi.ToolArguments) string {
         return getWeather(args.String("city"))
     },
 })
@@ -178,4 +178,4 @@ Keep parameter names stable. Renaming a tool or argument changes what the model 
 ## Related Docs
 
 - [`EDGE_TOOLS.md`](EDGE_TOOLS.md): Edge setup, connection, routing, and SDK overview.
-- [`CONFIGURATION.md`](CONFIGURATION.md): `~/.kumi/config.json` and environment variables.
+- [`CONFIGURATION.md`](CONFIGURATION.md): `~/.yumi/config.json` and environment variables.

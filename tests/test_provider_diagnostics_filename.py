@@ -6,7 +6,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from kumi.core.platform.providers.diagnostics import (
+from yumi.core.platform.providers.diagnostics import (
     build_provider_diagnostic_filename,
     write_chat_diagnostic,
     write_chat_loop_diagnostic,
@@ -45,7 +45,7 @@ def test_diagnostic_filename_optional_note():
 
 
 def test_chat_loop_diagnostic_captures_tools_and_events(monkeypatch, tmp_path):
-    monkeypatch.setenv("KUMI_DEBUG_DIR", str(tmp_path))
+    monkeypatch.setenv("YUMI_DEBUG_DIR", str(tmp_path))
 
     path = write_chat_loop_diagnostic(
         session_id="tg_1",
@@ -72,7 +72,7 @@ def test_chat_loop_diagnostic_captures_tools_and_events(monkeypatch, tmp_path):
 
 
 def test_chat_diagnostic_captures_generic_errors(monkeypatch, tmp_path):
-    monkeypatch.setenv("KUMI_DEBUG_DIR", str(tmp_path))
+    monkeypatch.setenv("YUMI_DEBUG_DIR", str(tmp_path))
 
     try:
         raise RuntimeError("boom")

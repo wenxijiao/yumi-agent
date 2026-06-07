@@ -3,19 +3,19 @@
 import json
 
 import pytest
-from kumi.core.features.config.credentials import (
+from yumi.core.features.config.credentials import (
     ensure_embedding_provider_not_deepseek,
     get_api_credentials,
 )
-from kumi.core.platform.providers import SUPPORTED_PROVIDERS, create_provider
+from yumi.core.platform.providers import SUPPORTED_PROVIDERS, create_provider
 
 
 @pytest.fixture
 def isolated_config(monkeypatch, tmp_path):
     p = tmp_path / "config.json"
     p.write_text(json.dumps({}), encoding="utf-8")
-    monkeypatch.setattr("kumi.core.features.config.paths.CONFIG_PATH", p)
-    monkeypatch.setattr("kumi.core.features.config.store.CONFIG_PATH", p)
+    monkeypatch.setattr("yumi.core.features.config.paths.CONFIG_PATH", p)
+    monkeypatch.setattr("yumi.core.features.config.store.CONFIG_PATH", p)
     return p
 
 

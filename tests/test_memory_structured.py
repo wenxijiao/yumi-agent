@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import tempfile
 
-from kumi.core.features.memory.memory import Memory
+from yumi.core.features.memory.memory import Memory
 
 
 def test_message_write_extracts_long_term_preference():
@@ -34,7 +34,7 @@ def test_tool_turn_writes_observation_and_context_retrieves_it():
                         }
                     ],
                 },
-                {"role": "tool", "name": "read_file", "content": "README says Kumi is local-first."},
+                {"role": "tool", "name": "read_file", "content": "README says Yumi is local-first."},
             ]
         )
 
@@ -52,13 +52,13 @@ def test_tool_turn_writes_observation_and_context_retrieves_it():
 def test_session_summary_is_included_before_recent_messages():
     with tempfile.TemporaryDirectory() as td:
         m = Memory(session_id="s_summary", storage_dir=td, max_recent=20)
-        m.update_session_summary("The user is refactoring the Kumi memory subsystem.")
+        m.update_session_summary("The user is refactoring the Yumi memory subsystem.")
         m.add_message("user", "What should we do next?")
 
         ctx = m.get_context(query="continue")
         contents = [msg["content"] for msg in ctx if msg["role"] == "system"]
         assert any("Current session summary" in content for content in contents)
-        assert any("refactoring the Kumi memory" in content for content in contents)
+        assert any("refactoring the Yumi memory" in content for content in contents)
 
 
 def test_hybrid_structured_retrieval_falls_back_to_keyword():
@@ -86,7 +86,7 @@ def test_context_dedupes_consecutive_identical_user_repeats():
 
 
 def test_context_drops_leading_orphan_assistant_tool_call_when_window_truncates(monkeypatch):
-    from kumi.core.features.memory import context as ctx_mod
+    from yumi.core.features.memory import context as ctx_mod
 
     real_load = ctx_mod.load_model_config
 

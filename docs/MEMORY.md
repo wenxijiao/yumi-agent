@@ -1,13 +1,13 @@
 # Memory and chat context
 
-This document describes what Kumi persists and how it reaches the model.
+This document describes what Yumi persists and how it reaches the model.
 
 ## Internal layout
 
 The OSS implementation is split into a façade plus per-aggregate repositories so backends (LanceDB today, PostgreSQL in enterprise) can be swapped without rewriting the public surface:
 
 ```
-kumi/core/memories/
+yumi/core/memories/
 ├── memory.py              # Memory façade (public class)
 ├── backend.py             # LanceDBBackend: connection, table helpers, time/SQL primitives
 ├── embedding_runner.py    # EmbeddingProcessor: dim migration + background re-embed
@@ -19,24 +19,24 @@ kumi/core/memories/
     └── summaries.py       # SessionSummaryRepository — session_summaries
 ```
 
-Every public method on `Memory` (e.g. `add_message`, `create_session`, `list_long_term_memories`) is a one-line delegate to the appropriate repository. The `Memory` constructor signature has not changed; existing call sites (`KumiBot.session_memory(...)`, enterprise per-user memory factory, tests that pass `storage_dir=tmpdir`) keep working unchanged.
+Every public method on `Memory` (e.g. `add_message`, `create_session`, `list_long_term_memories`) is a one-line delegate to the appropriate repository. The `Memory` constructor signature has not changed; existing call sites (`YumiBot.session_memory(...)`, enterprise per-user memory factory, tests that pass `storage_dir=tmpdir`) keep working unchanged.
 
 ## Storage
 
 - Chat messages (per `session_id`) are stored under the user memory directory (see `migrate_legacy_memory_dir()`), in **LanceDB** tables: `chat_history` and `chat_sessions`.
-- `KumiBot` keeps an in-memory LRU of at most **64** `Memory` instances; evicting one **does not delete** LanceDB rows. The next request for that session reloads from disk.
+- `YumiBot` keeps an in-memory LRU of at most **64** `Memory` instances; evicting one **does not delete** LanceDB rows. The next request for that session reloads from disk.
 - Structured memory is stored separately from raw chat rows:
   - `session_summaries` keeps a rolling summary per session.
   - `long_term_memories` stores durable facts, preferences, decisions, task state, and summaries.
   - `tool_observations` stores compact tool-call outcomes so later turns can reuse what tools already found.
 
-To delete persisted memory without wiping the rest of Kumi config, run:
+To delete persisted memory without wiping the rest of Yumi config, run:
 
 ```bash
-kumi --cleanup-memory
+yumi --cleanup-memory
 ```
 
-This removes the current memory directory (`~/.kumi/memory/`) plus any legacy on-repo memory store if it still exists.
+This removes the current memory directory (`~/.yumi/memory/`) plus any legacy on-repo memory store if it still exists.
 
 ## What is persisted
 
@@ -72,9 +72,9 @@ Raw chat history remains append-only for UI, audit, and provider replay. Long-te
 
 ## Chat request extras (system message)
 
-Configurable in `~/.kumi/config.json` or via `GET`/`PUT /config/model`:
+Configurable in `~/.yumi/config.json` or via `GET`/`PUT /config/model`:
 
 - `chat_append_current_time` — append `[Current Time] ...` to system (default: `true`).
 - `chat_append_tool_use_instruction` — append the English tool-use policy when tools are enabled (default: `true`).
 
-Environment overrides (optional): `KUMI_CHAT_APPEND_CURRENT_TIME`, `KUMI_CHAT_APPEND_TOOL_INSTRUCTION` — set to `0`, `false`, or `no` to disable.
+Environment overrides (optional): `YUMI_CHAT_APPEND_CURRENT_TIME`, `YUMI_CHAT_APPEND_TOOL_INSTRUCTION` — set to `0`, `false`, or `no` to disable.

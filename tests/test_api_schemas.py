@@ -1,6 +1,6 @@
 """Pydantic API schema validation."""
 
-from kumi.core.platform.http.schemas import ChatRequest, ModelConfigUpdateRequest, TranscribeRequest
+from yumi.core.platform.http.schemas import ChatRequest, ModelConfigUpdateRequest, TranscribeRequest
 
 
 def test_chat_request_defaults():

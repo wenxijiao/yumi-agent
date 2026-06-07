@@ -1,27 +1,27 @@
-# Kumi
+# Yumi
 
 > One API to let AI call functions in any language, on any device. Register a function and the AI calls it — Python, Rust, Kotlin, Dart, C++, Swift, TypeScript, Go, Java, C#.
 
-Kumi is a local-first agent runtime that ships a runnable FastAPI server, terminal chat UI, Reflex web UI, optional microphone wake-word voice mode (`--server --voice`), proactive (smart / scheduled) outbound messaging via Telegram, and first-class **edge tool hosts** across 11 languages, so your game, app, or device can expose functions to the LLM directly from its own process. The open-source `kumi-agent` package is single-user / LAN with no Bearer auth, no per-tenant scoping, and no quotas; a separate closed-source `kumi-enterprise` package extends the same FastAPI app via a `kumi.core.plugins` port system to add multi-tenant identity, per-user encryption, billing/audit, relay-based remote pairing, and PostgreSQL-backed storage. Supported chat/embedding providers: Ollama (local), OpenAI (and OpenAI-compatible endpoints incl. DeepSeek), Gemini, Claude, DeepSeek. Status: alpha (0.x); HTTP routes and the `ChatEvent` schema are the documented public contract.
+Yumi is a local-first agent runtime that ships a runnable FastAPI server, terminal chat UI, Reflex web UI, optional microphone wake-word voice mode (`--server --voice`), proactive (smart / scheduled) outbound messaging via Telegram, and first-class **edge tool hosts** across 11 languages, so your game, app, or device can expose functions to the LLM directly from its own process. The open-source `yumi-agent` package is single-user / LAN with no Bearer auth, no per-tenant scoping, and no quotas; a separate closed-source `yumi-enterprise` package extends the same FastAPI app via a `yumi.core.plugins` port system to add multi-tenant identity, per-user encryption, billing/audit, relay-based remote pairing, and PostgreSQL-backed storage. Supported chat/embedding providers: Ollama (local), OpenAI (and OpenAI-compatible endpoints incl. DeepSeek), Gemini, Claude, DeepSeek. Status: alpha (0.x); HTTP routes and the `ChatEvent` schema are the documented public contract.
 
 ## Docs
 
 - [README](README.md): Project overview, quick start, multi-language registration pattern, main CLI commands, supported providers, OSS vs. enterprise split
 - [Getting Started](docs/GETTING_STARTED.md): Installation, first-run wizard, provider selection, web UI, terminal chat, demo prompts, cleanup
-- [Edge Tools Guide](docs/EDGE_TOOLS.md): How `kumi --edge` scaffolds a workspace; full code samples for every supported language; tool routing, confirmation, proactive opt-in
-- [Edge Agent Guide](kumi/sdk/AGENTS.md): Canonical instructions for coding agents working inside generated `kumi --edge` projects
+- [Edge Tools Guide](docs/EDGE_TOOLS.md): How `yumi --edge` scaffolds a workspace; full code samples for every supported language; tool routing, confirmation, proactive opt-in
+- [Edge Agent Guide](yumi/sdk/AGENTS.md): Canonical instructions for coding agents working inside generated `yumi --edge` projects
 - [Tool Registration](docs/TOOL_REGISTRATION.md): `register_tool` / SDK `register` parameters, JSON-schema mapping, confirmation, `allow_proactive` / `proactive_context`, safety rules
-- [Configuration](docs/CONFIGURATION.md): All `~/.kumi/config.json` fields and `KUMI_*` environment variables; Telegram and LINE setup; STT/Whisper; CORS; tool routing; Docker
+- [Configuration](docs/CONFIGURATION.md): All `~/.yumi/config.json` fields and `YUMI_*` environment variables; Telegram and LINE setup; STT/Whisper; CORS; tool routing; Docker
 - [Architecture](docs/ARCHITECTURE.md): FastAPI app factory, chat-turn pipeline (`ChatTurnService` + `core/dispatch/*`), `ChatEvent` discriminated union, channel adapters, memory facade + repositories, plugin ports table, admin API, public API stability
 - [HTTP API](docs/HTTP_API.md): `POST /chat` NDJSON streaming protocol, sessions/memory/tools/monitor routes, structured `detail` error codes, Relay `/v1/*` path mapping and Bearer scopes
 - [Memory](docs/MEMORY.md): LanceDB tables (`chat_history`, `chat_sessions`, `long_term_memories`, `tool_observations`, `session_summaries`), retrieval pipeline (`Memory.get_context`), write policy
 - [Testing](docs/TESTING.md): How to run `pytest`, `pyright`, and `ruff`; current CI matrix; coverage scope
-- [Upgrading to Enterprise](docs/UPGRADING_TO_ENTERPRISE.md): How `kumi-enterprise` plugs in via `entry_points`, Postgres setup, tenant/user bootstrap, compatibility promise
+- [Upgrading to Enterprise](docs/UPGRADING_TO_ENTERPRISE.md): How `yumi-enterprise` plugs in via `entry_points`, Postgres setup, tenant/user bootstrap, compatibility promise
 
 ## Edge SDKs
 
-- [SDK source layout](kumi/sdk/README.md): Maintainer-facing overview of the canonical SDK directory; per-language runtime/build matrix; cross-SDK connection-resolution contract
-- [Edge workspace template](kumi/edge/template/kumi_tools/README.md): What `kumi --edge` scaffolds into a user project
+- [SDK source layout](yumi/sdk/README.md): Maintainer-facing overview of the canonical SDK directory; per-language runtime/build matrix; cross-SDK connection-resolution contract
+- [Edge workspace template](yumi/edge/template/yumi_tools/README.md): What `yumi --edge` scaffolds into a user project
 
 ## Project meta
 
@@ -34,7 +34,7 @@ Kumi is a local-first agent runtime that ships a runnable FastAPI server, termin
 
 ## Optional
 
-- [GitHub repository](https://github.com/wenxijiao/kumi-agent): Source, issues, pull requests, releases
+- [GitHub repository](https://github.com/wenxijiao/yumi-agent): Source, issues, pull requests, releases
 - [`pyproject.toml`](pyproject.toml): Package metadata, dependencies, `ruff` / `pytest` / `pyright` config
 - [Docker compose](docker-compose.yml): Reference container deployment
 - [CI workflow](.github/workflows/ci.yml): Python + multi-language SDK build matrix

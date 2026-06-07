@@ -1,4 +1,4 @@
-"""Lightweight performance baseline for Kumi's hot paths.
+"""Lightweight performance baseline for Yumi's hot paths.
 
 Runs four micro-benchmarks that together exercise the surfaces most affected
 by the recent refactors:
@@ -38,7 +38,7 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
-# Make sure the local ``kumi`` package is importable when run from the repo root.
+# Make sure the local ``yumi`` package is importable when run from the repo root.
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
@@ -59,10 +59,10 @@ def benchmark_app_boot() -> None:
     print("[1] FastAPI app construction")
     # Force a fresh import so we measure the full build, not a cached module.
     for mod in list(sys.modules):
-        if mod.startswith("kumi.core.api"):
+        if mod.startswith("yumi.core.api"):
             del sys.modules[mod]
     with _timed("import + _build_app()"):
-        from kumi.core.api.app_factory import app  # noqa: F401
+        from yumi.core.api.app_factory import app  # noqa: F401
 
 
 # ── 2. Memory message round-trip ────────────────────────────────────────────
@@ -70,7 +70,7 @@ def benchmark_app_boot() -> None:
 
 def benchmark_memory_messages(message_count: int = 1000) -> None:
     print(f"[2] Memory message CRUD (n={message_count})")
-    from kumi.core.memories.memory import Memory
+    from yumi.core.memories.memory import Memory
 
     with tempfile.TemporaryDirectory() as td:
         m = Memory(session_id="bench", storage_dir=td, max_recent=50)
@@ -98,7 +98,7 @@ def benchmark_memory_messages(message_count: int = 1000) -> None:
 
 def benchmark_chat_events(event_count: int = 10_000) -> None:
     print(f"[3] ChatEvent serialise / parse (n={event_count})")
-    from kumi.core.api.events import (
+    from yumi.core.api.events import (
         TextEvent,
         ToolStatusEvent,
         parse_chat_event,
@@ -148,7 +148,7 @@ def benchmark_chat_events(event_count: int = 10_000) -> None:
 
 def benchmark_cli_registry() -> None:
     print("[4] CLI registry construction")
-    from kumi.cli.commands import build_default_registry
+    from yumi.cli.commands import build_default_registry
 
     with _timed("build_default_registry()"):
         reg = build_default_registry()
@@ -160,7 +160,7 @@ def benchmark_cli_registry() -> None:
 
 
 def main() -> int:
-    print("Kumi performance baseline")
+    print("Yumi performance baseline")
     print("=" * 60)
     benchmark_app_boot()
     print()

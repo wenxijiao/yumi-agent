@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from kumi.core.features.memory.context import ContextBuilder, _channel_label
-from kumi.core.features.prompts.composer import _peer_session_ids
+from yumi.core.features.memory.context import ContextBuilder, _channel_label
+from yumi.core.features.prompts.composer import _peer_session_ids
 
 
 class _StubTable:
@@ -128,9 +128,9 @@ def test_channel_label_lookup():
 
 def test_recent_transcript_merges_peer_sessions_in_timestamp_order(monkeypatch):
     # Force load_model_config to return a default config so we don't depend on
-    # ~/.kumi/config.json existing.
+    # ~/.yumi/config.json existing.
     cfg = SimpleNamespace(memory_max_recent_messages=10, memory_max_related_messages=0)
-    monkeypatch.setattr("kumi.core.features.memory.context.load_model_config", lambda: cfg)
+    monkeypatch.setattr("yumi.core.features.memory.context.load_model_config", lambda: cfg)
 
     rows = [
         _row("voice_alice", "user", "weather please", ts=100, mid="v1"),
@@ -163,7 +163,7 @@ def test_recent_transcript_merges_peer_sessions_in_timestamp_order(monkeypatch):
 
 def test_recent_transcript_no_peers_unchanged(monkeypatch):
     cfg = SimpleNamespace(memory_max_recent_messages=10, memory_max_related_messages=0)
-    monkeypatch.setattr("kumi.core.features.memory.context.load_model_config", lambda: cfg)
+    monkeypatch.setattr("yumi.core.features.memory.context.load_model_config", lambda: cfg)
 
     rows = [
         _row("voice_alice", "user", "hi", ts=10, mid="v1"),

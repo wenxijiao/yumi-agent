@@ -1,7 +1,7 @@
 """Heuristics for multimodal API rejection → text-only retry."""
 
-from kumi.core.features.prompts.composer import messages_have_multimodal_images as _messages_have_multimodal_images
-from kumi.core.platform.providers.error_classify import (
+from yumi.core.features.prompts.composer import messages_have_multimodal_images as _messages_have_multimodal_images
+from yumi.core.platform.providers.error_classify import (
     is_multimodal_vision_rejection as _is_multimodal_vision_rejection,
 )
 

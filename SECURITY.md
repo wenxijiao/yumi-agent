@@ -23,8 +23,8 @@ We aim to acknowledge reports within a few business days and coordinate disclosu
 
 ## Threat model (short)
 
-Kumi’s local HTTP API is intended for **trusted networks** (typically `127.0.0.1`). Do not expose an unauthenticated admin API to the public Internet. Relay mode and browser CORS have additional considerations; see [docs/HTTP_API.md](docs/HTTP_API.md) and [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
+Yumi’s local HTTP API is intended for **trusted networks** (typically `127.0.0.1`). Do not expose an unauthenticated admin API to the public Internet. Relay mode and browser CORS have additional considerations; see [docs/HTTP_API.md](docs/HTTP_API.md) and [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
-By default, browser CORS is limited to localhost-style origins and credentialed browser requests are disabled. If you need browser access beyond local development, set explicit origins with `KUMI_CORS_ORIGINS` or `KUMI_RELAY_CORS_ORIGINS` and keep TLS termination in front of any public Relay deployment.
+By default, browser CORS is limited to localhost-style origins and credentialed browser requests are disabled. If you need browser access beyond local development, set explicit origins with `YUMI_CORS_ORIGINS` or `YUMI_RELAY_CORS_ORIGINS` and keep TLS termination in front of any public Relay deployment.
 
 For operational guidance, see the “Security and deployment” sections in [docs/HTTP_API.md](docs/HTTP_API.md).

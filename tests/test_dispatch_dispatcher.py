@@ -5,12 +5,12 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-from kumi.core.platform.dispatch.context import ToolInvocation, ToolResult, TurnContext
-from kumi.core.platform.dispatch.dispatcher import ToolDispatcher, canonical_local_tool_name
-from kumi.core.platform.dispatch.edge import EdgeToolExecutor
-from kumi.core.platform.dispatch.local import LocalToolExecutor
-from kumi.core.platform.runtime import get_default_runtime
-from kumi.core.platform.tools.tool import TOOL_REGISTRY
+from yumi.core.platform.dispatch.context import ToolInvocation, ToolResult, TurnContext
+from yumi.core.platform.dispatch.dispatcher import ToolDispatcher, canonical_local_tool_name
+from yumi.core.platform.dispatch.edge import EdgeToolExecutor
+from yumi.core.platform.dispatch.local import LocalToolExecutor
+from yumi.core.platform.runtime import get_default_runtime
+from yumi.core.platform.tools.tool import TOOL_REGISTRY
 
 
 @pytest.fixture

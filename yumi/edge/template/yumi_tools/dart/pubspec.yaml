@@ -1,0 +1,12 @@
+name: yumi_edge
+description: Yumi edge sample (Dart VM)
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.2.0 <4.0.0"
+
+dependencies:
+  yumi_sdk:
+    path: yumi_sdk
+

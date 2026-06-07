@@ -5,7 +5,7 @@ whether a provider failure was a vision/multimodal rejection (so the caller can
 retry text-only) versus a generic error.
 """
 
-from kumi.core.platform.providers.error_classify import (
+from yumi.core.platform.providers.error_classify import (
     exception_text_chain,
     is_multimodal_vision_rejection,
     response_status_code,

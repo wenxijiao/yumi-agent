@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from kumi.core.platform.dispatch.context import TurnContext
-from kumi.core.platform.dispatch.normalizer import ToolCallNormalizer, summarize_tool_args
+from yumi.core.platform.dispatch.context import TurnContext
+from yumi.core.platform.dispatch.normalizer import ToolCallNormalizer, summarize_tool_args
 
 
 def _ctx() -> TurnContext:

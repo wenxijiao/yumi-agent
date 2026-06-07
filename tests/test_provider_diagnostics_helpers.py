@@ -4,7 +4,7 @@ These build the redacted/truncated snapshots written to failure diagnostics, so
 they must stay stable and never raise on odd inputs.
 """
 
-from kumi.core.platform.providers.diagnostics import (
+from yumi.core.platform.providers.diagnostics import (
     provider_name,
     short_text,
     summarize_openai_message,

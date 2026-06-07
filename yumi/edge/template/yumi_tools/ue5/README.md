@@ -1,0 +1,69 @@
+# Yumi Edge — Unreal Engine 5
+
+Use this when you want to expose UE5 gameplay or subsystem functions to Yumi.
+
+## Quick Start
+
+1. Copy the bundled `YumiSDK/` module into your project's `Source/` directory
+2. Add `YumiSDK` to your game's `.Build.cs`
+3. Edit `YumiSetup.h` / `YumiSetup.cpp`
+4. Call `InitYumi()` early in your game lifecycle
+
+## Add The Module
+
+In your game's `.Build.cs`:
+
+```csharp
+PublicDependencyModuleNames.AddRange(new string[] { "YumiSDK" });
+```
+
+Then regenerate project files.
+
+## Configure Connection
+
+The simplest path is to edit `YumiConnectionCode` and `YumiEdgeName` directly in `YumiSetup.h`.
+
+You can also place `yumi_tools/.env` in the project root:
+
+```env
+YUMI_CONNECTION_CODE=yumi-lan_...
+EDGE_NAME=My UE5 Game
+```
+
+## Register Tools
+
+```cpp
+FYumiRegisterOptions Opts;
+Opts.Name = TEXT("set_light");
+Opts.Description = TEXT("Control room lights");
+Opts.Parameters = {
+    { TEXT("room"), TEXT("string"), TEXT("Room name"), true },
+    { TEXT("on"), TEXT("boolean"), TEXT("Turn on or off"), true },
+};
+Opts.Handler.BindLambda([](const FYumiToolArguments& Args) -> FString {
+    FString Room = Args.GetString(TEXT("room"), TEXT("living_room"));
+    bool bOn = Args.GetBool(TEXT("on"), false);
+    return SetLight(Room, bOn);
+});
+Agent->RegisterTool(MoveTemp(Opts));
+```
+
+Use `bRequireConfirmation = true` for dangerous tools.
+
+## Start It From Your Game
+
+Typical place:
+
+```cpp
+void UMyGameInstance::Init()
+{
+    Super::Init();
+    InitYumi();
+}
+```
+
+## Notes
+
+- `FYumiAgent` is a plain C++ class, not a `UObject`
+- Uses UE's own WebSocket, HTTP, and JSON modules
+- Reconnects automatically with exponential backoff

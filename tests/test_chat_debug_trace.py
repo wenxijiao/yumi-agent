@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
-from kumi.core.features.chat.debug_trace import (
+from yumi.core.features.chat.debug_trace import (
     append_stream_event,
     append_turn_begin,
     start_trace,
@@ -15,7 +15,7 @@ from kumi.core.features.chat.debug_trace import (
 
 
 def test_chat_trace_roundtrip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("kumi.core.features.chat.debug_trace.debug_dir", lambda: str(tmp_path))
+    monkeypatch.setattr("yumi.core.features.chat.debug_trace.debug_dir", lambda: str(tmp_path))
     sid = "tg_12345"
     p = start_trace(sid)
     assert Path(p).is_file()
@@ -33,7 +33,7 @@ def test_chat_trace_roundtrip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
 
 
 def test_start_trace_idempotent_returns_same_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("kumi.core.features.chat.debug_trace.debug_dir", lambda: str(tmp_path))
+    monkeypatch.setattr("yumi.core.features.chat.debug_trace.debug_dir", lambda: str(tmp_path))
     sid = "line_ab"
     a = start_trace(sid)
     b = start_trace(sid)

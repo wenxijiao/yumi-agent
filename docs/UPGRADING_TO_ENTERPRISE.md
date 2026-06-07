@@ -1,11 +1,11 @@
-# Upgrading from `kumi-agent` (OSS) to `kumi-enterprise`
+# Upgrading from `yumi-agent` (OSS) to `yumi-enterprise`
 
-The OSS `kumi-agent` package is a complete, single-user / LAN agent. You
+The OSS `yumi-agent` package is a complete, single-user / LAN agent. You
 do not need anything else to chat with an agent, register tools across
 eleven languages, or run a personal Telegram / LINE bot.
 
 If you reach a point where you need any of the following, the closed-source
-companion package `kumi-enterprise` is what you want:
+companion package `yumi-enterprise` is what you want:
 
 - multi-user identity (per-user `Bearer` tokens, signup / login / refresh)
 - per-user quotas, billing, and audit
@@ -20,11 +20,11 @@ change to switch.
 ## Architecture in one paragraph
 
 The OSS core defines a **plugin port** layer at
-[`kumi/core/plugins/`](../kumi/core/plugins/) — small abstract interfaces
+[`yumi/core/plugins/`](../yumi/core/plugins/) — small abstract interfaces
 for identity, quotas, billing, session scoping, bot pooling, memory
 factory, edge scoping, audit, route extension, and middleware extension.
 The OSS package registers permissive single-user defaults for every port.
-`kumi-enterprise` ships an `entry_point` (group `kumi.plugins`) named
+`yumi-enterprise` ships an `entry_point` (group `yumi.plugins`) named
 `enterprise` that, on first import of the OSS app, swaps in real
 implementations and mounts the extra HTTP routes (`/admin/*`, `/auth/*`,
 `/tenancy/*`, `/relay/*`) onto the same FastAPI app.
@@ -36,8 +36,8 @@ This means:
 - **The enterprise package depends on the OSS package.** Bug fixes and
   features added to OSS are immediately available to the enterprise build,
   no copy-paste required.
-- **One FastAPI app**, two binaries: `kumi --server` is the OSS shape,
-  `kumi-enterprise serve` is the same shape plus the registered plugin.
+- **One FastAPI app**, two binaries: `yumi --server` is the OSS shape,
+  `yumi-enterprise serve` is the same shape plus the registered plugin.
 
 ## Switching from OSS to Enterprise
 
@@ -48,62 +48,62 @@ This means:
 
    ```bash
    # Recommended: Docker
-   docker pull ${REGISTRY_URL}/kumi-enterprise:latest
+   docker pull ${REGISTRY_URL}/yumi-enterprise:latest
 
    # Or, on a Python host (private wheel)
-   pip install kumi-agent==0.2.*           # OSS, from PyPI
-   pip install /path/to/kumi_enterprise-*.whl --no-deps
+   pip install yumi-agent==0.2.*           # OSS, from PyPI
+   pip install /path/to/yumi_enterprise-*.whl --no-deps
    ```
 
-3. **Provision Postgres** and set `KUMI_DB_URL`. Generate
-   `KUMI_SECRET_KEY` (≥ 32 random bytes) and `KUMI_KEK` (base64 32-byte
+3. **Provision Postgres** and set `YUMI_DB_URL`. Generate
+   `YUMI_SECRET_KEY` (≥ 32 random bytes) and `YUMI_KEK` (base64 32-byte
    key). Store both in your secrets manager.
 
 4. **Apply database migrations** (empty Postgres or first deploy):
 
    ```bash
-   export KUMI_DB_URL="postgresql://user:pass@host:5432/dbname"
-   kumi-enterprise db-upgrade
+   export YUMI_DB_URL="postgresql://user:pass@host:5432/dbname"
+   yumi-enterprise db-upgrade
    ```
 
-5. **Start the enterprise server.** Use `kumi-enterprise serve` instead
-   of `kumi --server`:
+5. **Start the enterprise server.** Use `yumi-enterprise serve` instead
+   of `yumi --server`:
 
    ```bash
-   kumi-enterprise serve            # API + LINE sidecar
-   kumi-enterprise relay            # optional: public relay daemon
+   yumi-enterprise serve            # API + LINE sidecar
+   yumi-enterprise relay            # optional: public relay daemon
    ```
 
 6. **Bootstrap the first tenant + admin user**:
 
    ```bash
-   kumi-enterprise tenant-create "Primary"
-   kumi-enterprise user-add <TENANT_ID> "admin@example.com"
-   kumi-enterprise user-set-scope <USER_ID> admin
-   kumi-enterprise user-token <USER_ID>     # prints kumi_… Bearer
+   yumi-enterprise tenant-create "Primary"
+   yumi-enterprise user-add <TENANT_ID> "admin@example.com"
+   yumi-enterprise user-set-scope <USER_ID> admin
+   yumi-enterprise user-token <USER_ID>     # prints yumi_… Bearer
    ```
 
-7. **Tell every client to send `Authorization: Bearer kumi_…`.** The OSS
-   bots (`kumi --telegram`, `kumi --line`, `kumi --edge`) accept
-   `KUMI_USER_ACCESS_TOKEN` for this purpose. The Telegram bot also
+7. **Tell every client to send `Authorization: Bearer yumi_…`.** The OSS
+   bots (`yumi --telegram`, `yumi --line`, `yumi --edge`) accept
+   `YUMI_USER_ACCESS_TOKEN` for this purpose. The Telegram bot also
    accepts `/link <token>` over the chat itself.
 
 See `docs/MULTI_TENANT.md` and `deploy/README.md` in the private
-`kumi-enterprise` repo for the full operations guide.
+`yumi-enterprise` repo for the full operations guide.
 
 ## Going back to OSS
 
-`kumi-enterprise` is additive. Stopping the enterprise binary and starting
-`kumi --server` yields the original single-user behaviour — no migration
+`yumi-enterprise` is additive. Stopping the enterprise binary and starting
+`yumi --server` yields the original single-user behaviour — no migration
 needed. The Postgres database keeps your data; you can resume enterprise
 mode at any time.
 
 ## Compatibility promise
 
-`kumi-enterprise` pins a narrow OSS range (`kumi-agent>=0.2,<0.3`).
+`yumi-enterprise` pins a narrow OSS range (`yumi-agent>=0.2,<0.3`).
 Within that range the OSS team commits to:
 
-- not removing or renaming any class in `kumi.core.plugins`
+- not removing or renaming any class in `yumi.core.plugins`
 - not changing the on-the-wire shape of `/health`, `/chat`, `/config/*`,
   `/ws/edge`
 - bumping the OSS minor version when introducing breaking changes that

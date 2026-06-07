@@ -6,7 +6,7 @@ Covers loops in ``_run_loops`` that previously had no direct unit tests:
 * normalize-exhausted produces an error event
 * owner-mismatch yields FORBIDDEN
 
-The service yields :class:`kumi.core.platform.http.events.ChatEvent` Pydantic models;
+The service yields :class:`yumi.core.platform.http.events.ChatEvent` Pydantic models;
 serialisation to dicts happens at the HTTP boundary in ``core.api.chat``.
 """
 
@@ -16,10 +16,10 @@ import asyncio
 from collections.abc import AsyncIterator
 
 import pytest
-from kumi.core.features.chat.service import ChatTurnService
-from kumi.core.platform.dispatch import MAX_TOOL_LOOPS
-from kumi.core.platform.plugins.identity import Identity, set_current_identity
-from kumi.core.platform.runtime import RuntimeState
+from yumi.core.features.chat.service import ChatTurnService
+from yumi.core.platform.dispatch import MAX_TOOL_LOOPS
+from yumi.core.platform.plugins.identity import Identity, set_current_identity
+from yumi.core.platform.runtime import RuntimeState
 
 
 class _FakeBot:
@@ -59,12 +59,12 @@ def runtime():
 @pytest.fixture
 def install_fakes(monkeypatch):
     """Wire a fake bot pool, scope, and tool routing into chat_turn."""
-    from kumi.core.platform.plugins.identity import LOCAL_IDENTITY, reset_current_identity
+    from yumi.core.platform.plugins.identity import LOCAL_IDENTITY, reset_current_identity
 
     token = set_current_identity(LOCAL_IDENTITY)
 
     def install(bot: _FakeBot):
-        import kumi.core.features.chat.service as svc
+        import yumi.core.features.chat.service as svc
 
         monkeypatch.setattr(svc, "get_bot_pool", lambda: _FakeBotPool(bot))
 
@@ -137,7 +137,7 @@ def test_owner_mismatch_yields_forbidden(runtime, install_fakes, monkeypatch):
     bot = _FakeBot(scripted_chunks=[[{"type": "text", "content": "hi"}]])
     install_fakes(bot)
 
-    import kumi.core.features.chat.service as svc_mod
+    import yumi.core.features.chat.service as svc_mod
 
     class _Scope:
         def owner_user_from_session_id(self, _sid: str) -> str:

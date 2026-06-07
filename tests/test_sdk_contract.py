@@ -1,7 +1,7 @@
 """Cross-SDK contract tests.
 
 Verify that the wire-format tool schema produced by each language SDK
-matches the structure the Kumi server expects.  The tests here do NOT
+matches the structure the Yumi server expects.  The tests here do NOT
 run the other runtimes (Go, TS, Java, …); instead they parse each SDK's
 schema builder source code and compare the output shape against a
 reference schema produced by the Python SDK.  This catches structural
@@ -14,7 +14,7 @@ Additional checks:
 
 import os
 
-# ── reference schema (the shape the server parses in kumi.core.features.edge.api) ──
+# ── reference schema (the shape the server parses in yumi.core.features.edge.api) ──
 
 REFERENCE_TOOL_SCHEMA = {
     "type": "function",
@@ -33,7 +33,7 @@ REFERENCE_TOOL_SCHEMA = {
 
 
 def _sdk_dir(*parts: str) -> str:
-    return os.path.join(os.path.dirname(os.path.dirname(__file__)), "kumi", "sdk", *parts)
+    return os.path.join(os.path.dirname(os.path.dirname(__file__)), "yumi", "sdk", *parts)
 
 
 # ── Python SDK schema builder ──
@@ -41,7 +41,7 @@ def _sdk_dir(*parts: str) -> str:
 
 def test_python_sdk_schema_structure():
     """Python SDK _build_tool_schema produces the expected top-level keys."""
-    from kumi.sdk.python.agent_client import _build_tool_schema
+    from yumi.sdk.python.agent_client import _build_tool_schema
 
     def greet(name: str) -> str:
         """Say hello
@@ -219,7 +219,7 @@ def test_ts_register_options_fields():
 
 
 def test_java_schema_builder_structure():
-    path = _sdk_dir("java", "src", "main", "java", "io", "kumi", "SchemaBuilder.java")
+    path = _sdk_dir("java", "src", "main", "java", "io", "yumi", "SchemaBuilder.java")
     if not os.path.isfile(path):
         import pytest
 

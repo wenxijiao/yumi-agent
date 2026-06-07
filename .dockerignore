@@ -5,8 +5,8 @@
 **/*.pyc
 .pytest_cache
 *.egg-info
-kumi/ui/.web
-kumi/ui/.states
-kumi/sdk/**/node_modules
-kumi/sdk/**/build
-kumi/sdk/**/dist
+yumi/ui/.web
+yumi/ui/.states
+yumi/sdk/**/node_modules
+yumi/sdk/**/build
+yumi/sdk/**/dist

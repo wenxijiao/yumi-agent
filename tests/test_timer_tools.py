@@ -1,4 +1,4 @@
-from kumi.core.features.proactive.timer_tools import _parse_when
+from yumi.core.features.proactive.timer_tools import _parse_when
 
 
 def test_parse_daily_recurring_schedule():

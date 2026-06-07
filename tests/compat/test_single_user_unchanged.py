@@ -1,8 +1,8 @@
 """Regression: default single-user mode stays usable without Bearer tokens."""
 
-import kumi.core.features.chat.router as chat_router_module
+import yumi.core.features.chat.router as chat_router_module
 from fastapi.testclient import TestClient
-from kumi.core.api.app_factory import app
+from yumi.core.api.app_factory import app
 
 
 def test_chat_post_works_without_bearer_single_user_mode(monkeypatch):
