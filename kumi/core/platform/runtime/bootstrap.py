@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from kumi.core.runtime.state import RuntimeState
+from kumi.core.platform.runtime.state import RuntimeState
 
 
 def build_runtime() -> RuntimeState:

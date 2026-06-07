@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 
-from kumi.core.dispatch.context import TurnContext
+from kumi.core.platform.dispatch.context import TurnContext
 from kumi.core.platform.tools.tool_call_normalize import normalize_tool_calls, tool_call_format_retry_user_content
 
 

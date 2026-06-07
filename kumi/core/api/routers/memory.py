@@ -14,7 +14,7 @@ from kumi.core.api.schemas import (
     SessionUpdateRequest,
 )
 from kumi.core.api.state import get_memory_store_for_identity
-from kumi.core.plugins import get_session_scope
+from kumi.core.platform.plugins import get_session_scope
 
 router = APIRouter()
 

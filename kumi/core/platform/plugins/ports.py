@@ -2,8 +2,8 @@
 
 Each ``Protocol`` describes one extension point that the OSS core calls into
 during normal request handling. The OSS ships trivial single-user defaults in
-:mod:`kumi.core.plugins.single_user`; commercial / enterprise builds register
-richer implementations via :func:`kumi.core.plugins.register_plugin`.
+:mod:`kumi.core.platform.plugins.single_user`; commercial / enterprise builds register
+richer implementations via :func:`kumi.core.platform.plugins.register_plugin`.
 
 The OSS core MUST only depend on these abstractions — never import anything
 from a commercial package directly.
@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
-from kumi.core.plugins.identity import Identity
+from kumi.core.platform.plugins.identity import Identity
 
 if TYPE_CHECKING:
     from fastapi import FastAPI

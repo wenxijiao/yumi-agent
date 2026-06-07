@@ -2,7 +2,7 @@
 
 These ship with OSS so the codebase has zero behavioural dependency on
 commercial extensions. ``kumi-enterprise`` overrides each port via
-:func:`kumi.core.plugins.register_plugin` at import time.
+:func:`kumi.core.platform.plugins.register_plugin` at import time.
 """
 
 from __future__ import annotations
@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from fastapi import HTTPException
-from kumi.core.plugins.identity import LOCAL_IDENTITY, SINGLE_USER_ID, Identity, context_identity
+from kumi.core.platform.plugins.identity import LOCAL_IDENTITY, SINGLE_USER_ID, Identity, context_identity
 from kumi.logging_config import get_logger
 
 if TYPE_CHECKING:

@@ -2,7 +2,7 @@
 
 from fastapi import HTTPException
 from kumi.core.config import DEFAULT_SYSTEM_PROMPT, get_system_prompt
-from kumi.core.plugins import get_current_identity, get_memory_factory
+from kumi.core.platform.plugins import get_current_identity, get_memory_factory
 
 
 def get_system_prompt_payload():

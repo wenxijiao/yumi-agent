@@ -67,7 +67,7 @@ async def _timer_fire(timer_id: str, delay: int, description: str, session_id: s
         "session_id": session_id,
         "events": collected,
     }
-    from kumi.core.plugins import get_session_scope
+    from kumi.core.platform.plugins import get_session_scope
 
     owner = get_session_scope().owner_user_from_session_id(session_id)
     for sub in list(TIMER_SUBSCRIBERS):

@@ -6,7 +6,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from kumi.core.providers.diagnostics import (
+from kumi.core.platform.providers.diagnostics import (
     build_provider_diagnostic_filename,
     write_chat_diagnostic,
     write_chat_loop_diagnostic,

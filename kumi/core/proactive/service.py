@@ -182,7 +182,7 @@ class ProactiveMessageService:
             parse_edge_connection_key,
             resolve_edge_for_prefixed_tool_name,
         )
-        from kumi.core.dispatch.limits import LOCAL_TOOL_TIMEOUT_DEFAULT
+        from kumi.core.platform.dispatch.limits import LOCAL_TOOL_TIMEOUT_DEFAULT
         from kumi.core.platform.tools.tool import TOOL_REGISTRY, execute_registered_tool
 
         if name in TOOL_REGISTRY:

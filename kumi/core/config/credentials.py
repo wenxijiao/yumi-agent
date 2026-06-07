@@ -31,7 +31,7 @@ def ensure_embedding_provider_not_deepseek(provider_name: str) -> None:
 
 def _get_provider(provider_name: str):
     """Create a provider instance (lazy import to avoid hard deps)."""
-    from kumi.core.providers import create_provider
+    from kumi.core.platform.providers import create_provider
 
     return create_provider(provider_name)
 
@@ -78,7 +78,7 @@ def ensure_provider_available(provider_name: str) -> None:
                 hint="Set DEEPSEEK_API_KEY or save deepseek_api_key in ~/.kumi/config.json or the web UI model settings.",
             )
     else:
-        from kumi.core.providers import SUPPORTED_PROVIDERS
+        from kumi.core.platform.providers import SUPPORTED_PROVIDERS
 
         raise ProviderNotReadyError(
             "KUMI_UNKNOWN_PROVIDER",

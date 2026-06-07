@@ -5,11 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from kumi.core.runtime.edge_registry import EdgeRegistry
-from kumi.core.runtime.session_locks import SessionLockRegistry
-from kumi.core.runtime.timer_registry import TimerRegistry
-from kumi.core.runtime.tool_catalog import ToolCatalog
-from kumi.core.runtime.tool_policy import ToolPolicy
+from kumi.core.platform.runtime.edge_registry import EdgeRegistry
+from kumi.core.platform.runtime.session_locks import SessionLockRegistry
+from kumi.core.platform.runtime.timer_registry import TimerRegistry
+from kumi.core.platform.runtime.tool_catalog import ToolCatalog
+from kumi.core.platform.runtime.tool_policy import ToolPolicy
 
 
 @dataclass

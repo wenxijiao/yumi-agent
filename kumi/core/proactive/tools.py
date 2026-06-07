@@ -16,7 +16,7 @@ from kumi.core.api.state import (
     get_tool_timeout,
     parse_edge_connection_key,
 )
-from kumi.core.dispatch.limits import LOCAL_TOOL_TIMEOUT_DEFAULT
+from kumi.core.platform.dispatch.limits import LOCAL_TOOL_TIMEOUT_DEFAULT
 from kumi.core.platform.tools.tool import TOOL_REGISTRY, execute_registered_tool
 from kumi.logging_config import get_logger
 

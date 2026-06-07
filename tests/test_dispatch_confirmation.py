@@ -5,9 +5,9 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-from kumi.core.dispatch.confirmation import ConfirmationGate
-from kumi.core.dispatch.context import ToolInvocation, TurnContext
-from kumi.core.runtime import get_default_runtime
+from kumi.core.platform.dispatch.confirmation import ConfirmationGate
+from kumi.core.platform.dispatch.context import ToolInvocation, TurnContext
+from kumi.core.platform.runtime import get_default_runtime
 
 
 def _ctx() -> TurnContext:

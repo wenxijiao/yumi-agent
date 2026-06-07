@@ -12,8 +12,8 @@ import asyncio
 from typing import TYPE_CHECKING, Any
 
 from kumi.core.memories.memory import Memory
-from kumi.core.runtime import RuntimeState, get_default_runtime
-from kumi.core.runtime.tool_catalog import model_visible_tool_schema as _model_visible_tool_schema
+from kumi.core.platform.runtime import RuntimeState, get_default_runtime
+from kumi.core.platform.runtime.tool_catalog import model_visible_tool_schema as _model_visible_tool_schema
 from kumi.logging_config import get_logger
 
 if TYPE_CHECKING:
@@ -126,7 +126,7 @@ def get_memory_store() -> Memory:
 
 def get_memory_store_for_identity(identity) -> Memory:
     """Return the Memory store for *identity* via the plugin layer."""
-    from kumi.core.plugins import get_memory_factory
+    from kumi.core.platform.plugins import get_memory_factory
 
     return get_memory_factory().get_for_identity(identity)
 
@@ -163,7 +163,7 @@ def get_tool_timeout(prefixed_name: str) -> int:
 
 # ── edge tool name splitting (re-exported from runtime.edge_naming) ──
 
-from kumi.core.runtime.edge_naming import (  # noqa: E402, F401
+from kumi.core.platform.runtime.edge_naming import (  # noqa: E402, F401
     edge_connection_key,
     edge_tool_key_prefix,
     edge_tool_register_prefix,
@@ -171,7 +171,7 @@ from kumi.core.runtime.edge_naming import (  # noqa: E402, F401
     parse_edge_connection_key,
     split_edge_prefixed_tool,
 )
-from kumi.core.runtime.edge_naming import (  # noqa: E402
+from kumi.core.platform.runtime.edge_naming import (  # noqa: E402
     resolve_edge_for_prefixed_tool_name as _resolve_edge_for_prefixed_tool_name,
 )
 

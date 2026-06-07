@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import Depends, Request
-from kumi.core.plugins import Identity, get_current_identity
-from kumi.core.runtime import RuntimeState, get_default_runtime
+from kumi.core.platform.plugins import Identity, get_current_identity
+from kumi.core.platform.runtime import RuntimeState, get_default_runtime
 
 
 def get_runtime(request: Request | None = None) -> RuntimeState:

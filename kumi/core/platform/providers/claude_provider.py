@@ -4,7 +4,7 @@ import json
 import os
 from typing import Any, AsyncIterator
 
-from kumi.core.providers.base import BaseLLMProvider
+from kumi.core.platform.providers.base import BaseLLMProvider
 
 
 def _convert_tools_to_claude(tools: list[dict] | None) -> list[dict] | None:

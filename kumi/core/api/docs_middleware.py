@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 
-from kumi.core.plugins import get_current_identity, has_admin_scope
+from kumi.core.platform.plugins import get_current_identity, has_admin_scope
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response

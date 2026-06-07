@@ -1,5 +1,9 @@
-"""Streaming helpers (e.g. reasoning tag parsing)."""
+"""Deprecated shim package — moved to kumi.core.platform.streaming.
 
-from kumi.core.streaming.think_parser import ThinkTagParser
+Aliases the relocated package so top-level ``from kumi.core.streaming import X``
+keeps working. Submodule imports should use the new path. Removed in phase E.
+"""
+import sys as _sys
+from importlib import import_module as _imp
 
-__all__ = ["ThinkTagParser"]
+_sys.modules[__name__] = _imp("kumi.core.platform.streaming")

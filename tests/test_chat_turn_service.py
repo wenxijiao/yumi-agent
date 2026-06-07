@@ -16,9 +16,9 @@ import asyncio
 from collections.abc import AsyncIterator
 
 import pytest
-from kumi.core.dispatch import MAX_TOOL_LOOPS
-from kumi.core.plugins.identity import Identity, set_current_identity
-from kumi.core.runtime import RuntimeState
+from kumi.core.platform.dispatch import MAX_TOOL_LOOPS
+from kumi.core.platform.plugins.identity import Identity, set_current_identity
+from kumi.core.platform.runtime import RuntimeState
 from kumi.core.services.chat_turn import ChatTurnService
 
 
@@ -59,7 +59,7 @@ def runtime():
 @pytest.fixture
 def install_fakes(monkeypatch):
     """Wire a fake bot pool, scope, and tool routing into chat_turn."""
-    from kumi.core.plugins.identity import LOCAL_IDENTITY, reset_current_identity
+    from kumi.core.platform.plugins.identity import LOCAL_IDENTITY, reset_current_identity
 
     token = set_current_identity(LOCAL_IDENTITY)
 

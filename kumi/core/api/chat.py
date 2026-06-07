@@ -22,7 +22,7 @@ from collections.abc import AsyncIterator
 
 from kumi.core.api.events import ChatEvent
 from kumi.core.api.state import SESSION_LOCKS
-from kumi.core.plugins import get_bot_pool, get_session_scope
+from kumi.core.platform.plugins import get_bot_pool, get_session_scope
 from kumi.core.services.chat_turn import ChatTurnService
 
 

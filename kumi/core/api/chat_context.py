@@ -5,7 +5,7 @@ from __future__ import annotations
 from contextvars import ContextVar
 from typing import Any
 
-from kumi.core.plugins import SINGLE_USER_ID
+from kumi.core.platform.plugins import SINGLE_USER_ID
 
 _chat_owner_user_id: ContextVar[str | None] = ContextVar("kumi_chat_owner_user_id", default=None)
 

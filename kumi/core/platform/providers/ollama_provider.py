@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Any, AsyncIterator
 
 import ollama
+from kumi.core.platform.providers.base import BaseLLMProvider
 from kumi.core.platform.tools.tool_call_normalize import normalize_tool_calls
-from kumi.core.providers.base import BaseLLMProvider
 from kumi.logging_config import get_logger
 
 _logger = get_logger(__name__)

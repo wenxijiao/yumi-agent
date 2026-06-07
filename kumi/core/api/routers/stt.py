@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException
 from kumi.core.api.dependencies import CurrentIdentity
 from kumi.core.api.schemas import TranscribeRequest
 from kumi.core.api.uploads import decode_upload_payload
-from kumi.core.plugins import get_session_scope
+from kumi.core.platform.plugins import get_session_scope
 
 router = APIRouter()
 

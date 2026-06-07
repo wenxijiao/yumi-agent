@@ -86,7 +86,7 @@ def _plugin_sections() -> list[str]:
     would form a cycle.
     """
     try:
-        from kumi.core.plugins import get_current_identity, get_system_prompt_extender
+        from kumi.core.platform.plugins import get_current_identity, get_system_prompt_extender
     except ImportError:
         return []
     try:

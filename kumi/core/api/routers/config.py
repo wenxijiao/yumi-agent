@@ -29,8 +29,8 @@ from kumi.core.config import (
     set_system_prompt,
 )
 from kumi.core.platform.exceptions import ProviderNotReadyError
-from kumi.core.plugins import get_session_scope
-from kumi.core.providers import SUPPORTED_PROVIDERS, create_provider
+from kumi.core.platform.plugins import get_session_scope
+from kumi.core.platform.providers import SUPPORTED_PROVIDERS, create_provider
 from kumi.logging_config import get_logger
 
 router = APIRouter()

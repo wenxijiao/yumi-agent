@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from kumi.core.providers.base import BaseLLMProvider
+    from kumi.core.platform.providers.base import BaseLLMProvider
 
 _embed_provider: "BaseLLMProvider | None" = None
 
@@ -19,7 +19,7 @@ class _MeteringEmbedWrapper:
     def embed(self, model: str, text: str) -> list[float]:
         out = self._inner.embed(model, text)
         try:
-            from kumi.core.plugins import get_current_identity, get_quota_policy
+            from kumi.core.platform.plugins import get_current_identity, get_quota_policy
 
             est = max(1, len(text) // 4)
             get_quota_policy().record_embed_tokens(get_current_identity(), est, model=model or "unknown")

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from kumi.core.plugins import get_audit_sink
+from kumi.core.platform.plugins import get_audit_sink
 
 
 def audit_event(event: str, user_id: str | None = None, **fields: object) -> None:

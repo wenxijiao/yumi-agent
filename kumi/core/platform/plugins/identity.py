@@ -3,7 +3,7 @@
 Single-user OSS default: every request is the synthetic local user.
 
 Enterprise plugins replace :func:`get_current_identity` semantics by
-registering their own :class:`~kumi.core.plugins.ports.IdentityProvider`,
+registering their own :class:`~kumi.core.platform.plugins.ports.IdentityProvider`,
 but the dataclass itself is shared so OSS code can pass identities through
 without depending on commercial packages.
 """

@@ -26,14 +26,14 @@ from kumi.core.config.line import (
     get_line_model_candidates,
     line_push_disabled,
 )
-from kumi.core.platform.security.audit import audit_event
-from kumi.core.platform.security.connection import DEFAULT_LOCAL_SERVER_URL, ConnectionConfig
-from kumi.core.plugins import (
+from kumi.core.platform.plugins import (
     LOCAL_IDENTITY,
     get_current_identity,
     get_quota_policy,
     get_session_scope,
 )
+from kumi.core.platform.security.audit import audit_event
+from kumi.core.platform.security.connection import DEFAULT_LOCAL_SERVER_URL, ConnectionConfig
 from kumi.core.proactive import record_user_message
 from kumi.core.prompts.http_bridge import (
     format_effective_prompt_reply,

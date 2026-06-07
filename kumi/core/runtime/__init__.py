@@ -1,21 +1,9 @@
-"""Runtime context and registries for Kumi core."""
+"""Deprecated shim package — moved to kumi.core.platform.runtime.
 
-from kumi.core.runtime.bootstrap import build_runtime
-from kumi.core.runtime.edge_registry import EdgeRegistry
-from kumi.core.runtime.session_locks import SessionLockRegistry
-from kumi.core.runtime.state import RuntimeState, get_default_runtime
-from kumi.core.runtime.timer_registry import TimerRegistry
-from kumi.core.runtime.tool_catalog import ToolCatalog, model_visible_tool_schema
-from kumi.core.runtime.tool_policy import ToolPolicy
+Aliases the relocated package so top-level ``from kumi.core.runtime import X``
+keeps working. Submodule imports should use the new path. Removed in phase E.
+"""
+import sys as _sys
+from importlib import import_module as _imp
 
-__all__ = [
-    "EdgeRegistry",
-    "RuntimeState",
-    "SessionLockRegistry",
-    "TimerRegistry",
-    "ToolCatalog",
-    "ToolPolicy",
-    "build_runtime",
-    "get_default_runtime",
-    "model_visible_tool_schema",
-]
+_sys.modules[__name__] = _imp("kumi.core.platform.runtime")

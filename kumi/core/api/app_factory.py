@@ -34,14 +34,14 @@ from kumi.core.api.timers import cancel_timer, schedule_timer
 from kumi.core.chatbot import KumiBot
 from kumi.core.config import ensure_chat_model_configured, ensure_embedding_provider_not_deepseek
 from kumi.core.memories.embedding_state import set_embed_provider
-from kumi.core.platform.security.http_config import get_cors_settings
-from kumi.core.plugins import (
+from kumi.core.platform.plugins import (
     get_bot_pool,
     get_middleware_extender,
     get_route_extender,
     load_entry_point_plugins,
 )
-from kumi.core.providers import create_provider
+from kumi.core.platform.providers import create_provider
+from kumi.core.platform.security.http_config import get_cors_settings
 from kumi.logging_config import configure_logging, get_logger
 from kumi.tools.bootstrap import init_kumi
 from kumi.tools.timer_tools import restore_schedules, set_timer_callbacks

@@ -11,7 +11,7 @@ import pytest
 from fastapi import HTTPException
 from kumi.core.api.routers.stt import stt_transcribe_endpoint
 from kumi.core.api.schemas import TranscribeRequest
-from kumi.core.plugins import LOCAL_IDENTITY
+from kumi.core.platform.plugins import LOCAL_IDENTITY
 from kumi.core.stt import SttNotConfiguredError, TranscriptionResult, ensure_whisper_weights_cached
 
 

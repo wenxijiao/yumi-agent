@@ -258,7 +258,7 @@ class MessageRepository:
             raise ValueError("Memory role must be one of: system, user, assistant, tool.")
 
         normalized_session_id = session_id.strip() or self.session_id
-        from kumi.core.plugins import get_memory_factory
+        from kumi.core.platform.plugins import get_memory_factory
 
         get_memory_factory().assert_quota_for_session(normalized_session_id)
         if self._sessions is not None:
@@ -296,7 +296,7 @@ class MessageRepository:
             )
 
         try:
-            from kumi.core.plugins import get_memory_factory, get_session_scope
+            from kumi.core.platform.plugins import get_memory_factory, get_session_scope
 
             owner = get_session_scope().owner_user_from_session_id(normalized_session_id)
             get_memory_factory().invalidate_size_cache(owner)

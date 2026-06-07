@@ -106,8 +106,8 @@ def test_model_config_public_dict_includes_key_flags(monkeypatch, tmp_path: Path
 
 def test_create_provider_deepseek_wraps_openai_provider():
     pytest.importorskip("openai")
-    from kumi.core.providers import create_provider
-    from kumi.core.providers.openai_provider import OpenAIProvider
+    from kumi.core.platform.providers import create_provider
+    from kumi.core.platform.providers.openai_provider import OpenAIProvider
 
     p = create_provider(
         "deepseek",

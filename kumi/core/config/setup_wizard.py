@@ -42,7 +42,7 @@ def _choose_installed_model(models: list[str], label: str) -> str:
 
 
 def _choose_provider(label: str, *, exclude: tuple[str, ...] = ()) -> str:
-    from kumi.core.providers import SUPPORTED_PROVIDERS
+    from kumi.core.platform.providers import SUPPORTED_PROVIDERS
 
     choices = tuple(p for p in SUPPORTED_PROVIDERS if p not in exclude)
     if not choices:

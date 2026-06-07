@@ -18,9 +18,9 @@ from typing import Any
 
 from kumi.core.config import load_model_config
 from kumi.core.memories.embedding_state import get_embed_provider, is_degenerate_vector
+from kumi.core.platform.plugins import get_current_identity, get_edge_scope
+from kumi.core.platform.runtime.tool_catalog import model_visible_tool_schema
 from kumi.core.platform.tools.tool import TOOL_REGISTRY
-from kumi.core.plugins import get_current_identity, get_edge_scope
-from kumi.core.runtime.tool_catalog import model_visible_tool_schema
 from kumi.logging_config import get_logger
 
 logger = get_logger(__name__)

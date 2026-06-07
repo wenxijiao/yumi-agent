@@ -2,7 +2,7 @@
 
 This is the actual implementation, not a wrapper. The legacy
 ``_generate_chat_events_impl`` god function has been decomposed into the
-``kumi.core.dispatch`` collaborators; this orchestrator is now a small
+``kumi.core.platform.dispatch`` collaborators; this orchestrator is now a small
 state machine that wires them together.
 
 Layering:
@@ -10,8 +10,8 @@ Layering:
 * ``kumi.core.api.routers.chat`` — HTTP transport (quota, audit, NDJSON).
 * ``kumi.core.api.chat``        — public entry point; just calls this service.
 * ``ChatTurnService``            — application orchestration (this module).
-* ``kumi.core.dispatch.*``      — domain (tool dispatch + observability).
-* ``kumi.core.runtime``         — infrastructure (mutable state registries).
+* ``kumi.core.platform.dispatch.*``      — domain (tool dispatch + observability).
+* ``kumi.core.platform.runtime``         — infrastructure (mutable state registries).
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from collections.abc import AsyncIterator
 
 from kumi.core.api.chat_context import reset_chat_owner_user_id, set_chat_owner_user_id
 from kumi.core.api.events import ErrorEvent, TextEvent, ThoughtEvent, ToolStatusEvent
-from kumi.core.dispatch import (
+from kumi.core.platform.dispatch import (
     LOCAL_TOOL_TIMEOUT_DEFAULT,
     MAX_TOOL_CALL_FORMAT_RETRIES,
     MAX_TOOL_LOOPS,
@@ -34,15 +34,15 @@ from kumi.core.dispatch import (
     TurnContext,
     UsageRecorder,
 )
-from kumi.core.dispatch.normalizer import summarize_tool_args
-from kumi.core.platform.tools.tool_routing import select_tool_schemas
-from kumi.core.plugins import (
+from kumi.core.platform.dispatch.normalizer import summarize_tool_args
+from kumi.core.platform.plugins import (
     SINGLE_USER_ID,
     get_bot_pool,
     get_current_identity,
     get_session_scope,
 )
-from kumi.core.runtime import RuntimeState, get_default_runtime
+from kumi.core.platform.runtime import RuntimeState, get_default_runtime
+from kumi.core.platform.tools.tool_routing import select_tool_schemas
 from kumi.logging_config import get_logger
 
 logger = get_logger(__name__)

@@ -6,7 +6,7 @@ from fastapi import APIRouter
 from kumi.core.api.dependencies import CurrentIdentity
 from kumi.core.api.schemas import FileUploadRequest
 from kumi.core.api.uploads import decode_upload_payload, save_uploaded_file
-from kumi.core.plugins import get_session_scope
+from kumi.core.platform.plugins import get_session_scope
 
 router = APIRouter()
 

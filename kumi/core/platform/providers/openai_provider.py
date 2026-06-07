@@ -5,8 +5,8 @@ import os
 import uuid
 from typing import Any, AsyncIterator
 
+from kumi.core.platform.providers.base import BaseLLMProvider
 from kumi.core.platform.tools.tool_call_normalize import normalize_tool_calls
-from kumi.core.providers.base import BaseLLMProvider
 
 
 def _normalize_messages_for_strict_openai_compat(

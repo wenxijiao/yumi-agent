@@ -5,8 +5,8 @@ import json
 from pathlib import Path
 
 import pytest
-from kumi.core.providers.diagnostics import write_provider_failure_diagnostic
-from kumi.core.providers.gemini_provider import (
+from kumi.core.platform.providers.diagnostics import write_provider_failure_diagnostic
+from kumi.core.platform.providers.gemini_provider import (
     GeminiProvider,
     _sanitize_gemini_tool_sequence,
 )

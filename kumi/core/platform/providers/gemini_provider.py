@@ -6,8 +6,8 @@ import os
 import re
 from typing import Any, AsyncIterator
 
-from kumi.core.providers.base import BaseLLMProvider
-from kumi.core.providers.diagnostics import short_text, write_provider_failure_diagnostic
+from kumi.core.platform.providers.base import BaseLLMProvider
+from kumi.core.platform.providers.diagnostics import short_text, write_provider_failure_diagnostic
 from kumi.logging_config import get_logger
 
 _logger = get_logger(__name__)

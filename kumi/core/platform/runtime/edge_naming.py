@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 
-from kumi.core.runtime.edge_registry import EdgeRegistry
+from kumi.core.platform.runtime.edge_registry import EdgeRegistry
 
 
 def gemini_safe_edge_segment(edge_name: str) -> str:
@@ -37,14 +37,14 @@ def edge_tool_key_prefix(edge_name: str) -> str:
 
 def edge_connection_key(owner_user_id: str | None, edge_name: str) -> str:
     """Registry key for an edge — the EdgeScope plugin chooses the layout."""
-    from kumi.core.plugins import get_edge_scope
+    from kumi.core.platform.plugins import get_edge_scope
 
     return get_edge_scope().connection_key(owner_user_id, edge_name)
 
 
 def edge_tool_register_prefix(owner_user_id: str | None, edge_name: str) -> str:
     """Tool name prefix for registration (per-user prefix in MT, plain in OSS)."""
-    from kumi.core.plugins import get_edge_scope
+    from kumi.core.platform.plugins import get_edge_scope
 
     return get_edge_scope().tool_register_prefix(owner_user_id, edge_name)
 
@@ -64,7 +64,7 @@ def resolve_edge_for_prefixed_tool_name(prefixed_name: str, edge_registry: EdgeR
     Searches ``edge_registry.tools`` (defaults to the process-wide runtime).
     """
     if edge_registry is None:
-        from kumi.core.runtime import get_default_runtime
+        from kumi.core.platform.runtime import get_default_runtime
 
         edge_registry = get_default_runtime().edge_registry
     for en, tools_map in edge_registry.tools.items():

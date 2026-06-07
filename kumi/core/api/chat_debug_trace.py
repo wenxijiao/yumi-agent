@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
-from kumi.core.providers.diagnostics import debug_dir
+from kumi.core.platform.providers.diagnostics import debug_dir
 from kumi.logging_config import get_logger
 
 _logger = get_logger(__name__)

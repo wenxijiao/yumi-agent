@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from threading import Lock
 
-from kumi.core.plugins.ports import (
+from kumi.core.platform.plugins.ports import (
     AdminCli,
     AuditSink,
     BillingHook,
@@ -22,7 +22,7 @@ from kumi.core.plugins.ports import (
     SessionScope,
     SystemPromptExtender,
 )
-from kumi.core.plugins.single_user import (
+from kumi.core.platform.plugins.single_user import (
     FlatEdgeScope,
     LoggingAuditSink,
     NoOpAdminCli,

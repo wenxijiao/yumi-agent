@@ -11,8 +11,8 @@ from __future__ import annotations
 import asyncio
 import uuid
 
-from kumi.core.dispatch.context import ToolInvocation, ToolResult
-from kumi.core.runtime import RuntimeState
+from kumi.core.platform.dispatch.context import ToolInvocation, ToolResult
+from kumi.core.platform.runtime import RuntimeState
 
 
 class EdgeToolExecutor:
