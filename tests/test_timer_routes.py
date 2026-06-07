@@ -1,12 +1,12 @@
 from fastapi.testclient import TestClient
 from kumi.core.api.app_factory import app
-from kumi.core.features.proactive.timer_tools import ACTIVE_TIMERS
+from kumi.core.features.proactive.timer_tools import scheduler
 
 
 def test_list_timers_endpoint(monkeypatch, tmp_path):
-    monkeypatch.setattr("kumi.core.features.proactive.timer_tools._SCHEDULES_PATH", tmp_path / "schedules.json")
-    ACTIVE_TIMERS.clear()
-    ACTIVE_TIMERS["abc123"] = {
+    monkeypatch.setattr(scheduler, "schedules_path", tmp_path / "schedules.json")
+    scheduler.active_timers.clear()
+    scheduler.active_timers["abc123"] = {
         "id": "abc123",
         "type": "scheduled",
         "description": "daily check",
@@ -21,9 +21,9 @@ def test_list_timers_endpoint(monkeypatch, tmp_path):
 
 
 def test_cancel_timer_endpoint(monkeypatch, tmp_path):
-    monkeypatch.setattr("kumi.core.features.proactive.timer_tools._SCHEDULES_PATH", tmp_path / "schedules.json")
-    ACTIVE_TIMERS.clear()
-    ACTIVE_TIMERS["abc123"] = {
+    monkeypatch.setattr(scheduler, "schedules_path", tmp_path / "schedules.json")
+    scheduler.active_timers.clear()
+    scheduler.active_timers["abc123"] = {
         "id": "abc123",
         "type": "scheduled",
         "description": "daily check",
@@ -35,4 +35,4 @@ def test_cancel_timer_endpoint(monkeypatch, tmp_path):
 
     assert response.status_code == 200
     assert response.json()["status"] == "success"
-    assert "abc123" not in ACTIVE_TIMERS
+    assert "abc123" not in scheduler.active_timers

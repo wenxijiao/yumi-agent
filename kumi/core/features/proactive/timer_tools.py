@@ -7,8 +7,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Callable
 
-ACTIVE_TIMERS: dict[str, dict] = {}
-
 try:
     from kumi.core.features.chat.context import get_chat_owner_user_id
 except ImportError:
@@ -21,10 +19,7 @@ def _owner_id() -> str:
     return get_chat_owner_user_id()
 
 
-_SCHEDULES_PATH = Path.home() / ".kumi" / "schedules.json"
-
-_schedule_callback: Callable | None = None
-_cancel_callback: Callable | None = None
+_DEFAULT_SCHEDULES_PATH = Path.home() / ".kumi" / "schedules.json"
 
 _WEEKDAY_NAMES = {
     "monday": 0,
@@ -62,86 +57,7 @@ _CHINESE_WEEKDAY_NAMES = {
 }
 
 
-def set_timer_callbacks(schedule_fn: Callable, cancel_fn: Callable):
-    global _schedule_callback, _cancel_callback
-    _schedule_callback = schedule_fn
-    _cancel_callback = cancel_fn
-
-
-# ── persistence ──
-
-
-def _save_schedules():
-    items = [v for v in ACTIVE_TIMERS.values() if v.get("type") == "scheduled"]
-    try:
-        _SCHEDULES_PATH.parent.mkdir(parents=True, exist_ok=True)
-        _SCHEDULES_PATH.write_text(
-            json.dumps(items, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
-    except OSError:
-        pass
-
-
-def _load_schedules() -> list[dict]:
-    if not _SCHEDULES_PATH.exists():
-        return []
-    try:
-        data = json.loads(_SCHEDULES_PATH.read_text(encoding="utf-8"))
-        return data if isinstance(data, list) else []
-    except (OSError, json.JSONDecodeError):
-        return []
-
-
-def restore_schedules():
-    """Reload persisted schedules and re-register them with the scheduler.
-
-    Called once at server startup from ``api.py`` lifespan.
-    """
-    items = _load_schedules()
-    now = datetime.now()
-    changed = False
-
-    for item in items:
-        timer_id = item.get("id", "")
-        if not timer_id:
-            continue
-
-        recurring = item.get("recurring", False)
-        next_fire_raw = item.get("next_fire_at", "")
-        try:
-            next_fire = datetime.fromisoformat(next_fire_raw)
-        except (ValueError, TypeError):
-            changed = True
-            continue
-
-        if next_fire <= now:
-            if recurring:
-                next_fire = _advance_recurring(item, now)
-                item["next_fire_at"] = next_fire.isoformat()
-                changed = True
-            else:
-                changed = True
-                continue
-
-        delay = max(1, int((next_fire - now).total_seconds()))
-        if "owner_user_id" not in item:
-            item = {**item, "owner_user_id": "_local"}
-        ACTIVE_TIMERS[timer_id] = item
-
-        if _schedule_callback:
-            _schedule_callback(
-                timer_id,
-                delay,
-                item.get("description", ""),
-                item.get("session_id", "default"),
-            )
-
-    if changed:
-        _save_schedules()
-
-
-# ── when parser ──
+# ── when parser (pure, stateless) ──
 
 
 def _parse_time(time_str: str) -> tuple[int, int]:
@@ -328,128 +244,256 @@ def calc_next_recurring_delay(item: dict) -> int:
     return max(1, int((next_fire - now).total_seconds()))
 
 
+# ── scheduler service ──
+
+
+class SchedulerService:
+    """Owns timer/scheduled-task state, persistence and the schedule/cancel
+    callbacks (previously module-level globals).
+
+    The asyncio side (actually sleeping and firing) lives in
+    :mod:`kumi.core.features.proactive.scheduler` and is wired in via
+    :meth:`set_callbacks`; the persisted recurring schedules survive restarts
+    through ``schedules_path``.
+    """
+
+    def __init__(self, schedules_path: Path | None = None) -> None:
+        self.active_timers: dict[str, dict] = {}
+        self.schedules_path: Path = schedules_path or _DEFAULT_SCHEDULES_PATH
+        self._schedule_callback: Callable | None = None
+        self._cancel_callback: Callable | None = None
+
+    def set_callbacks(self, schedule_fn: Callable, cancel_fn: Callable) -> None:
+        self._schedule_callback = schedule_fn
+        self._cancel_callback = cancel_fn
+
+    # ── persistence ──
+
+    def _save_schedules(self) -> None:
+        items = [v for v in self.active_timers.values() if v.get("type") == "scheduled"]
+        try:
+            self.schedules_path.parent.mkdir(parents=True, exist_ok=True)
+            self.schedules_path.write_text(
+                json.dumps(items, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+        except OSError:
+            pass
+
+    def _load_schedules(self) -> list[dict]:
+        if not self.schedules_path.exists():
+            return []
+        try:
+            data = json.loads(self.schedules_path.read_text(encoding="utf-8"))
+            return data if isinstance(data, list) else []
+        except (OSError, json.JSONDecodeError):
+            return []
+
+    def restore_schedules(self) -> None:
+        """Reload persisted schedules and re-register them with the scheduler.
+
+        Called once at server startup from the app lifespan.
+        """
+        items = self._load_schedules()
+        now = datetime.now()
+        changed = False
+
+        for item in items:
+            timer_id = item.get("id", "")
+            if not timer_id:
+                continue
+
+            recurring = item.get("recurring", False)
+            next_fire_raw = item.get("next_fire_at", "")
+            try:
+                next_fire = datetime.fromisoformat(next_fire_raw)
+            except (ValueError, TypeError):
+                changed = True
+                continue
+
+            if next_fire <= now:
+                if recurring:
+                    next_fire = _advance_recurring(item, now)
+                    item["next_fire_at"] = next_fire.isoformat()
+                    changed = True
+                else:
+                    changed = True
+                    continue
+
+            delay = max(1, int((next_fire - now).total_seconds()))
+            if "owner_user_id" not in item:
+                item = {**item, "owner_user_id": "_local"}
+            self.active_timers[timer_id] = item
+
+            if self._schedule_callback:
+                self._schedule_callback(
+                    timer_id,
+                    delay,
+                    item.get("description", ""),
+                    item.get("session_id", "default"),
+                )
+
+        if changed:
+            self._save_schedules()
+
+    # ── queries / cancellation ──
+
+    def timer_entries_for_owner(self, owner_user_id: str | None = None) -> list[dict]:
+        oid = owner_user_id or _owner_id()
+        visible = list(self.active_timers.values())
+        if oid != "_local":
+            visible = [t for t in visible if t.get("owner_user_id", oid) == oid]
+        return visible
+
+    def cancel_timer_for_owner(
+        self, timer_id: str, owner_user_id: str | None = None
+    ) -> tuple[bool, str, dict | None]:
+        if timer_id not in self.active_timers:
+            return False, f"Error: no active timer or task with ID '{timer_id}'.", None
+
+        oid = owner_user_id or _owner_id()
+        info = self.active_timers[timer_id]
+        if oid != "_local" and info.get("owner_user_id") and info.get("owner_user_id") != oid:
+            return False, f"Error: timer '{timer_id}' belongs to another user.", None
+
+        info = self.active_timers.pop(timer_id)
+
+        if info.get("type") == "scheduled":
+            self._save_schedules()
+
+        if self._cancel_callback:
+            self._cancel_callback(timer_id)
+
+        return True, f"Cancelled '{timer_id}'. (Was: {info['description']})", info
+
+    # ── tools ──
+
+    def set_timer(self, delay_seconds: int, description: str, session_id: str = "default") -> str:
+        if delay_seconds <= 0:
+            return "Error: delay_seconds must be a positive integer."
+        if not description.strip():
+            return "Error: description cannot be empty."
+
+        timer_id = uuid.uuid4().hex[:8]
+        fire_at = datetime.now() + timedelta(seconds=delay_seconds)
+
+        self.active_timers[timer_id] = {
+            "id": timer_id,
+            "type": "timer",
+            "description": description,
+            "fire_at": fire_at.isoformat(),
+            "session_id": session_id,
+            "owner_user_id": _owner_id(),
+            "created_at": datetime.now().isoformat(),
+        }
+
+        if self._schedule_callback:
+            self._schedule_callback(timer_id, delay_seconds, description, session_id)
+
+        return (
+            f"Timer '{timer_id}' set. It will fire in {delay_seconds} seconds "
+            f"(at {fire_at.strftime('%H:%M:%S')}). Description: {description}"
+        )
+
+    def schedule_task(self, when: str, description: str, session_id: str = "default") -> str:
+        if not description.strip():
+            return "Error: description cannot be empty."
+
+        try:
+            parsed = _parse_when(when)
+        except ValueError as exc:
+            return f"Error: {exc}"
+
+        timer_id = uuid.uuid4().hex[:8]
+        next_fire: datetime = parsed["next_fire_at"]
+        delay_seconds = max(1, int((next_fire - datetime.now()).total_seconds()))
+        recurring = parsed["recurring"]
+
+        entry = {
+            "id": timer_id,
+            "type": "scheduled",
+            "description": description,
+            "when_raw": parsed["when_raw"],
+            "recurring": recurring,
+            "weekdays": parsed["weekdays"],
+            "time": parsed["time"],
+            "next_fire_at": next_fire.isoformat(),
+            "fire_at": next_fire.isoformat(),
+            "session_id": session_id,
+            "owner_user_id": _owner_id(),
+            "created_at": datetime.now().isoformat(),
+        }
+        self.active_timers[timer_id] = entry
+        self._save_schedules()
+
+        if self._schedule_callback:
+            self._schedule_callback(timer_id, delay_seconds, description, session_id)
+
+        label = "Recurring task" if recurring else "Task"
+        schedule_desc = parsed["when_raw"]
+        return (
+            f"{label} '{timer_id}' scheduled ({schedule_desc}). "
+            f"Next: {next_fire.strftime('%Y-%m-%d %H:%M')}. "
+            f"Description: {description}"
+        )
+
+    def list_timers(self) -> str:
+        visible = self.timer_entries_for_owner()
+
+        if not visible:
+            return "No active timers or scheduled tasks."
+
+        lines = [f"Active items ({len(visible)}):"]
+        for t in visible:
+            fire_at = t.get("next_fire_at") or t.get("fire_at", "")
+            try:
+                dt = datetime.fromisoformat(fire_at)
+                fire_str = dt.strftime("%Y-%m-%d %H:%M:%S")
+            except (ValueError, TypeError):
+                fire_str = fire_at
+            kind = t.get("type", "timer")
+            recurring_tag = " [recurring]" if t.get("recurring") else ""
+            lines.append(f"  [{t['id']}] ({kind}{recurring_tag}) next: {fire_str} — {t['description']}")
+        return "\n".join(lines)
+
+    def cancel_timer(self, timer_id: str) -> str:
+        _ok, message, _info = self.cancel_timer_for_owner(timer_id)
+        return message
+
+
+# Process-wide singleton + thin module-level delegators. The tool functions are
+# registered by reference (kumi/tools/bootstrap.py), so they stay importable
+# module callables; they simply forward to ``scheduler``.
+scheduler = SchedulerService()
+
+
+def set_timer_callbacks(schedule_fn: Callable, cancel_fn: Callable) -> None:
+    scheduler.set_callbacks(schedule_fn, cancel_fn)
+
+
+def restore_schedules() -> None:
+    scheduler.restore_schedules()
+
+
 def timer_entries_for_owner(owner_user_id: str | None = None) -> list[dict]:
-    oid = owner_user_id or _owner_id()
-    visible = list(ACTIVE_TIMERS.values())
-    if oid != "_local":
-        visible = [t for t in visible if t.get("owner_user_id", oid) == oid]
-    return visible
+    return scheduler.timer_entries_for_owner(owner_user_id)
 
 
 def cancel_timer_for_owner(timer_id: str, owner_user_id: str | None = None) -> tuple[bool, str, dict | None]:
-    if timer_id not in ACTIVE_TIMERS:
-        return False, f"Error: no active timer or task with ID '{timer_id}'.", None
-
-    oid = owner_user_id or _owner_id()
-    info = ACTIVE_TIMERS[timer_id]
-    if oid != "_local" and info.get("owner_user_id") and info.get("owner_user_id") != oid:
-        return False, f"Error: timer '{timer_id}' belongs to another user.", None
-
-    info = ACTIVE_TIMERS.pop(timer_id)
-
-    if info.get("type") == "scheduled":
-        _save_schedules()
-
-    if _cancel_callback:
-        _cancel_callback(timer_id)
-
-    return True, f"Cancelled '{timer_id}'. (Was: {info['description']})", info
-
-
-# ── tools ──
+    return scheduler.cancel_timer_for_owner(timer_id, owner_user_id)
 
 
 def set_timer(delay_seconds: int, description: str, session_id: str = "default") -> str:
-    if delay_seconds <= 0:
-        return "Error: delay_seconds must be a positive integer."
-    if not description.strip():
-        return "Error: description cannot be empty."
-
-    timer_id = uuid.uuid4().hex[:8]
-    fire_at = datetime.now() + timedelta(seconds=delay_seconds)
-
-    ACTIVE_TIMERS[timer_id] = {
-        "id": timer_id,
-        "type": "timer",
-        "description": description,
-        "fire_at": fire_at.isoformat(),
-        "session_id": session_id,
-        "owner_user_id": _owner_id(),
-        "created_at": datetime.now().isoformat(),
-    }
-
-    if _schedule_callback:
-        _schedule_callback(timer_id, delay_seconds, description, session_id)
-
-    return (
-        f"Timer '{timer_id}' set. It will fire in {delay_seconds} seconds "
-        f"(at {fire_at.strftime('%H:%M:%S')}). Description: {description}"
-    )
+    return scheduler.set_timer(delay_seconds, description, session_id)
 
 
 def schedule_task(when: str, description: str, session_id: str = "default") -> str:
-    if not description.strip():
-        return "Error: description cannot be empty."
-
-    try:
-        parsed = _parse_when(when)
-    except ValueError as exc:
-        return f"Error: {exc}"
-
-    timer_id = uuid.uuid4().hex[:8]
-    next_fire: datetime = parsed["next_fire_at"]
-    delay_seconds = max(1, int((next_fire - datetime.now()).total_seconds()))
-    recurring = parsed["recurring"]
-
-    entry = {
-        "id": timer_id,
-        "type": "scheduled",
-        "description": description,
-        "when_raw": parsed["when_raw"],
-        "recurring": recurring,
-        "weekdays": parsed["weekdays"],
-        "time": parsed["time"],
-        "next_fire_at": next_fire.isoformat(),
-        "fire_at": next_fire.isoformat(),
-        "session_id": session_id,
-        "owner_user_id": _owner_id(),
-        "created_at": datetime.now().isoformat(),
-    }
-    ACTIVE_TIMERS[timer_id] = entry
-    _save_schedules()
-
-    if _schedule_callback:
-        _schedule_callback(timer_id, delay_seconds, description, session_id)
-
-    label = "Recurring task" if recurring else "Task"
-    schedule_desc = parsed["when_raw"]
-    return (
-        f"{label} '{timer_id}' scheduled ({schedule_desc}). "
-        f"Next: {next_fire.strftime('%Y-%m-%d %H:%M')}. "
-        f"Description: {description}"
-    )
+    return scheduler.schedule_task(when, description, session_id)
 
 
 def list_timers() -> str:
-    visible = timer_entries_for_owner()
-
-    if not visible:
-        return "No active timers or scheduled tasks."
-
-    lines = [f"Active items ({len(visible)}):"]
-    for t in visible:
-        fire_at = t.get("next_fire_at") or t.get("fire_at", "")
-        try:
-            dt = datetime.fromisoformat(fire_at)
-            fire_str = dt.strftime("%Y-%m-%d %H:%M:%S")
-        except Exception:
-            fire_str = fire_at
-        kind = t.get("type", "timer")
-        recurring_tag = " [recurring]" if t.get("recurring") else ""
-        lines.append(f"  [{t['id']}] ({kind}{recurring_tag}) next: {fire_str} — {t['description']}")
-    return "\n".join(lines)
+    return scheduler.list_timers()
 
 
 def cancel_timer(timer_id: str) -> str:
-    _ok, message, _info = cancel_timer_for_owner(timer_id)
-    return message
+    return scheduler.cancel_timer(timer_id)

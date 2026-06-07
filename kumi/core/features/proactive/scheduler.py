@@ -11,8 +11,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from kumi.core.features.proactive.timer_tools import ACTIVE_TIMERS as TIMER_DATA
-from kumi.core.features.proactive.timer_tools import calc_next_recurring_delay
+from kumi.core.features.proactive.timer_tools import calc_next_recurring_delay, scheduler
 from kumi.core.platform.http.task_logging import log_task_exc_on_done
 from kumi.core.platform.runtime.accessors import TIMER_SUBSCRIBERS, TIMER_TASKS
 
@@ -31,11 +30,11 @@ async def _timer_fire(timer_id: str, delay: int, description: str, session_id: s
 
     logger.info("Timer fired (timer_id=%s session_id=%s)", timer_id, session_id)
 
-    schedule = TIMER_DATA.get(timer_id)
+    schedule = scheduler.active_timers.get(timer_id)
     recurring = schedule.get("recurring", False) if schedule else False
 
     if not recurring:
-        TIMER_DATA.pop(timer_id, None)
+        scheduler.active_timers.pop(timer_id, None)
     TIMER_TASKS.pop(timer_id, None)
 
     from kumi.core.features.chat.pipeline import generate_chat_events
@@ -83,10 +82,8 @@ async def _timer_fire(timer_id: str, delay: int, description: str, session_id: s
             pass
 
     if recurring and schedule:
-        from kumi.core.features.proactive.timer_tools import _save_schedules
-
         next_delay = calc_next_recurring_delay(schedule)
-        _save_schedules()
+        scheduler._save_schedules()
         schedule_timer(timer_id, next_delay, description, session_id)
 
 
