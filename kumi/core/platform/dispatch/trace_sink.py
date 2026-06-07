@@ -10,7 +10,7 @@ Centralises three sources of side-effect that used to be scattered across
 
 Callers ``sink.emit(event)`` with a typed :class:`~kumi.core.platform.http.events.ChatEvent`;
 the sink records the event then returns it so the orchestrator can ``yield``
-it directly. The HTTP boundary (``kumi.core.api.chat.generate_chat_events``)
+it directly. The HTTP boundary (``kumi.core.features.chat.pipeline.generate_chat_events``)
 serialises models to dicts only at the public edge.
 """
 

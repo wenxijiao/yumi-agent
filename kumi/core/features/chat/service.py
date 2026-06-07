@@ -7,8 +7,8 @@ state machine that wires them together.
 
 Layering:
 
-* ``kumi.core.api.routers.chat`` — HTTP transport (quota, audit, NDJSON).
-* ``kumi.core.api.chat``        — public entry point; just calls this service.
+* ``kumi.core.features.chat.router`` — HTTP transport (quota, audit, NDJSON).
+* ``kumi.core.features.chat.pipeline``        — public entry point; just calls this service.
 * ``ChatTurnService``            — application orchestration (this module).
 * ``kumi.core.platform.dispatch.*``      — domain (tool dispatch + observability).
 * ``kumi.core.platform.runtime``         — infrastructure (mutable state registries).
@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 
-from kumi.core.api.chat_context import reset_chat_owner_user_id, set_chat_owner_user_id
+from kumi.core.features.chat.context import reset_chat_owner_user_id, set_chat_owner_user_id
 from kumi.core.platform.dispatch import (
     LOCAL_TOOL_TIMEOUT_DEFAULT,
     MAX_TOOL_CALL_FORMAT_RETRIES,

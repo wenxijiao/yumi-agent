@@ -6,12 +6,12 @@ import asyncio
 from pathlib import Path
 
 import pytest
-from kumi.core.api.routers.chat import get_chat_debug_endpoint, put_chat_debug_endpoint
+from kumi.core.features.chat.router import get_chat_debug_endpoint, put_chat_debug_endpoint
 from kumi.core.platform.http.schemas import ChatDebugRequest
 
 
 def test_put_chat_debug_toggle(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    monkeypatch.setattr("kumi.core.api.chat_debug_trace.debug_dir", lambda: str(tmp_path))
+    monkeypatch.setattr("kumi.core.features.chat.debug_trace.debug_dir", lambda: str(tmp_path))
     from kumi.core.platform.plugins import LOCAL_IDENTITY
 
     async def _run():

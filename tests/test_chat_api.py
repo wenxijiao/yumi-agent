@@ -2,7 +2,7 @@
 
 import json
 
-import kumi.core.api.routers.chat as chat_router_module
+import kumi.core.features.chat.router as chat_router_module
 from fastapi.testclient import TestClient
 from kumi.core.api.app_factory import app
 

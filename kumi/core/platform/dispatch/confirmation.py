@@ -139,7 +139,7 @@ class ConfirmationGate:
         policy.always_allowed_tools.add(inv.func_name)
 
         if inv.kind == "edge":
-            from kumi.core.api.edge import _push_confirmation_policy_to_edge_peer
+            from kumi.core.features.edge.api import _push_confirmation_policy_to_edge_peer
 
             peer = inv.peer
             en = inv.target_edge
@@ -152,6 +152,6 @@ class ConfirmationGate:
             except Exception:
                 pass
         else:
-            from kumi.core.api.edge import persist_local_tool_confirmation_to_config
+            from kumi.core.features.edge.api import persist_local_tool_confirmation_to_config
 
             persist_local_tool_confirmation_to_config()

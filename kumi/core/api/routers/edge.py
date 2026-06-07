@@ -1,16 +1,5 @@
-"""Edge websocket routes."""
+"""Deprecated shim — moved to kumi.core.features.edge.router. Removed in phase E."""
+import sys as _sys
+from importlib import import_module as _imp
 
-from __future__ import annotations
-
-from fastapi import APIRouter, WebSocket
-from kumi.core.api.edge import handle_edge_peer
-from kumi.core.api.peers import LocalEdgePeer
-
-router = APIRouter()
-
-
-@router.websocket("/ws/edge")
-async def websocket_edge_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    peer = LocalEdgePeer(websocket)
-    await handle_edge_peer(peer)
+_sys.modules[__name__] = _imp("kumi.core.features.edge.router")

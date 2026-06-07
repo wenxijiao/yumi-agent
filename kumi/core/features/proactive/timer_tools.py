@@ -10,7 +10,7 @@ from typing import Callable
 ACTIVE_TIMERS: dict[str, dict] = {}
 
 try:
-    from kumi.core.api.chat_context import get_chat_owner_user_id
+    from kumi.core.features.chat.context import get_chat_owner_user_id
 except ImportError:
 
     def get_chat_owner_user_id() -> str:  # pragma: no cover

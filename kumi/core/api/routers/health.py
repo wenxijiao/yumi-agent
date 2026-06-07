@@ -1,23 +1,5 @@
-"""Health routes."""
+"""Deprecated shim — moved to kumi.core.features.health.router. Removed in phase E."""
+import sys as _sys
+from importlib import import_module as _imp
 
-from __future__ import annotations
-
-import kumi.core.api.state as _state
-from fastapi import APIRouter
-from fastapi.responses import JSONResponse
-from kumi.core.platform.http.dependencies import CurrentIdentity
-
-router = APIRouter()
-
-
-@router.get("/health")
-async def health_check(identity: CurrentIdentity):
-    if getattr(_state, "server_draining", False):
-        return JSONResponse(
-            {"status": "draining", "message": "Server is shutting down"},
-            status_code=503,
-        )
-    return {
-        "status": "ok",
-        "identity_user_id": identity.user_id,
-    }
+_sys.modules[__name__] = _imp("kumi.core.features.health.router")

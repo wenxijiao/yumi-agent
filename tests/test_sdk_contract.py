@@ -14,7 +14,7 @@ Additional checks:
 
 import os
 
-# ── reference schema (the shape the server parses in kumi.core.api.edge) ──
+# ── reference schema (the shape the server parses in kumi.core.features.edge.api) ──
 
 REFERENCE_TOOL_SCHEMA = {
     "type": "function",

@@ -1,6 +1,6 @@
 """Send a transcribed voice utterance through the same chat pipeline ``/chat`` uses.
 
-We bypass HTTP and call :func:`kumi.core.api.chat.generate_chat_events`
+We bypass HTTP and call :func:`kumi.core.features.chat.pipeline.generate_chat_events`
 directly: the voice loop already runs in the API process, so any owner-scoped
 quota / auth checks would be paid twice if we did a self-call.
 """
@@ -31,7 +31,7 @@ async def voice_dispatch(prompt: str, *, owner_id: str) -> None:
     sid = voice_session_id(owner_id)
     logger.info("voice: dispatching session=%s prompt=%r", sid, text)
 
-    from kumi.core.api.chat import generate_chat_events
+    from kumi.core.features.chat.pipeline import generate_chat_events
 
     assistant_buf: list[str] = []
     try:

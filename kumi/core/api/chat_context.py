@@ -1,22 +1,5 @@
-"""Per-request owner for tools (timers) — set during chat generation."""
+"""Deprecated shim — moved to kumi.core.features.chat.context. Removed in phase E."""
+import sys as _sys
+from importlib import import_module as _imp
 
-from __future__ import annotations
-
-from contextvars import ContextVar
-from typing import Any
-
-from kumi.core.platform.plugins import SINGLE_USER_ID
-
-_chat_owner_user_id: ContextVar[str | None] = ContextVar("kumi_chat_owner_user_id", default=None)
-
-
-def set_chat_owner_user_id(user_id: str) -> Any:
-    return _chat_owner_user_id.set(user_id)
-
-
-def reset_chat_owner_user_id(token: Any) -> None:
-    _chat_owner_user_id.reset(token)
-
-
-def get_chat_owner_user_id() -> str:
-    return _chat_owner_user_id.get() or SINGLE_USER_ID
+_sys.modules[__name__] = _imp("kumi.core.features.chat.context")

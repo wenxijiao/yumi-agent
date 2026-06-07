@@ -104,7 +104,7 @@ def test_always_allow_persists_policy(gate_and_runtime, monkeypatch):
     def fake_persist():
         persisted.append(True)
 
-    import kumi.core.api.edge as api_edge
+    import kumi.core.features.edge.api as api_edge
 
     monkeypatch.setattr(api_edge, "persist_local_tool_confirmation_to_config", fake_persist)
 

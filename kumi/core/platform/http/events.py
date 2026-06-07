@@ -14,7 +14,7 @@ This module replaces the convention with a Pydantic *discriminated union*
 keyed by ``type``. Producers construct typed instances; consumers can opt
 into ``isinstance`` / ``match`` dispatch (see :mod:`kumi.core.platform.http.stream_consumer`).
 External callers that still want plain dicts get them via ``model_dump`` at
-the public boundary in :mod:`kumi.core.api.chat`.
+the public boundary in :mod:`kumi.core.features.chat.pipeline`.
 
 The wire format is unchanged — ``model_dump()`` + ``json.dumps`` produces
 exactly the same JSON the legacy code did, so HTTP clients see no difference.

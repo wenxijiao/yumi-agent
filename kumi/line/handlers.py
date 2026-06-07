@@ -17,7 +17,6 @@ from typing import Any
 import httpx
 from fastapi import HTTPException
 
-from kumi.core.api.uploads import MAX_UPLOAD_BYTES, save_uploaded_file
 from kumi.core.features.config import load_saved_model_config
 from kumi.core.features.config.line import (
     get_line_allowed_user_ids,
@@ -38,6 +37,7 @@ from kumi.core.features.prompts.store import (
     get_session_prompt,
     set_session_prompt,
 )
+from kumi.core.features.uploads.service import MAX_UPLOAD_BYTES, save_uploaded_file
 from kumi.core.platform.http.events import ErrorEvent, TextEvent, ToolConfirmationEvent
 from kumi.core.platform.http.stream_consumer import BaseChannelHandler, consume_chat_stream
 from kumi.core.platform.plugins import (
@@ -296,7 +296,7 @@ async def _stream_chat_direct(line_user_id: str, prompt: str, session_id: str) -
     sid = get_session_scope().qualify_session_id(ident, session_id)
     quota.record_chat_turn(ident)
     audit_event("chat_request", ident.user_id, session_id=sid, source="line", line_user_id=line_user_id)
-    from kumi.core.api.chat import generate_chat_events
+    from kumi.core.features.chat.pipeline import generate_chat_events
 
     async for ev in generate_chat_events(prompt, sid, think=False):
         yield ev
@@ -820,7 +820,7 @@ async def handle_line_postback_event(
             delay = int(arg)
         except ValueError:
             delay = 300
-        from kumi.core.api.timers import schedule_timer
+        from kumi.core.features.proactive.scheduler import schedule_timer
 
         schedule_timer(
             "line_snooze_" + uuid.uuid4().hex[:8],
