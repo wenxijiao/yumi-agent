@@ -1,5 +1,7 @@
 # Publish Python (PyPI) and TypeScript (npm) packages when a version tag is pushed.
-# Requires repository secrets: PYPI_API_TOKEN, NPM_TOKEN (publish steps skip if unset; job-level `if` cannot use `secrets`).
+# Requires repository secrets: PYPI_API_TOKEN, NPM_TOKEN. The `secrets` context is
+# not available in `if:` conditions (at any level), so each secret is surfaced as a
+# job-level `env` var and the publish step is guarded on that env var instead.
 
 name: Release
 
@@ -15,6 +17,8 @@ jobs:
   publish-pypi:
     name: Publish Python to PyPI
     runs-on: ubuntu-latest
+    env:
+      PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,7 +35,7 @@ jobs:
         run: python -m build
 
       - name: Publish to PyPI
-        if: ${{ secrets.PYPI_API_TOKEN != '' }}
+        if: ${{ env.PYPI_API_TOKEN != '' }}
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
@@ -39,6 +43,8 @@ jobs:
   publish-npm:
     name: Publish TypeScript SDK to npm
     runs-on: ubuntu-latest
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     defaults:
       run:
         working-directory: yumi/sdk/typescript
@@ -53,7 +59,7 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Install and publish
-        if: ${{ secrets.NPM_TOKEN != '' }}
+        if: ${{ env.NPM_TOKEN != '' }}
         run: npm ci && npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
