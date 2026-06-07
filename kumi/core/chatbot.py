@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 
-from kumi.core.api import chat_debug_trace
+from kumi.core.features.chat import debug_trace as chat_debug_trace
 from kumi.core.features.config import load_model_config
 from kumi.core.features.config.model import ModelConfig
 from kumi.core.features.config.paths import CONFIG_DIR, ensure_config_dir

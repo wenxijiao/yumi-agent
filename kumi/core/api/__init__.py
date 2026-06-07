@@ -18,7 +18,7 @@ before any HTTP-facing module.
 
 from typing import TYPE_CHECKING, Any
 
-from kumi.core.api.state import stream_event
+from kumi.core.platform.runtime.accessors import stream_event
 
 if TYPE_CHECKING:
     from fastapi import FastAPI

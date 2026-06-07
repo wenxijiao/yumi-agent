@@ -13,7 +13,7 @@ import os
 import signal
 from contextlib import asynccontextmanager
 
-import kumi.core.api.state as _state
+import kumi.core.platform.runtime.accessors as _state
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
