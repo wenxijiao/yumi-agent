@@ -16,14 +16,36 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
-from kumi.core.features.config import load_model_config
-from kumi.core.features.memory.embedding_state import get_embed_provider, is_degenerate_vector
 from kumi.core.platform.plugins import get_current_identity, get_edge_scope
 from kumi.core.platform.runtime.tool_catalog import model_visible_tool_schema
 from kumi.core.platform.tools.tool import TOOL_REGISTRY
 from kumi.logging_config import get_logger
 
 logger = get_logger(__name__)
+
+
+# Lazy seams to the config + memory features. Routing (platform) needs the
+# embedding provider and model config, but importing those features at module
+# load would make platform depend on features. These thin module-level wrappers
+# defer the import to call time (keeping platform import-clean) while remaining
+# patchable module attributes for tests.
+def load_model_config():
+    from kumi.core.features.config import load_model_config as _impl
+
+    return _impl()
+
+
+def get_embed_provider():
+    from kumi.core.features.memory.embedding_state import get_embed_provider as _impl
+
+    return _impl()
+
+
+def is_degenerate_vector(vec) -> bool:
+    from kumi.core.features.memory.embedding_state import is_degenerate_vector as _impl
+
+    return _impl(vec)
+
 
 _MAX_ROUTING_TRACES = 1000
 _ROUTING_TRACES: deque[dict[str, Any]] = deque(maxlen=_MAX_ROUTING_TRACES)
