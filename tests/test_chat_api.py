@@ -2,9 +2,9 @@
 
 import json
 
-import mirai.core.api.routers.chat as chat_router_module
+import yumi.core.features.chat.router as chat_router_module
 from fastapi.testclient import TestClient
-from mirai.core.api.app_factory import app
+from yumi.core.api.app_factory import app
 
 
 def test_chat_endpoint_streams_ndjson(monkeypatch):

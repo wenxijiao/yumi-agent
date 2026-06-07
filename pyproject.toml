@@ -3,13 +3,13 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "mirai-agent"
+name = "yumi-agent"
 version = "0.2.0"
-description = "Mirai — open-source single-user / LAN AI agent framework"
+description = "Yumi — open-source single-user / LAN AI agent framework"
 license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.10"
-authors = [{ name = "Mirai contributors" }]
+authors = [{ name = "Yumi contributors" }]
 keywords = ["ai", "agent", "llm", "fastapi", "ollama", "sdk"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -39,24 +39,24 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["mirai*"]
+include = ["yumi*"]
 exclude = ["_enterprise_seed*"]
 
 [tool.setuptools.package-data]
-mirai = [
+yumi = [
     "edge/template/**/*",
     "edge/template/*",
     "sdk/**/*",
 ]
 
 [project.scripts]
-mirai = "mirai.cli:main"
+yumi = "yumi.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/wenxijiao/Mirai"
-Repository = "https://github.com/wenxijiao/Mirai"
-Documentation = "https://github.com/wenxijiao/Mirai/tree/main/docs"
-Issues = "https://github.com/wenxijiao/Mirai/issues"
+Homepage = "https://github.com/wenxijiao/yumi-agent"
+Repository = "https://github.com/wenxijiao/yumi-agent"
+Documentation = "https://github.com/wenxijiao/yumi-agent/tree/main/docs"
+Issues = "https://github.com/wenxijiao/yumi-agent/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -67,11 +67,11 @@ dev = [
     "pyright>=1.1",
 ]
 # Optional features. Install only what you need:
-#   pip install mirai-agent[ui,stt]              # web UI + speech-to-text
-#   pip install mirai-agent[stt,voice]           # mic wake-word + voice session
-#   pip install mirai-agent[telegram,line]       # messaging bridges
-#   pip install mirai-agent[openai,gemini]       # extra LLM providers
-#   pip install mirai-agent[all]                 # everything
+#   pip install yumi-agent[ui,stt]              # web UI + speech-to-text
+#   pip install yumi-agent[stt,voice]           # mic wake-word + voice session
+#   pip install yumi-agent[telegram,line]       # messaging bridges
+#   pip install yumi-agent[openai,gemini]       # extra LLM providers
+#   pip install yumi-agent[all]                 # everything
 ui = ["reflex>=0.9"]
 stt = ["faster-whisper>=1.0", "huggingface-hub>=0.20"]
 voice = ["sounddevice>=0.4.6", "webrtcvad-wheels>=2.0.14", "pvporcupine>=3.0.0"]
@@ -99,7 +99,7 @@ all = [
 [tool.ruff]
 target-version = "py310"
 line-length = 120
-src = ["mirai", "tests"]
+src = ["yumi", "tests"]
 exclude = ["_enterprise_seed"]
 
 [tool.ruff.lint]
@@ -124,12 +124,12 @@ reportAssignmentType = "none"
 reportReturnType = "none"
 reportOptionalSubscript = "none"
 reportMissingModuleSource = "none"
-# Reflex UI is highly dynamic; static typing for mirai/ui is not enforced in CI.
+# Reflex UI is highly dynamic; static typing for yumi/ui is not enforced in CI.
 # Edge templates ship multi-language scaffolds; analysis targets the runtime packages only.
 exclude = [
     "_enterprise_seed",
-    "mirai/ui",
-    "mirai/edge/template",
+    "yumi/ui",
+    "yumi/edge/template",
     "**/__pycache__",
     ".venv",
     "venv",
@@ -137,7 +137,7 @@ exclude = [
 
 # Slightly tighter diagnostics for memory subsystem (incremental typing).
 [[tool.pyright.executionEnvironments]]
-root = "mirai/core/memories"
+root = "yumi/core/features/memory"
 reportOptionalMemberAccess = "warning"
 reportOptionalSubscript = "warning"
 

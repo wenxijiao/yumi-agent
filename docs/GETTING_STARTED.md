@@ -11,14 +11,14 @@
 If you are installing from PyPI:
 
 ```bash
-pip install mirai-agent
+pip install yumi-agent
 ```
 
 If you are installing from source:
 
 ```bash
-git clone https://github.com/wenxijiao/Mirai.git
-cd Mirai
+git clone https://github.com/wenxijiao/yumi-agent.git
+cd Yumi
 pip install .
 ```
 
@@ -32,9 +32,9 @@ pip install -e ".[dev]"
 
 | Artifact | Install |
 |----------|---------|
-| **Python app & server** | PyPI package name: **`mirai-agent`** (publish when ready). Until then: `pip install .` from a clone. |
-| **TypeScript SDK** | npm package name: **`mirai-sdk`** ([`mirai/sdk/typescript/package.json`](../mirai/sdk/typescript/package.json)). Until published: copy from this repo or use `mirai --edge`. |
-| **Go, Swift, Java, C++, Rust, Kotlin, Dart, UE5** | Vendored from [`mirai/sdk/`](../mirai/sdk/README.md) or copied into your project via `mirai --edge`; not published as language-specific registry packages yet. |
+| **Python app & server** | PyPI package name: **`yumi-agent`** (publish when ready). Until then: `pip install .` from a clone. |
+| **TypeScript SDK** | npm package name: **`yumi-sdk`** ([`yumi/sdk/typescript/package.json`](../yumi/sdk/typescript/package.json)). Until published: copy from this repo or use `yumi --edge`. |
+| **Go, Swift, Java, C++, Rust, Kotlin, Dart, UE5** | Vendored from [`yumi/sdk/`](../yumi/sdk/README.md) or copied into your project via `yumi --edge`; not published as language-specific registry packages yet. |
 
 Publishing tagged releases to PyPI and npm is documented in [CONTRIBUTING.md](../CONTRIBUTING.md#releases-pypi--npm).
 
@@ -47,12 +47,12 @@ Every push and pull request to `main` runs GitHub Actions: Python (`pytest`, `ru
 1. Start the server:
 
 ```bash
-mirai --server
+yumi --server
 ```
 
-Keep this running in its own terminal. Open a second terminal for `mirai --chat`, `mirai --ui`, or `mirai --demo`.
+Keep this running in its own terminal. Open a second terminal for `yumi --chat`, `yumi --ui`, or `yumi --demo`.
 
-2. On first run, Mirai guides you through:
+2. On first run, Yumi guides you through:
    - Chat provider selection
    - Chat model selection
    - Embedding provider selection
@@ -62,7 +62,7 @@ Keep this running in its own terminal. Open a second terminal for `mirai --chat`
 3. To rerun setup later:
 
 ```bash
-mirai --setup
+yumi --setup
 ```
 
 ## Providers
@@ -80,7 +80,7 @@ You can mix providers — for example OpenAI for chat and Ollama for embeddings.
 ## Web UI
 
 ```bash
-mirai --ui
+yumi --ui
 ```
 
 The UI includes:
@@ -92,7 +92,7 @@ The UI includes:
 ## Terminal Chat
 
 ```bash
-mirai --chat
+yumi --chat
 ```
 
 Useful commands:
@@ -112,19 +112,19 @@ Useful commands:
 
 ## Voice (microphone wake-word)
 
-`mirai --server --voice` attaches a microphone wake-word loop to the running API. Say "hi mirai" and the next sentence you speak is transcribed with Whisper and dispatched as a chat turn, in parallel with Telegram, `--chat`, and `--ui`.
+`yumi --server --voice` attaches a microphone wake-word loop to the running API. Say "hi yumi" and the next sentence you speak is transcribed with Whisper and dispatched as a chat turn, in parallel with Telegram, `--chat`, and `--ui`.
 
 ```bash
 pip install -e ".[voice,stt]"     # sounddevice, webrtcvad, pvporcupine, faster-whisper
-mirai --setup                     # enable Whisper (stt_provider=whisper)
-mirai --server --voice            # or:  mirai --server --telegram --voice
+yumi --setup                     # enable Whisper (stt_provider=whisper)
+yumi --server --voice            # or:  yumi --server --telegram --voice
 ```
 
 Required setup:
 
-1. **Picovoice access key** — sign up at [console.picovoice.ai](https://console.picovoice.ai/) (free tier covers personal use). Set `PV_ACCESS_KEY` in the environment, or save `voice_porcupine_access_key` in `~/.mirai/config.json`.
-2. **Wake-word file** — Picovoice's built-in keywords do **not** include "hi mirai"; train one in the console and download the `.ppn` file. Save it (suggested path: `~/.mirai/voice/hi-mirai.ppn`) and point `voice_porcupine_keyword_path` at it. Without a custom file Mirai falls back to the built-in `jarvis` keyword.
-3. **Microphone permission** — on macOS, open *System Settings → Privacy & Security → Microphone* and enable the terminal you launch Mirai from. Without permission `sounddevice` silently produces zero-filled audio.
+1. **Picovoice access key** — sign up at [console.picovoice.ai](https://console.picovoice.ai/) (free tier covers personal use). Set `PV_ACCESS_KEY` in the environment, or save `voice_porcupine_access_key` in `~/.yumi/config.json`.
+2. **Wake-word file** — Picovoice's built-in keywords do **not** include "hi yumi"; train one in the console and download the `.ppn` file. Save it (suggested path: `~/.yumi/voice/hi-yumi.ppn`) and point `voice_porcupine_keyword_path` at it. Without a custom file Yumi falls back to the built-in `jarvis` keyword.
+3. **Microphone permission** — on macOS, open *System Settings → Privacy & Security → Microphone* and enable the terminal you launch Yumi from. Without permission `sounddevice` silently produces zero-filled audio.
 
 Speak after the server prints `voice: listening`. Each utterance produces log lines like:
 
@@ -136,30 +136,30 @@ voice: dispatching session=voice_alice
 voice: reply session=voice_alice text='Currently 17 °C and partly cloudy.'
 ```
 
-Voice writes to its own session, `voice_<voice_owner_id>`. When `voice_owner_id` matches a Telegram user id (`tg_<id>`) or a CLI session id (`chat_<id>`), Mirai automatically interleaves the most recent turns from those sibling sessions into each prompt — so you can ask in Telegram "what did I just say by voice?" and the answer is grounded in the spoken turns. The full list of voice-related fields lives in [Configuration → Voice](CONFIGURATION.md#voice).
+Voice writes to its own session, `voice_<voice_owner_id>`. When `voice_owner_id` matches a Telegram user id (`tg_<id>`) or a CLI session id (`chat_<id>`), Yumi automatically interleaves the most recent turns from those sibling sessions into each prompt — so you can ask in Telegram "what did I just say by voice?" and the answer is grounded in the spoken turns. The full list of voice-related fields lives in [Configuration → Voice](CONFIGURATION.md#voice).
 
 v1 limits: text-only replies (no spoken response), single owner per server, no barge-in, only macOS / Linux desktop (Docker has no microphone). The first utterance can take 5–10 seconds because Whisper warms up on demand.
 
 ## Demo
 
-Mirai ships with a dual-window demo suite that demonstrates one agent controlling
+Yumi ships with a dual-window demo suite that demonstrates one agent controlling
 two independent Python applications at once.
 
 ```bash
-mirai --server
-mirai --demo
+yumi --server
+yumi --demo
 ```
 
-Keep `mirai --server` running in its own terminal, then launch `mirai --demo` from a second terminal.
+Keep `yumi --server` running in its own terminal, then launch `yumi --demo` from a second terminal.
 
 The demo requires a graphical desktop session. On Linux, install Tk support first (for example `sudo apt install python3-tk` on Debian/Ubuntu).
 
 This opens:
 
-- `Smart Home` (`mirai.demo.smart_home`) — house devices and rooms (card grid)
-- `Planner` (`mirai.demo.planner`) — tkinter schedule app: mini calendar + day timeline; tools `add_event`, `remove_event`, `update_event`, `get_schedule`, `clear_schedule`, `set_reminder`
+- `Smart Home` (`yumi.demo.smart_home`) — house devices and rooms (card grid)
+- `Planner` (`yumi.demo.planner`) — tkinter schedule app: mini calendar + day timeline; tools `add_event`, `remove_event`, `update_event`, `get_schedule`, `clear_schedule`, `set_reminder`
 
-Then open `mirai --chat` or `mirai --ui` and ask the agent to control both.
+Then open `yumi --chat` or `yumi --ui` and ask the agent to control both.
 
 The demo windows are display-only (no in-GUI buttons). Both windows show the same status format (`Connected · EdgeName · Tools`) so users can quickly understand that one session controls two apps.
 
@@ -184,15 +184,15 @@ See [TESTING.md](TESTING.md) for more details.
 ## Cleanup
 
 ```bash
-mirai --cleanup
+yumi --cleanup
 ```
 
-This removes `~/.mirai/`. Ollama and its model files are not touched.
+This removes `~/.yumi/`. Ollama and its model files are not touched.
 
 To clear only saved chat memory and embeddings while keeping config and profiles:
 
 ```bash
-mirai --cleanup-memory
+yumi --cleanup-memory
 ```
 
-This removes `~/.mirai/memory/` (and any legacy memory directory) but keeps model settings, prompts, and saved connection info.
+This removes `~/.yumi/memory/` (and any legacy memory directory) but keeps model settings, prompts, and saved connection info.

@@ -2,7 +2,7 @@
 
 import json
 
-from mirai.core.tool_trace import (
+from yumi.core.platform.tools.trace import (
     clear_memory_buffer,
     export_traces_json_lines,
     list_traces,

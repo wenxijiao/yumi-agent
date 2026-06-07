@@ -5,25 +5,25 @@ import hashlib
 import hmac
 import json
 
-import mirai.core.api.app_factory as api
 import pytest
+import yumi.core.api.app_factory as api
 from fastapi.testclient import TestClient
-from mirai.core.config.model import ModelConfig
-from mirai.line.client import LineMessagingClient
+from yumi.core.features.config.model import ModelConfig
+from yumi.line.client import LineMessagingClient
 
 
 @pytest.fixture(autouse=True)
 def _line_tests_stub_chat_model_config(monkeypatch):
-    """``lifespan`` calls ``ensure_chat_model_configured``; stub so tests do not depend on env / ~/.mirai.
+    """``lifespan`` calls ``ensure_chat_model_configured``; stub so tests do not depend on env / ~/.yumi.
 
-    CI may set ``MIRAI_CHAT_MODEL`` to an empty value or merge config in an order that still leaves
+    CI may set ``YUMI_CHAT_MODEL`` to an empty value or merge config in an order that still leaves
     ``chat_model`` unset; patching the function used by ``routes.lifespan`` is reliable.
     """
 
     def _ensure(*, interactive: bool = False) -> ModelConfig:
         return ModelConfig(chat_model="test-dummy-model")
 
-    monkeypatch.setattr("mirai.core.api.app_factory.ensure_chat_model_configured", _ensure)
+    monkeypatch.setattr("yumi.core.api.app_factory.ensure_chat_model_configured", _ensure)
 
 
 def _sign(body: bytes, secret: str) -> str:
@@ -32,7 +32,7 @@ def _sign(body: bytes, secret: str) -> str:
 
 
 def test_line_webhook_bad_signature(monkeypatch):
-    monkeypatch.setenv("MIRAI_LINE_INCORE", "1")
+    monkeypatch.setenv("YUMI_LINE_INCORE", "1")
     monkeypatch.setenv("LINE_CHANNEL_SECRET", "sec")
     body = b'{"events":[]}'
     with TestClient(api.app) as client:
@@ -41,7 +41,7 @@ def test_line_webhook_bad_signature(monkeypatch):
 
 
 def test_line_webhook_ok_empty_events(monkeypatch):
-    monkeypatch.setenv("MIRAI_LINE_INCORE", "1")
+    monkeypatch.setenv("YUMI_LINE_INCORE", "1")
     monkeypatch.setenv("LINE_CHANNEL_SECRET", "sec")
     body = b'{"events":[]}'
     sig = _sign(body, "sec")
@@ -60,11 +60,11 @@ async def _stream_one_text(*_a, **_k):
 
 def test_line_webhook_text_message_single_user(monkeypatch):
     """Signed text event in single-user mode → 200 (chat stream mocked)."""
-    monkeypatch.setenv("MIRAI_LINE_INCORE", "1")
+    monkeypatch.setenv("YUMI_LINE_INCORE", "1")
     monkeypatch.setenv("LINE_CHANNEL_SECRET", "sec")
     monkeypatch.setenv("LINE_CHANNEL_ACCESS_TOKEN", "token")
 
-    monkeypatch.setattr("mirai.line.handlers.stream_line_chat", _stream_one_text)
+    monkeypatch.setattr("yumi.line.handlers.stream_line_chat", _stream_one_text)
     monkeypatch.setattr(LineMessagingClient, "reply_message", _noop_coro)
     monkeypatch.setattr(LineMessagingClient, "push_message", _noop_coro)
 
@@ -87,14 +87,14 @@ def test_line_webhook_text_message_single_user(monkeypatch):
 
 def test_line_webhook_audio_message_transcribes_single_user(monkeypatch):
     """Signed audio event in single-user mode → STT text is passed to chat."""
-    monkeypatch.setenv("MIRAI_LINE_INCORE", "1")
+    monkeypatch.setenv("YUMI_LINE_INCORE", "1")
     monkeypatch.setenv("LINE_CHANNEL_SECRET", "sec")
     monkeypatch.setenv("LINE_CHANNEL_ACCESS_TOKEN", "token")
 
     seen: list[str] = []
 
     async def _fake_transcribe(audio: bytes, *, filename: str, language: str | None = None):
-        from mirai.core.stt import TranscriptionResult
+        from yumi.core.features.stt import TranscriptionResult
 
         assert audio == b"voice-bytes"
         assert filename == "line_audio_mid-audio.m4a"
@@ -109,8 +109,8 @@ def test_line_webhook_audio_message_transcribes_single_user(monkeypatch):
         assert message_id == "mid-audio"
         return b"voice-bytes"
 
-    monkeypatch.setattr("mirai.core.stt.transcribe_audio", _fake_transcribe)
-    monkeypatch.setattr("mirai.line.handlers.stream_line_chat", _stream_capture)
+    monkeypatch.setattr("yumi.core.features.stt.transcribe_audio", _fake_transcribe)
+    monkeypatch.setattr("yumi.line.handlers.stream_line_chat", _stream_capture)
     monkeypatch.setattr(LineMessagingClient, "get_message_content", _content)
     monkeypatch.setattr(LineMessagingClient, "reply_message", _noop_coro)
     monkeypatch.setattr(LineMessagingClient, "push_message", _noop_coro)

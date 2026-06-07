@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import mirai.core.dispatch.usage as usage_mod
-from mirai.core.dispatch.context import TurnContext
-from mirai.core.dispatch.usage import UsageRecorder
+import yumi.core.platform.dispatch.usage as usage_mod
+from yumi.core.platform.dispatch.context import TurnContext
+from yumi.core.platform.dispatch.usage import UsageRecorder
 
 
 def _ctx() -> TurnContext:

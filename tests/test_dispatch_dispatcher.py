@@ -5,12 +5,12 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-from mirai.core.dispatch.context import ToolInvocation, ToolResult, TurnContext
-from mirai.core.dispatch.dispatcher import ToolDispatcher, canonical_local_tool_name
-from mirai.core.dispatch.edge import EdgeToolExecutor
-from mirai.core.dispatch.local import LocalToolExecutor
-from mirai.core.runtime import get_default_runtime
-from mirai.core.tool import TOOL_REGISTRY
+from yumi.core.platform.dispatch.context import ToolInvocation, ToolResult, TurnContext
+from yumi.core.platform.dispatch.dispatcher import ToolDispatcher, canonical_local_tool_name
+from yumi.core.platform.dispatch.edge import EdgeToolExecutor
+from yumi.core.platform.dispatch.local import LocalToolExecutor
+from yumi.core.platform.runtime import get_default_runtime
+from yumi.core.platform.tools.tool import TOOL_REGISTRY
 
 
 @pytest.fixture

@@ -1,6 +1,6 @@
 import asyncio
 
-from mirai.core.runtime import RuntimeState, build_runtime
+from yumi.core.platform.runtime import RuntimeState, build_runtime
 
 
 def test_runtime_state_creates_isolated_registries():
@@ -42,7 +42,7 @@ def test_tool_catalog_reads_runtime_edge_registry(monkeypatch):
                 entry["schema"] for tools in registry.values() for name, entry in tools.items() if name not in disabled
             ]
 
-    monkeypatch.setattr("mirai.core.plugins.get_edge_scope", lambda: _Scope())
+    monkeypatch.setattr("yumi.core.platform.plugins.get_edge_scope", lambda: _Scope())
 
     schemas = runtime.tool_catalog.all_tool_schemas()
 

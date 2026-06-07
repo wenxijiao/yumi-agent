@@ -2,16 +2,20 @@ import asyncio
 import random
 from datetime import datetime, timedelta, timezone
 
-from mirai.core.config import ModelConfig
-from mirai.core.config.store import load_model_config
-from mirai.core.proactive.interaction import smart_followup_delay_multiplier, smart_interaction, smart_interaction_state
-from mirai.core.proactive.planner import ProactiveDecision, decide_proactive_send, in_quiet_hours
-from mirai.core.proactive.prompt import build_proactive_prompt
-from mirai.core.proactive.service import ProactiveMessageService
-from mirai.core.proactive.state import ProactiveSessionState, ProactiveStateStore
-from mirai.core.proactive.timezone_utils import format_user_facing_time
-from mirai.core.proactive.tools import proactive_context_lines, proactive_tool_schemas
-from mirai.core.tool import TOOL_REGISTRY, register_tool
+from yumi.core.features.config import ModelConfig
+from yumi.core.features.config.store import load_model_config
+from yumi.core.features.proactive.interaction import (
+    smart_followup_delay_multiplier,
+    smart_interaction,
+    smart_interaction_state,
+)
+from yumi.core.features.proactive.planner import ProactiveDecision, decide_proactive_send, in_quiet_hours
+from yumi.core.features.proactive.prompt import build_proactive_prompt
+from yumi.core.features.proactive.service import ProactiveMessageService
+from yumi.core.features.proactive.state import ProactiveSessionState, ProactiveStateStore
+from yumi.core.features.proactive.timezone_utils import format_user_facing_time
+from yumi.core.features.proactive.tools import proactive_context_lines, proactive_tool_schemas
+from yumi.core.platform.tools.tool import TOOL_REGISTRY, register_tool
 
 
 def test_proactive_config_defaults_disabled():
@@ -32,19 +36,19 @@ def test_proactive_config_defaults_disabled():
 def test_proactive_env_overrides(monkeypatch, tmp_path):
     p = tmp_path / "config.json"
     p.write_text("{}", encoding="utf-8")
-    monkeypatch.setattr("mirai.core.config.paths.CONFIG_PATH", p)
-    monkeypatch.setattr("mirai.core.config.store.CONFIG_PATH", p)
-    monkeypatch.setenv("MIRAI_PROACTIVE_ENABLED", "1")
-    monkeypatch.setenv("MIRAI_PROACTIVE_SESSION_IDS", "tg_1,tg_2")
-    monkeypatch.setenv("MIRAI_PROACTIVE_PROFILE", "writing_partner")
-    monkeypatch.setenv("MIRAI_PROACTIVE_PROFILE_PROMPT", "Check on the draft.")
-    monkeypatch.setenv("MIRAI_PROACTIVE_TONE_INTENSITY", "medium")
-    monkeypatch.setenv("MIRAI_PROACTIVE_QUIET_HOURS_TIMEZONE", "Pacific/Auckland")
-    monkeypatch.setenv("MIRAI_PROACTIVE_CHECK_INTERVAL_JITTER_RATIO", "0.2")
-    monkeypatch.setenv("MIRAI_PROACTIVE_UNREPLIED_ESCALATION_JITTER_RATIO", "0.1")
-    monkeypatch.setenv("MIRAI_PROACTIVE_CHECK_IN_PROBABILITY", "0.5")
-    monkeypatch.setenv("MIRAI_PROACTIVE_SMART_NATURALNESS", "subtle")
-    monkeypatch.setenv("MIRAI_PROACTIVE_SMART_MAX_UNREPLIED_FOLLOWUPS", "6")
+    monkeypatch.setattr("yumi.core.features.config.paths.CONFIG_PATH", p)
+    monkeypatch.setattr("yumi.core.features.config.store.CONFIG_PATH", p)
+    monkeypatch.setenv("YUMI_PROACTIVE_ENABLED", "1")
+    monkeypatch.setenv("YUMI_PROACTIVE_SESSION_IDS", "tg_1,tg_2")
+    monkeypatch.setenv("YUMI_PROACTIVE_PROFILE", "writing_partner")
+    monkeypatch.setenv("YUMI_PROACTIVE_PROFILE_PROMPT", "Check on the draft.")
+    monkeypatch.setenv("YUMI_PROACTIVE_TONE_INTENSITY", "medium")
+    monkeypatch.setenv("YUMI_PROACTIVE_QUIET_HOURS_TIMEZONE", "Pacific/Auckland")
+    monkeypatch.setenv("YUMI_PROACTIVE_CHECK_INTERVAL_JITTER_RATIO", "0.2")
+    monkeypatch.setenv("YUMI_PROACTIVE_UNREPLIED_ESCALATION_JITTER_RATIO", "0.1")
+    monkeypatch.setenv("YUMI_PROACTIVE_CHECK_IN_PROBABILITY", "0.5")
+    monkeypatch.setenv("YUMI_PROACTIVE_SMART_NATURALNESS", "subtle")
+    monkeypatch.setenv("YUMI_PROACTIVE_SMART_MAX_UNREPLIED_FOLLOWUPS", "6")
 
     cfg = load_model_config()
 
@@ -65,10 +69,10 @@ def test_proactive_env_overrides(monkeypatch, tmp_path):
 def test_proactive_env_local_timezone_override_precedence(monkeypatch, tmp_path):
     p = tmp_path / "config.json"
     p.write_text("{}", encoding="utf-8")
-    monkeypatch.setattr("mirai.core.config.paths.CONFIG_PATH", p)
-    monkeypatch.setattr("mirai.core.config.store.CONFIG_PATH", p)
-    monkeypatch.setenv("MIRAI_LOCAL_TIMEZONE", "Europe/London")
-    monkeypatch.setenv("MIRAI_PROACTIVE_QUIET_HOURS_TIMEZONE", "Pacific/Auckland")
+    monkeypatch.setattr("yumi.core.features.config.paths.CONFIG_PATH", p)
+    monkeypatch.setattr("yumi.core.features.config.store.CONFIG_PATH", p)
+    monkeypatch.setenv("YUMI_LOCAL_TIMEZONE", "Europe/London")
+    monkeypatch.setenv("YUMI_PROACTIVE_QUIET_HOURS_TIMEZONE", "Pacific/Auckland")
 
     cfg = load_model_config()
 
@@ -206,12 +210,12 @@ def test_proactive_scheduled_does_not_use_unreplied_escalation():
 def test_proactive_env_mode_scheduled(monkeypatch, tmp_path):
     p = tmp_path / "config.json"
     p.write_text("{}", encoding="utf-8")
-    monkeypatch.setattr("mirai.core.config.paths.CONFIG_PATH", p)
-    monkeypatch.setattr("mirai.core.config.store.CONFIG_PATH", p)
-    monkeypatch.setenv("MIRAI_PROACTIVE_MODE", "scheduled")
-    monkeypatch.setenv("MIRAI_PROACTIVE_SCHEDULE_TIMES", "08:00,20:00")
-    monkeypatch.setenv("MIRAI_PROACTIVE_SCHEDULE_INTERVAL_MINUTES", "120")
-    monkeypatch.setenv("MIRAI_PROACTIVE_SCHEDULE_REQUIRE_IDLE", "0")
+    monkeypatch.setattr("yumi.core.features.config.paths.CONFIG_PATH", p)
+    monkeypatch.setattr("yumi.core.features.config.store.CONFIG_PATH", p)
+    monkeypatch.setenv("YUMI_PROACTIVE_MODE", "scheduled")
+    monkeypatch.setenv("YUMI_PROACTIVE_SCHEDULE_TIMES", "08:00,20:00")
+    monkeypatch.setenv("YUMI_PROACTIVE_SCHEDULE_INTERVAL_MINUTES", "120")
+    monkeypatch.setenv("YUMI_PROACTIVE_SCHEDULE_REQUIRE_IDLE", "0")
 
     cfg = load_model_config()
     assert cfg.proactive_mode == "scheduled"
@@ -444,10 +448,10 @@ def test_proactive_prompt_adds_smart_style_only_for_smart_mode():
 
 
 def test_proactive_service_sends_and_records(monkeypatch, tmp_path):
-    p_cfg = tmp_path / "mirai_config.json"
+    p_cfg = tmp_path / "yumi_config.json"
     p_cfg.write_text("{}", encoding="utf-8")
-    monkeypatch.setattr("mirai.core.config.paths.CONFIG_PATH", p_cfg)
-    monkeypatch.setattr("mirai.core.config.store.CONFIG_PATH", p_cfg)
+    monkeypatch.setattr("yumi.core.features.config.paths.CONFIG_PATH", p_cfg)
+    monkeypatch.setattr("yumi.core.features.config.store.CONFIG_PATH", p_cfg)
 
     class FakeMemory:
         def __init__(self):
@@ -478,7 +482,7 @@ def test_proactive_service_sends_and_records(monkeypatch, tmp_path):
         sent.append((session_id, text, prefix))
         return True
 
-    monkeypatch.setattr("mirai.telegram.notify.send_text_to_telegram", fake_send)
+    monkeypatch.setattr("yumi.telegram.notify.send_text_to_telegram", fake_send)
     store = ProactiveStateStore(tmp_path / "state.json")
     now = datetime.now(timezone.utc)
     store.put(
@@ -624,10 +628,10 @@ def test_scheduled_not_configured_when_empty():
 
 
 def test_record_sent_updates_scheduled_dedupe_fields(monkeypatch, tmp_path):
-    p_cfg = tmp_path / "mirai_config.json"
+    p_cfg = tmp_path / "yumi_config.json"
     p_cfg.write_text('{"local_timezone": "UTC"}', encoding="utf-8")
-    monkeypatch.setattr("mirai.core.config.paths.CONFIG_PATH", p_cfg)
-    monkeypatch.setattr("mirai.core.config.store.CONFIG_PATH", p_cfg)
+    monkeypatch.setattr("yumi.core.features.config.paths.CONFIG_PATH", p_cfg)
+    monkeypatch.setattr("yumi.core.features.config.store.CONFIG_PATH", p_cfg)
 
     store = ProactiveStateStore(tmp_path / "st.json")
     now = datetime(2026, 5, 3, 12, 0, tzinfo=timezone.utc)

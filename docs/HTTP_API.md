@@ -1,12 +1,12 @@
-# Mirai HTTP API (core server and Relay)
+# Yumi HTTP API (core server and Relay)
 
-HTTP integration guide for **any language**. Core implementation lives in the [`mirai/core/api/`](../mirai/core/api/) package. The Relay gateway ships in the separate **`mirai-enterprise`** package (not in this OSS repo); see [UPGRADING_TO_ENTERPRISE.md](UPGRADING_TO_ENTERPRISE.md).
+HTTP integration guide for **any language**. Core implementation lives in the [`yumi/core/api/`](../yumi/core/api/) package. The Relay gateway ships in the separate **`yumi-enterprise`** package (not in this OSS repo); see [UPGRADING_TO_ENTERPRISE.md](UPGRADING_TO_ENTERPRISE.md).
 
 ## Basics
 
 | Topic | Notes |
 |--------|--------|
-| Default local base URL | `http://127.0.0.1:8000` (clients may override with `MIRAI_SERVER_URL`) |
+| Default local base URL | `http://127.0.0.1:8000` (clients may override with `YUMI_SERVER_URL`) |
 | Interactive docs | After the core server starts: `/docs` (Swagger UI) or `/openapi.json` |
 | CORS | The core defaults to localhost-only browser origins; widen explicitly with env vars if you need cross-origin browser access |
 
@@ -18,33 +18,33 @@ HTTP integration guide for **any language**. Core implementation lives in the [`
 |----------|----------------|-----------------|
 | **Core server on `127.0.0.1`** | Only local processes can reach the API | Default for development; do not forward this port to the public Internet without adding auth/TLS |
 | **LAN binding** | Anyone on the same network may call unauthenticated admin routes unless you add controls | Use a firewall; prefer **Tailscale** or similar for remote access instead of raw port exposure |
-| **Relay mode** (`MIRAI_ENABLE_RELAY`) | Clients use Bearer tokens against the Relay base URL; TLS depends on your deployment | Terminate TLS at a reverse proxy when exposing Relay; rotate join codes and tokens if leaked, and set exact browser origins when serving a web app |
+| **Relay mode** (`YUMI_ENABLE_RELAY`) | Clients use Bearer tokens against the Relay base URL; TLS depends on your deployment | Terminate TLS at a reverse proxy when exposing Relay; rotate join codes and tokens if leaked, and set exact browser origins when serving a web app |
 
 The **core** HTTP API does not require a Bearer token by default: treat it as **trusted network** only. **Relay** adds Bearer-scoped access for remote clients; still avoid exposing services you do not intend to run.
 
 ### Browser CORS configuration
 
-Mirai now uses **restricted browser defaults**:
+Yumi now uses **restricted browser defaults**:
 
-- `MIRAI_CORS_ORIGINS` controls which browser origins may call the **core** API.
-- `MIRAI_CORS_ALLOW_CREDENTIALS` controls whether browsers may send credentials to the **core** API.
-- `MIRAI_RELAY_CORS_ORIGINS` controls which browser origins may call the **Relay** API.
-- `MIRAI_RELAY_CORS_ALLOW_CREDENTIALS` controls whether browsers may send credentials to the **Relay** API.
+- `YUMI_CORS_ORIGINS` controls which browser origins may call the **core** API.
+- `YUMI_CORS_ALLOW_CREDENTIALS` controls whether browsers may send credentials to the **core** API.
+- `YUMI_RELAY_CORS_ORIGINS` controls which browser origins may call the **Relay** API.
+- `YUMI_RELAY_CORS_ALLOW_CREDENTIALS` controls whether browsers may send credentials to the **Relay** API.
 
 Behavior:
 
 - If unset, both services allow only localhost-style development origins.
 - Browser credentials are **off by default**.
-- If you set origins to `*`, Mirai forces browser credentials back off because wildcard origins and credentialed requests are incompatible in browsers.
+- If you set origins to `*`, Yumi forces browser credentials back off because wildcard origins and credentialed requests are incompatible in browsers.
 
 Examples:
 
 ```bash
 # Allow a production web app to call Relay over HTTPS.
-export MIRAI_RELAY_CORS_ORIGINS="https://app.example.com"
+export YUMI_RELAY_CORS_ORIGINS="https://app.example.com"
 
 # Allow a custom browser client to call the core API on a trusted private network.
-export MIRAI_CORS_ORIGINS="https://dashboard.example.internal"
+export YUMI_CORS_ORIGINS="https://dashboard.example.internal"
 ```
 
 ### Relay CORS and browsers
@@ -83,9 +83,9 @@ Clients should `json.loads` each line and branch on `type`.
 ### `curl` example
 
 ```bash
-export MIRAI_SERVER_URL="${MIRAI_SERVER_URL:-http://127.0.0.1:8000}"
+export YUMI_SERVER_URL="${YUMI_SERVER_URL:-http://127.0.0.1:8000}"
 
-curl -sN -X POST "$MIRAI_SERVER_URL/chat" \
+curl -sN -X POST "$YUMI_SERVER_URL/chat" \
   -H "Content-Type: application/json" \
   -d '{"prompt":"Introduce yourself in one sentence.","session_id":"api-demo","think":false}'
 ```
@@ -108,7 +108,7 @@ All paths are relative to the core base URL (e.g. `http://127.0.0.1:8000`).
 
 ### Multi-tenant routes (enterprise only)
 
-`mirai-agent` (this OSS package) is single-user / LAN. Multi-tenant routes (`/tenancy/*`, `/admin/*`, `/auth/*`, `/relay/*`, `/telegram/link`, `/line/link`, …) are added by the closed-source `mirai-enterprise` plugin via the `mirai.core.plugins` port system. See [UPGRADING_TO_ENTERPRISE.md](UPGRADING_TO_ENTERPRISE.md) for details.
+`yumi-agent` (this OSS package) is single-user / LAN. Multi-tenant routes (`/tenancy/*`, `/admin/*`, `/auth/*`, `/relay/*`, `/telegram/link`, `/line/link`, …) are added by the closed-source `yumi-enterprise` plugin via the `yumi.core.platform.plugins` port system. See [UPGRADING_TO_ENTERPRISE.md](UPGRADING_TO_ENTERPRISE.md) for details.
 
 ### Sessions and memory
 
@@ -131,9 +131,9 @@ All paths are relative to the core base URL (e.g. `http://127.0.0.1:8000`).
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` / `PUT` / `DELETE` | `/config/system-prompt` | Global system prompt; `PUT` body `{"system_prompt":"..."}` |
-| `GET` / `PUT` | `/config/model` | Read/update model, memory, and Edge tool-routing settings; `PUT` may include `edge_tools_enable_dynamic_routing`, `edge_tools_retrieval_limit`, `openai_api_key`, `gemini_api_key`, `claude_api_key`, `deepseek_api_key`, `openai_base_url`, `deepseek_base_url` (non-empty key values are saved to `~/.mirai/config.json`; `GET` never returns raw keys, only `*_saved` / `*_effective` flags and saved base URLs; **`embedding_provider` cannot be `deepseek`**) |
+| `GET` / `PUT` | `/config/model` | Read/update model, memory, and Edge tool-routing settings; `PUT` may include `edge_tools_enable_dynamic_routing`, `edge_tools_retrieval_limit`, `openai_api_key`, `gemini_api_key`, `claude_api_key`, `deepseek_api_key`, `openai_base_url`, `deepseek_base_url` (non-empty key values are saved to `~/.yumi/config.json`; `GET` never returns raw keys, only `*_saved` / `*_effective` flags and saved base URLs; **`embedding_provider` cannot be `deepseek`**) |
 | `GET` / `PUT` / `DELETE` | `/config/session-prompt/{session_id}` | Per-session system prompt override |
-| `GET` / `PUT` | `/config/chat-debug` | Per-session chat NDJSON tracing: `GET` returns `enabled` and `trace_path`; `PUT` body `{"session_id":"...", "enabled": true|false}` starts/stops appending trace lines under `MIRAI_DEBUG_DIR/chat_trace/`. Each turn logs `llm_provider_request` with the full provider `messages` and `tools` after prompt composition (system prompt, memory, tool results, multimodal parts). Optional `MIRAI_CHAT_DEBUG_REDACT_IMAGE_DATA` shrinks logged base64 (see configuration docs). |
+| `GET` / `PUT` | `/config/chat-debug` | Per-session chat NDJSON tracing: `GET` returns `enabled` and `trace_path`; `PUT` body `{"session_id":"...", "enabled": true|false}` starts/stops appending trace lines under `YUMI_DEBUG_DIR/chat_trace/`. Each turn logs `llm_provider_request` with the full provider `messages` and `tools` after prompt composition (system prompt, memory, tool results, multimodal parts). Optional `YUMI_CHAT_DEBUG_REDACT_IMAGE_DATA` shrinks logged base64 (see configuration docs). |
 | `GET` / `PUT` | `/config/ui` | UI preferences (e.g. dark mode) |
 | `GET` | `/tools` | List server and connected Edge tools |
 | `POST` | `/tools/toggle` | Enable/disable tool: `{"tool_name":"...","disabled":true}` |
@@ -147,7 +147,7 @@ Many endpoints return FastAPI’s `{"detail": ...}` body. For model configuratio
 
 | Field | Meaning |
 |-------|---------|
-| `code` | Stable machine-readable identifier (e.g. `MIRAI_MISSING_OPENAI_KEY`, `MIRAI_OLLAMA_UNAVAILABLE`, `MIRAI_UNKNOWN_PROVIDER`, `MIRAI_PROVIDER_MODEL_APPLY_FAILED`) |
+| `code` | Stable machine-readable identifier (e.g. `YUMI_MISSING_OPENAI_KEY`, `YUMI_OLLAMA_UNAVAILABLE`, `YUMI_UNKNOWN_PROVIDER`, `YUMI_PROVIDER_MODEL_APPLY_FAILED`) |
 | `message` | Short user-facing explanation |
 | `hint` | Optional remediation (env var, config path, etc.) |
 
@@ -161,7 +161,7 @@ Legacy string-only `detail` values still appear for older routes. Validation err
 | `GET` | `/monitor/traces` | Recent tool invocations; query `session_id` (optional), `limit` (1–500, default 100) |
 | `GET` | `/monitor/traces/export` | NDJSON download of traces (optional `session_id`); same filter as list |
 
-Traces may be mirrored to `~/.mirai/tool_traces.jsonl` on disk (append-only); the in-memory buffer is also bounded.
+Traces may be mirrored to `~/.yumi/tool_traces.jsonl` on disk (append-only); the in-memory buffer is also bounded.
 
 ### Timer events (NDJSON stream)
 
@@ -169,7 +169,7 @@ Traces may be mirrored to `~/.mirai/tool_traces.jsonl` on disk (append-only); th
 
 ---
 
-## Relay gateway (`MIRAI_ENABLE_RELAY=1`)
+## Relay gateway (`YUMI_ENABLE_RELAY=1`)
 
 After the core registers with Relay, remote clients should use the **Relay HTTP base URL**, not `http://127.0.0.1` on the core machine.
 
@@ -181,7 +181,7 @@ For most routes, send:
 Authorization: Bearer <access_token>
 ```
 
-Obtain `access_token` from `POST /v1/bootstrap` using a join code; see the Relay / bootstrap types in **`mirai-enterprise`** (not shipped in this repository).
+Obtain `access_token` from `POST /v1/bootstrap` using a join code; see the Relay / bootstrap types in **`yumi-enterprise`** (not shipped in this repository).
 
 ### Path mapping
 
@@ -207,10 +207,10 @@ Relay prefixes core paths with `/v1`, for example:
 
 ## Trying the API manually
 
-Run `mirai --server` locally first, and complete `mirai --setup` (or set model-related environment variables). The **`POST /chat`** section above documents the NDJSON line protocol and includes a **curl** example. Interactive exploration: open `/docs` on the running server.
+Run `yumi --server` locally first, and complete `yumi --setup` (or set model-related environment variables). The **`POST /chat`** section above documents the NDJSON line protocol and includes a **curl** example. Interactive exploration: open `/docs` on the running server.
 
 ---
 
 ## Stability notes
 
-Mirai is still in the **0.x** stage. For HTTP integrations, treat the documented routes in this file and the generated OpenAPI schema as the intended public contract. Internal Python modules and undocumented routes may change between releases.
+Yumi is still in the **0.x** stage. For HTTP integrations, treat the documented routes in this file and the generated OpenAPI schema as the intended public contract. Internal Python modules and undocumented routes may change between releases.

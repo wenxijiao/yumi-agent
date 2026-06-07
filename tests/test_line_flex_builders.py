@@ -2,7 +2,7 @@
 
 import json
 
-from mirai.line.flex_builders import (
+from yumi.line.flex_builders import (
     file_upload_receipt,
     flex_size_bytes,
     format_postback,
@@ -66,7 +66,7 @@ def test_postback_data_prefix():
 
     collect(foot)
     for d in actions:
-        assert d.startswith("mirai|tool_confirm|")
+        assert d.startswith("yumi|tool_confirm|")
         parsed = parse_postback(d)
         assert parsed is not None
 

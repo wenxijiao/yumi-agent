@@ -1,7 +1,7 @@
 """Health endpoint integration tests (OSS single-user)."""
 
 from fastapi.testclient import TestClient
-from mirai.core.api import app
+from yumi.core.api import app
 
 
 def test_health_returns_status_ok():

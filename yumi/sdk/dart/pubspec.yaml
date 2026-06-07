@@ -1,0 +1,14 @@
+name: yumi_sdk
+description: Yumi edge WebSocket client for Dart (VM / Flutter).
+version: 0.1.0
+repository: https://github.com/wenxijiao/yumi-agent
+
+environment:
+  sdk: ">=3.2.0 <4.0.0"
+
+dependencies:
+  web_socket_channel: ^3.0.0
+  http: ^1.2.0
+
+dev_dependencies:
+  test: ^1.24.0

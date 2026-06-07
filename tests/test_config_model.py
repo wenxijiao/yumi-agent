@@ -2,8 +2,8 @@
 
 import json
 
-from mirai.core.config import ModelConfig
-from mirai.core.config.store import ensure_full_model_config_file, load_model_config
+from yumi.core.features.config import ModelConfig
+from yumi.core.features.config.store import ensure_full_model_config_file, load_model_config
 
 
 def test_model_config_default_provider():
@@ -23,20 +23,20 @@ def test_model_config_default_provider():
 def test_model_config_stt_env_overrides(monkeypatch, tmp_path):
     p = tmp_path / "config.json"
     p.write_text(json.dumps({"chat_model": "m"}), encoding="utf-8")
-    monkeypatch.setattr("mirai.core.config.paths.CONFIG_PATH", p)
-    monkeypatch.setattr("mirai.core.config.store.CONFIG_PATH", p)
-    monkeypatch.setenv("MIRAI_STT_PROVIDER", "whisper")
-    monkeypatch.setenv("MIRAI_STT_BACKEND", "faster-whisper")
-    monkeypatch.setenv("MIRAI_STT_MODEL", "small")
-    monkeypatch.setenv("MIRAI_STT_MODEL_DIR", "/tmp/mirai-whisper")
-    monkeypatch.setenv("MIRAI_STT_LANGUAGE", "auto")
+    monkeypatch.setattr("yumi.core.features.config.paths.CONFIG_PATH", p)
+    monkeypatch.setattr("yumi.core.features.config.store.CONFIG_PATH", p)
+    monkeypatch.setenv("YUMI_STT_PROVIDER", "whisper")
+    monkeypatch.setenv("YUMI_STT_BACKEND", "faster-whisper")
+    monkeypatch.setenv("YUMI_STT_MODEL", "small")
+    monkeypatch.setenv("YUMI_STT_MODEL_DIR", "/tmp/yumi-whisper")
+    monkeypatch.setenv("YUMI_STT_LANGUAGE", "auto")
 
     cfg = load_model_config()
 
     assert cfg.stt_provider == "whisper"
     assert cfg.stt_backend == "faster-whisper"
     assert cfg.stt_model == "small"
-    assert cfg.stt_model_dir == "/tmp/mirai-whisper"
+    assert cfg.stt_model_dir == "/tmp/yumi-whisper"
     assert cfg.stt_language == "auto"
 
 
@@ -64,8 +64,8 @@ def test_model_config_explicit_proactive_mode_overrides_legacy_enabled():
 def test_full_config_file_writes_all_default_keys(monkeypatch, tmp_path):
     p = tmp_path / "config.json"
     p.write_text(json.dumps({"chat_model": "m"}), encoding="utf-8")
-    monkeypatch.setattr("mirai.core.config.paths.CONFIG_PATH", p)
-    monkeypatch.setattr("mirai.core.config.store.CONFIG_PATH", p)
+    monkeypatch.setattr("yumi.core.features.config.paths.CONFIG_PATH", p)
+    monkeypatch.setattr("yumi.core.features.config.store.CONFIG_PATH", p)
 
     cfg = ensure_full_model_config_file()
     saved = json.loads(p.read_text(encoding="utf-8"))

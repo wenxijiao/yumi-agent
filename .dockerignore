@@ -5,8 +5,8 @@
 **/*.pyc
 .pytest_cache
 *.egg-info
-mirai/ui/.web
-mirai/ui/.states
-mirai/sdk/**/node_modules
-mirai/sdk/**/build
-mirai/sdk/**/dist
+yumi/ui/.web
+yumi/ui/.states
+yumi/sdk/**/node_modules
+yumi/sdk/**/build
+yumi/sdk/**/dist

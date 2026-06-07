@@ -6,10 +6,10 @@ import asyncio
 import io
 import wave
 
-from mirai.voice.audio_source import FakeAudioSource
-from mirai.voice.runtime import pcm_to_wav_bytes, run_voice_session
-from mirai.voice.segmenter import FakeVad, UtteranceCollector
-from mirai.voice.wake import FakeWake
+from yumi.voice.audio_source import FakeAudioSource
+from yumi.voice.runtime import pcm_to_wav_bytes, run_voice_session
+from yumi.voice.segmenter import FakeVad, UtteranceCollector
+from yumi.voice.wake import FakeWake
 
 
 def _speech_frame(frame_length: int) -> bytes:
