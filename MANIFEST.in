@@ -1,8 +1,8 @@
 include assets/social-preview.png
-prune mirai/ui/.web
-prune mirai/ui/.states
-prune mirai/ui/__pycache__
-prune mirai/ui/ui/__pycache__
+prune kumi/ui/.web
+prune kumi/ui/.states
+prune kumi/ui/__pycache__
+prune kumi/ui/ui/__pycache__
 prune _enterprise_seed
 global-exclude *.py[cod]
 global-exclude .DS_Store

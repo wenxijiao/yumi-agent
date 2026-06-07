@@ -1,6 +1,6 @@
-# Mirai
+# Kumi
 
-[![CI](https://github.com/wenxijiao/mirai-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/wenxijiao/mirai-agent/actions/workflows/ci.yml)
+[![CI](https://github.com/wenxijiao/kumi-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/wenxijiao/kumi-agent/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
@@ -10,34 +10,34 @@ Register a function. AI calls it. Python, Rust, Kotlin, Dart, C++, Swift, TypeSc
 
 > Status: alpha. The core workflows are usable today, but APIs, generated templates, and UX may still change as the project stabilizes.
 
-![Mirai — one API for AI tool calling across languages and devices](assets/social-preview.png)
+![Kumi — one API for AI tool calling across languages and devices](assets/social-preview.png)
 
 ## Quick Start
 
 ```bash
-pip install mirai-agent       # or, from source: git clone … && pip install .
-mirai --server                # first run walks you through provider/model setup
-mirai --demo                  # in another terminal: launches Smart Home + Planner
-mirai --chat                  # ask AI to control them in natural language
+pip install kumi-agent       # or, from source: git clone … && pip install .
+kumi --server                # first run walks you through provider/model setup
+kumi --demo                  # in another terminal: launches Smart Home + Planner
+kumi --chat                  # ask AI to control them in natural language
 ```
 
 Connect your own app:
 
 ```bash
 cd my_project
-mirai --edge --lang python    # also: typescript, swift, go, rust, kotlin, dart, java, csharp, cpp, ue5
+kumi --edge --lang python    # also: typescript, swift, go, rust, kotlin, dart, java, csharp, cpp, ue5
 ```
 
-`mirai --edge` scaffolds a `mirai_tools/` directory. Edit the generated setup file, call its init function from your app entry point, and your functions appear as AI tools. Full walkthrough in [Getting Started](docs/GETTING_STARTED.md).
+`kumi --edge` scaffolds a `kumi_tools/` directory. Edit the generated setup file, call its init function from your app entry point, and your functions appear as AI tools. Full walkthrough in [Getting Started](docs/GETTING_STARTED.md).
 
 ## Demo
 
-`mirai --demo` launches **two independent Python GUIs** at once:
+`kumi --demo` launches **two independent Python GUIs** at once:
 
 - **Smart Home** — lights, TV, thermostat, coffee machine, locks (room cards + status)
 - **Planner** — tkinter schedule app with a mini calendar and day timeline
 
-Both windows are display-only. Open `mirai --chat` or `mirai --ui` and try:
+Both windows are display-only. Open `kumi --chat` or `kumi --ui` and try:
 
 > Turn on the kitchen lights and add a "Cook dinner" event at 18:00 for 1 hour, category personal.
 
@@ -45,7 +45,7 @@ The demo requires a graphical desktop session. On Linux, install Tk first (`sudo
 
 ## Same pattern, every language
 
-The flow is the same in every language: run `mirai --edge` → implement tools in any module you like → import them in the generated setup file, register them, and define `init_mirai` / `initMirai` → call that init function once from your app's entry point. There is no required folder layout; only the imports in setup need to reach your functions.
+The flow is the same in every language: run `kumi --edge` → implement tools in any module you like → import them in the generated setup file, register them, and define `init_kumi` / `initKumi` → call that init function once from your app's entry point. There is no required folder layout; only the imports in setup need to reach your functions.
 
 ### Python
 
@@ -57,12 +57,12 @@ def analyze_data(path: str) -> str:
 ```
 
 ```python
-# mirai_tools/python/mirai_setup.py
+# kumi_tools/python/kumi_setup.py
 from my_app.tools import analyze_data
-from .mirai_sdk import MiraiAgent
+from .kumi_sdk import KumiAgent
 
-def init_mirai():
-    agent = MiraiAgent(edge_name="My Server")
+def init_kumi():
+    agent = KumiAgent(edge_name="My Server")
     agent.register(analyze_data, "Analyze CSV at path and return a short summary")
     agent.run_in_background()
     return agent
@@ -70,22 +70,22 @@ def init_mirai():
 
 ```python
 # your app entry point
-from mirai_tools.python.mirai_setup import init_mirai
-init_mirai()
+from kumi_tools.python.kumi_setup import init_kumi
+init_kumi()
 # … rest of your program …
 ```
 
-If you embed Mirai inside an already-installed Python package, `from mirai.sdk import MiraiAgent` works directly without the `mirai_tools/` tree.
+If you embed Kumi inside an already-installed Python package, `from kumi.sdk import KumiAgent` works directly without the `kumi_tools/` tree.
 
 ### TypeScript
 
 ```typescript
-// mirai_tools/typescript/miraiSetup.ts
-import { MiraiAgent } from "./mirai_sdk/src";
+// kumi_tools/typescript/kumiSetup.ts
+import { KumiAgent } from "./kumi_sdk/src";
 import { searchProducts } from "../src/catalog";
 
-export function initMirai() {
-  const agent = new MiraiAgent({ edgeName: "My Web App" });
+export function initKumi() {
+  const agent = new KumiAgent({ edgeName: "My Web App" });
   agent.register({
     name: "searchProducts",
     description: "Search the product catalog",
@@ -106,7 +106,7 @@ C++, Swift, Go, Java, C#, Rust, Kotlin, Dart, and UE5 follow the same pattern wi
 flowchart TB
   subgraph ai [AI Brain]
     LLM[LLM Provider]
-    Server[Mirai Server]
+    Server[Kumi Server]
   end
   subgraph devices [Your Devices — Any Language]
     RPi["Raspberry Pi · C++"]
@@ -123,32 +123,32 @@ flowchart TB
   Server <-->|WebSocket| IoT
 ```
 
-Your app connects to the Mirai server over WebSocket and registers functions as tools. The LLM sees them alongside server-side tools and calls whichever it needs. Results flow back through the same connection.
+Your app connects to the Kumi server over WebSocket and registers functions as tools. The LLM sees them alongside server-side tools and calls whichever it needs. Results flow back through the same connection.
 
 ## Main Commands
 
 | Command | What it does |
 |---|---|
-| `mirai --server` | Start the backend API server |
-| `mirai --server --telegram` | Start the API and a Telegram bot together (same machine) |
-| `mirai --telegram` | Run only the Telegram bot; connects to the API like `mirai --chat` |
-| `mirai --server --line` | Start the API and a LINE webhook sidecar (default port 8788) |
-| `mirai --line` | Run only the LINE webhook server; core API must already be reachable |
-| `mirai --server --voice` | Start the API with a microphone wake-word loop (say "hi mirai" to talk) |
-| `mirai --ui` | Start the web UI (chat, tools, settings) |
-| `mirai --chat` | Start terminal chat |
-| `mirai --edge` | Scaffold an edge workspace in the current directory |
-| `mirai --demo` | Run the Smart Home + Planner (schedule) demo |
-| `mirai --setup` | Reconfigure models and providers |
-| `mirai --config` | Create/update `~/.mirai/config.json` with all known settings and defaults |
-| `mirai --cleanup` | Delete all Mirai user data (`~/.mirai/`) |
-| `mirai --cleanup-memory` | Delete saved chat memory and embeddings only |
+| `kumi --server` | Start the backend API server |
+| `kumi --server --telegram` | Start the API and a Telegram bot together (same machine) |
+| `kumi --telegram` | Run only the Telegram bot; connects to the API like `kumi --chat` |
+| `kumi --server --line` | Start the API and a LINE webhook sidecar (default port 8788) |
+| `kumi --line` | Run only the LINE webhook server; core API must already be reachable |
+| `kumi --server --voice` | Start the API with a microphone wake-word loop (say "hi kumi" to talk) |
+| `kumi --ui` | Start the web UI (chat, tools, settings) |
+| `kumi --chat` | Start terminal chat |
+| `kumi --edge` | Scaffold an edge workspace in the current directory |
+| `kumi --demo` | Run the Smart Home + Planner (schedule) demo |
+| `kumi --setup` | Reconfigure models and providers |
+| `kumi --config` | Create/update `~/.kumi/config.json` with all known settings and defaults |
+| `kumi --cleanup` | Delete all Kumi user data (`~/.kumi/`) |
+| `kumi --cleanup-memory` | Delete saved chat memory and embeddings only |
 
 ## Optional Integrations
 
-- **Telegram** — chat with Mirai from a Telegram bot. Get a token from [@BotFather](https://t.me/BotFather), then run `mirai --server --telegram` (single machine) or `mirai --telegram` (bot only). Token, allowlist, and timer-push details: [Configuration → Telegram](docs/CONFIGURATION.md#telegram).
-- **LINE** — chat from LINE via the Messaging API webhook. Run `mirai --server --line` (single machine, default port 8788) or `mirai --line` (webhook sidecar only). Credentials and webhook setup: [Configuration → LINE](docs/CONFIGURATION.md#line).
-- **Voice** — talk to Mirai through your microphone. Say the wake word ("hi mirai") and Mirai transcribes the rest of your sentence with Whisper and runs it as a chat turn. Coexists with Telegram / `--chat` / `--ui` so the same Mirai instance can listen and type at once, and recent voice/Telegram/CLI turns are merged into each prompt. Requires `pip install mirai-agent[voice,stt]` plus a Picovoice access key. Setup: [Configuration → Voice](docs/CONFIGURATION.md#voice).
+- **Telegram** — chat with Kumi from a Telegram bot. Get a token from [@BotFather](https://t.me/BotFather), then run `kumi --server --telegram` (single machine) or `kumi --telegram` (bot only). Token, allowlist, and timer-push details: [Configuration → Telegram](docs/CONFIGURATION.md#telegram).
+- **LINE** — chat from LINE via the Messaging API webhook. Run `kumi --server --line` (single machine, default port 8788) or `kumi --line` (webhook sidecar only). Credentials and webhook setup: [Configuration → LINE](docs/CONFIGURATION.md#line).
+- **Voice** — talk to Kumi through your microphone. Say the wake word ("hi kumi") and Kumi transcribes the rest of your sentence with Whisper and runs it as a chat turn. Coexists with Telegram / `--chat` / `--ui` so the same Kumi instance can listen and type at once, and recent voice/Telegram/CLI turns are merged into each prompt. Requires `pip install kumi-agent[voice,stt]` plus a Picovoice access key. Setup: [Configuration → Voice](docs/CONFIGURATION.md#voice).
 
 ## Supported Providers
 
@@ -166,17 +166,17 @@ You can mix providers — for example OpenAI for chat and Ollama for embeddings.
 
 | Language | Runtime | Install |
 |---|---|---|
-| Python | `websockets` | `pip install .` or `mirai --edge --lang python` |
-| TypeScript | `ws` (Node) / native (browser) | `npm install mirai-sdk` or `mirai --edge --lang typescript` |
-| C++ | CMake, IXWebSocket | `mirai --edge --lang cpp` |
-| Swift | SwiftPM | `mirai --edge --lang swift` |
-| Go | `gorilla/websocket` | `mirai --edge --lang go` |
-| Java | JDK 11+ native WebSocket | `mirai --edge --lang java` |
-| C# | .NET 6+ native WebSocket | `mirai --edge --lang csharp` |
-| Rust | Tokio + `tokio-tungstenite` | `mirai --edge --lang rust` |
-| Kotlin | OkHttp (JVM) | `mirai --edge --lang kotlin` |
-| Dart | `web_socket_channel` (VM / Flutter) | `mirai --edge --lang dart` |
-| UE5 | Unreal Engine module | `mirai --edge --lang ue5` |
+| Python | `websockets` | `pip install .` or `kumi --edge --lang python` |
+| TypeScript | `ws` (Node) / native (browser) | `npm install kumi-sdk` or `kumi --edge --lang typescript` |
+| C++ | CMake, IXWebSocket | `kumi --edge --lang cpp` |
+| Swift | SwiftPM | `kumi --edge --lang swift` |
+| Go | `gorilla/websocket` | `kumi --edge --lang go` |
+| Java | JDK 11+ native WebSocket | `kumi --edge --lang java` |
+| C# | .NET 6+ native WebSocket | `kumi --edge --lang csharp` |
+| Rust | Tokio + `tokio-tungstenite` | `kumi --edge --lang rust` |
+| Kotlin | OkHttp (JVM) | `kumi --edge --lang kotlin` |
+| Dart | `web_socket_channel` (VM / Flutter) | `kumi --edge --lang dart` |
+| UE5 | Unreal Engine module | `kumi --edge --lang ue5` |
 
 ## Documentation
 
@@ -185,22 +185,22 @@ You can mix providers — for example OpenAI for chat and Ollama for embeddings.
 | [Getting Started](docs/GETTING_STARTED.md) | Installation, first run, providers, UI, terminal chat |
 | [Edge Tools Guide](docs/EDGE_TOOLS.md) | Connect your app, device, or game as an edge tool host |
 | [Tool Registration](docs/TOOL_REGISTRATION.md) | All tool registration parameters, confirmation, proactive options |
-| [Configuration](docs/CONFIGURATION.md) | `~/.mirai/config.json`, environment variables, Telegram, LINE, Docker |
+| [Configuration](docs/CONFIGURATION.md) | `~/.kumi/config.json`, environment variables, Telegram, LINE, Docker |
 | [Architecture](docs/ARCHITECTURE.md) | System design, plugin ports, API stability |
 | [HTTP API](docs/HTTP_API.md) | Chat NDJSON stream, all routes, curl examples |
 | [Memory](docs/MEMORY.md) | Session history and LanceDB embeddings |
 | [Testing](docs/TESTING.md) | Running and writing tests |
-| [Upgrading to Enterprise](docs/UPGRADING_TO_ENTERPRISE.md) | Switching to multi-tenant `mirai-enterprise` |
+| [Upgrading to Enterprise](docs/UPGRADING_TO_ENTERPRISE.md) | Switching to multi-tenant `kumi-enterprise` |
 
-## How Mirai Differs
+## How Kumi Differs
 
-Mirai is **not** another Python-only LLM chaining library. It ships a runnable server, terminal UI, and web UI, plus **first-class edge tool hosts** across eleven languages. The focus is on **device-side tool execution**: your game, phone app, IoT sensor, or desktop program exposes functions, and the AI calls them directly in your process.
+Kumi is **not** another Python-only LLM chaining library. It ships a runnable server, terminal UI, and web UI, plus **first-class edge tool hosts** across eleven languages. The focus is on **device-side tool execution**: your game, phone app, IoT sensor, or desktop program exposes functions, and the AI calls them directly in your process.
 
 ## OSS vs. Enterprise
 
-This package (`mirai-agent`) is the **open-source single-user / LAN core**. It runs locally or on your home network, has no Bearer auth, no per-tenant scoping, and no quotas. Everything you need to chat with an agent and register tools across languages is here.
+This package (`kumi-agent`) is the **open-source single-user / LAN core**. It runs locally or on your home network, has no Bearer auth, no per-tenant scoping, and no quotas. Everything you need to chat with an agent and register tools across languages is here.
 
-A separate **`mirai-enterprise`** package extends this core via the `mirai.core.plugins` port system to add multi-tenant identity, per-user encryption, billing/usage metering, an admin API, the public **relay** for remote pairing, and PostgreSQL-backed storage. It depends on this OSS package, registers itself via Python `entry_points` (group `mirai.plugins`), and ships its own CLI (`mirai-enterprise serve`). It is distributed privately and not on PyPI.
+A separate **`kumi-enterprise`** package extends this core via the `kumi.core.plugins` port system to add multi-tenant identity, per-user encryption, billing/usage metering, an admin API, the public **relay** for remote pairing, and PostgreSQL-backed storage. It depends on this OSS package, registers itself via Python `entry_points` (group `kumi.plugins`), and ships its own CLI (`kumi-enterprise serve`). It is distributed privately and not on PyPI.
 
 If you only need a personal or LAN agent, you do **not** need the enterprise package. When you do need multi-tenant identity, billing, relay, or PostgreSQL-backed storage, see [Upgrading to Enterprise](docs/UPGRADING_TO_ENTERPRISE.md).
 

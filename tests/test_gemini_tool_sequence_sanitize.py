@@ -5,12 +5,12 @@ import json
 from pathlib import Path
 
 import pytest
-from mirai.core.providers.diagnostics import write_provider_failure_diagnostic
-from mirai.core.providers.gemini_provider import (
+from kumi.core.providers.diagnostics import write_provider_failure_diagnostic
+from kumi.core.providers.gemini_provider import (
     GeminiProvider,
     _sanitize_gemini_tool_sequence,
 )
-from mirai.core.tool_call_normalize import normalize_tool_calls
+from kumi.core.tool_call_normalize import normalize_tool_calls
 
 _SIG = base64.b64encode(b"gemini-thought-signature").decode("ascii")
 
@@ -142,7 +142,7 @@ def test_build_contents_replays_gemini_thought_signature():
 
 def test_gemini_failure_diagnostic_captures_turn_order_context(monkeypatch, tmp_path):
     pytest.importorskip("google.genai")
-    monkeypatch.setenv("MIRAI_DEBUG_DIR", str(tmp_path))
+    monkeypatch.setenv("KUMI_DEBUG_DIR", str(tmp_path))
     messages = [
         {"role": "user", "content": "go"},
         {

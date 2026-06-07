@@ -2,8 +2,8 @@
 
 import json
 
-from mirai.core.memories.constants import MIRAI_V1_TOOL_CALLS, MIRAI_V1_TOOL_RESULT
-from mirai.core.memories.memory import (
+from kumi.core.memories.constants import KUMI_V1_TOOL_CALLS, KUMI_V1_TOOL_RESULT
+from kumi.core.memories.memory import (
     _assistant_tool_call_count_from_stored_raw,
     _dedupe_consecutive_user_rows,
     _trim_leading_orphan_assistant_tool_calls,
@@ -14,7 +14,7 @@ from mirai.core.memories.memory import (
 
 def _tc_payload(n: int) -> str:
     calls = [{"id": str(i), "type": "function", "function": {"name": f"t{i}", "arguments": "{}"}} for i in range(n)]
-    return MIRAI_V1_TOOL_CALLS + json.dumps({"content": "", "tool_calls": calls})
+    return KUMI_V1_TOOL_CALLS + json.dumps({"content": "", "tool_calls": calls})
 
 
 def test_trailing_incomplete_drops_suffix():
@@ -23,7 +23,7 @@ def test_trailing_incomplete_drops_suffix():
         {"role": "assistant", "content": _tc_payload(2), "timestamp": "2"},
         {
             "role": "tool",
-            "content": MIRAI_V1_TOOL_RESULT + json.dumps({"name": "t0", "content": "x"}),
+            "content": KUMI_V1_TOOL_RESULT + json.dumps({"name": "t0", "content": "x"}),
             "timestamp": "3",
         },
     ]
@@ -32,7 +32,7 @@ def test_trailing_incomplete_drops_suffix():
 
 
 def test_complete_tool_block_kept():
-    t1 = MIRAI_V1_TOOL_CALLS + json.dumps(
+    t1 = KUMI_V1_TOOL_CALLS + json.dumps(
         {
             "content": "",
             "tool_calls": [{"id": "1", "type": "function", "function": {"name": "a", "arguments": "{}"}}],
@@ -41,7 +41,7 @@ def test_complete_tool_block_kept():
     rows = [
         {"role": "user", "content": "hi", "timestamp": "1"},
         {"role": "assistant", "content": t1, "timestamp": "2"},
-        {"role": "tool", "content": MIRAI_V1_TOOL_RESULT + json.dumps({"name": "a", "content": "x"}), "timestamp": "3"},
+        {"role": "tool", "content": KUMI_V1_TOOL_RESULT + json.dumps({"name": "a", "content": "x"}), "timestamp": "3"},
     ]
     out = _trim_trailing_incomplete_tool_rows(rows)
     assert len(out) == 3
@@ -67,7 +67,7 @@ def test_leading_orphan_assistant_tool_call_removed():
         {"role": "assistant", "content": _tc_payload(1), "timestamp": "1"},
         {
             "role": "tool",
-            "content": MIRAI_V1_TOOL_RESULT + json.dumps({"name": "t0", "content": "ok"}),
+            "content": KUMI_V1_TOOL_RESULT + json.dumps({"name": "t0", "content": "ok"}),
             "timestamp": "2",
         },
         {"role": "user", "content": "morning", "timestamp": "3"},
@@ -90,18 +90,18 @@ def test_leading_orphan_assistant_tool_call_strips_multiple_blocks():
         {"role": "assistant", "content": _tc_payload(1), "timestamp": "1"},
         {
             "role": "tool",
-            "content": MIRAI_V1_TOOL_RESULT + json.dumps({"name": "t0", "content": "ok"}),
+            "content": KUMI_V1_TOOL_RESULT + json.dumps({"name": "t0", "content": "ok"}),
             "timestamp": "2",
         },
         {"role": "assistant", "content": _tc_payload(2), "timestamp": "3"},
         {
             "role": "tool",
-            "content": MIRAI_V1_TOOL_RESULT + json.dumps({"name": "t0", "content": "ok"}),
+            "content": KUMI_V1_TOOL_RESULT + json.dumps({"name": "t0", "content": "ok"}),
             "timestamp": "4",
         },
         {
             "role": "tool",
-            "content": MIRAI_V1_TOOL_RESULT + json.dumps({"name": "t1", "content": "ok"}),
+            "content": KUMI_V1_TOOL_RESULT + json.dumps({"name": "t1", "content": "ok"}),
             "timestamp": "5",
         },
         {"role": "user", "content": "later", "timestamp": "6"},

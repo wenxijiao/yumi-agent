@@ -5,9 +5,9 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-from mirai.core.dispatch.confirmation import ConfirmationGate
-from mirai.core.dispatch.context import ToolInvocation, TurnContext
-from mirai.core.runtime import get_default_runtime
+from kumi.core.dispatch.confirmation import ConfirmationGate
+from kumi.core.dispatch.context import ToolInvocation, TurnContext
+from kumi.core.runtime import get_default_runtime
 
 
 def _ctx() -> TurnContext:
@@ -104,7 +104,7 @@ def test_always_allow_persists_policy(gate_and_runtime, monkeypatch):
     def fake_persist():
         persisted.append(True)
 
-    import mirai.core.api.edge as api_edge
+    import kumi.core.api.edge as api_edge
 
     monkeypatch.setattr(api_edge, "persist_local_tool_confirmation_to_config", fake_persist)
 

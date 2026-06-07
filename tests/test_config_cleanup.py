@@ -1,11 +1,11 @@
 """Cleanup helpers for config and memory storage."""
 
-import mirai.core.config as config
-import mirai.core.config.paths as config_paths
+import kumi.core.config as config
+import kumi.core.config.paths as config_paths
 
 
 def test_cleanup_memory_data_preserves_config_and_removes_memory(tmp_path, monkeypatch):
-    config_dir = tmp_path / ".mirai"
+    config_dir = tmp_path / ".kumi"
     memory_dir = config_dir / "memory"
     legacy_dir = tmp_path / "legacy-memory"
 
@@ -31,7 +31,7 @@ def test_cleanup_memory_data_preserves_config_and_removes_memory(tmp_path, monke
 
 
 def test_cleanup_user_data_removes_config_dir_and_legacy_memory(tmp_path, monkeypatch):
-    config_dir = tmp_path / ".mirai"
+    config_dir = tmp_path / ".kumi"
     memory_dir = config_dir / "memory"
     legacy_dir = tmp_path / "legacy-memory"
 

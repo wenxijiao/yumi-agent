@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from mirai.core.dispatch.context import TurnContext
-from mirai.core.dispatch.normalizer import ToolCallNormalizer, summarize_tool_args
+from kumi.core.dispatch.context import TurnContext
+from kumi.core.dispatch.normalizer import ToolCallNormalizer, summarize_tool_args
 
 
 def _ctx() -> TurnContext:

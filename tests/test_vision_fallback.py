@@ -1,7 +1,7 @@
 """Heuristics for multimodal API rejection → text-only retry."""
 
-from mirai.core.prompts.composer import messages_have_multimodal_images as _messages_have_multimodal_images
-from mirai.core.providers.error_classify import is_multimodal_vision_rejection as _is_multimodal_vision_rejection
+from kumi.core.prompts.composer import messages_have_multimodal_images as _messages_have_multimodal_images
+from kumi.core.providers.error_classify import is_multimodal_vision_rejection as _is_multimodal_vision_rejection
 
 
 def test_multimodal_rejection_openai_style():

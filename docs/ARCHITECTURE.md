@@ -11,13 +11,13 @@ flowchart LR
     LINE[LINE_bridge]
     TG[Telegram_bot]
   end
-  subgraph server [Mirai_Server]
+  subgraph server [Kumi_Server]
     App[FastAPI_app_factory]
     Routers[routers_*]
     Service[ChatTurnService]
     Dispatch[dispatch_*]
     Plugins[core_plugins_ports]
-    Bot[MiraiBot]
+    Bot[KumiBot]
     Mem[Memory_facade]
     Repos[memory_repos_*]
     Prov[core_providers]
@@ -38,15 +38,15 @@ flowchart LR
   Bot --> Prov
 ```
 
-Mirai is **local-first**: it ships a runnable server, terminal UI, Reflex web UI, and first-class edge-tool hosts so your game, app, or device can expose tools from its own process. The same FastAPI app accepts traffic from local clients (loopback HTTP), the LINE/Telegram bridges, and — in enterprise builds — relay frames forwarded from a public gateway.
+Kumi is **local-first**: it ships a runnable server, terminal UI, Reflex web UI, and first-class edge-tool hosts so your game, app, or device can expose tools from its own process. The same FastAPI app accepts traffic from local clients (loopback HTTP), the LINE/Telegram bridges, and — in enterprise builds — relay frames forwarded from a public gateway.
 
 ## HTTP Entry Layer
 
-`mirai/core/api/app_factory.py` is the single source of truth for HTTP composition. It owns:
+`kumi/core/api/app_factory.py` is the single source of truth for HTTP composition. It owns:
 
-* Process lifespan (`init_mirai`, model-config preflight, bot warm-up, signal handlers, relay drain on SIGTERM, proactive-message service).
+* Process lifespan (`init_kumi`, model-config preflight, bot warm-up, signal handlers, relay drain on SIGTERM, proactive-message service).
 * CORS, docs-access middleware, and any middleware contributed by the [`MiddlewareExtender`](#plugin-ports) plugin port.
-* Mounting every resource router under `mirai/core/api/routers/`. Each router file owns one resource group:
+* Mounting every resource router under `kumi/core/api/routers/`. Each router file owns one resource group:
 
   | Router | Resource |
   |---|---|
@@ -65,11 +65,11 @@ There are no compatibility shims, no `sys.modules` indirection, and no router fi
 
 ### Relay (enterprise)
 
-The enterprise relay client (`mirai_enterprise.relay_client.RelayClient`) receives `relay_http_request` frames from the public gateway and forwards them through `mirai_enterprise.relay_http_dispatch`. That module is now a transparent **ASGI proxy**:
+The enterprise relay client (`kumi_enterprise.relay_client.RelayClient`) receives `relay_http_request` frames from the public gateway and forwards them through `kumi_enterprise.relay_http_dispatch`. That module is now a transparent **ASGI proxy**:
 
 1. Verifies the relay credential against a small path-prefix → required-scopes table.
 2. Binds the per-user `Identity` via `set_current_identity` so OSS plugin ports see the right user.
-3. Synthesises an ASGI `(scope, receive, send)` triple (with an `X-Mirai-Source: relay` header) and dispatches through the OSS `app_factory.app` directly.
+3. Synthesises an ASGI `(scope, receive, send)` triple (with an `X-Kumi-Source: relay` header) and dispatches through the OSS `app_factory.app` directly.
 
 `TenancyAuthMiddleware` recognises the relay marker and skips token validation (the relay handler has already done it). Streaming responses (`/chat` NDJSON) are forwarded chunk-by-chunk through the proxy's `send` callable. Adding a new HTTP route in OSS reaches the relay automatically — zero per-route mirroring.
 
@@ -102,7 +102,7 @@ The orchestrator yields `ChatEvent` model instances (see below); the `core/api/c
 
 ## Chat Event Protocol
 
-The `/chat` NDJSON stream is a **discriminated Pydantic union** keyed by `type` (`mirai/core/api/events.py`):
+The `/chat` NDJSON stream is a **discriminated Pydantic union** keyed by `type` (`kumi/core/api/events.py`):
 
 ```python
 ChatEvent = Annotated[
@@ -111,11 +111,11 @@ ChatEvent = Annotated[
 ]
 ```
 
-The wire format is unchanged — `model_dump()` produces the same JSON the legacy code did — but producers and consumers can opt into typed dispatch via `parse_chat_event()` and `serialize_chat_event()`. Adding a new event type is one model + one `case` in `mirai/core/api/stream_consumer.py`; every existing channel adapter inherits a no-op default until it explicitly opts in.
+The wire format is unchanged — `model_dump()` produces the same JSON the legacy code did — but producers and consumers can opt into typed dispatch via `parse_chat_event()` and `serialize_chat_event()`. Adding a new event type is one model + one `case` in `kumi/core/api/stream_consumer.py`; every existing channel adapter inherits a no-op default until it explicitly opts in.
 
 ## Channel Adapters
 
-Channel-specific rendering (LINE, Telegram, terminal CLI, future Discord/Slack/WhatsApp) implements the `ChannelHandler` Protocol from `mirai/core/api/stream_consumer.py`:
+Channel-specific rendering (LINE, Telegram, terminal CLI, future Discord/Slack/WhatsApp) implements the `ChannelHandler` Protocol from `kumi/core/api/stream_consumer.py`:
 
 ```python
 class ChannelHandler(Protocol):
@@ -130,7 +130,7 @@ class ChannelHandler(Protocol):
 
 ## Memory Layer
 
-`mirai/core/memories/` exposes a single public class — `Memory` — which is a **façade** over focused collaborators:
+`kumi/core/memories/` exposes a single public class — `Memory` — which is a **façade** over focused collaborators:
 
 ```
 memories/
@@ -147,11 +147,11 @@ memories/
 
 `Memory(...)` keeps its historical signature and every public method (`add_message`, `create_message`, `list_sessions`, …); each one delegates to the appropriate repository. Legacy private helpers (`_has_table`, `_open_table`, `_build_where_clause`, …) are preserved as instance methods so external collaborators (`memories/context.py`, `memories/storage.py`, `memories/writer.py`, enterprise per-user memory) keep functioning unchanged.
 
-The split exists so the enterprise PostgreSQL backend (`mirai_enterprise.tenancy.postgres_store`) can implement the same Repository surface without rewriting the façade. See [`MEMORY.md`](MEMORY.md) for the on-disk layout and retrieval semantics.
+The split exists so the enterprise PostgreSQL backend (`kumi_enterprise.tenancy.postgres_store`) can implement the same Repository surface without rewriting the façade. See [`MEMORY.md`](MEMORY.md) for the on-disk layout and retrieval semantics.
 
 ## CLI
 
-The CLI is a **Command Pattern + Registry** in `mirai/cli/`:
+The CLI is a **Command Pattern + Registry** in `kumi/cli/`:
 
 | File | Responsibility |
 |---|---|
@@ -159,23 +159,23 @@ The CLI is a **Command Pattern + Registry** in `mirai/cli/`:
 | `cli/registry.py` | `Command` ABC + `CommandRegistry` |
 | `cli/commands.py` | One `Command` subclass per sub-command, plus `validate_cross_command_flags` |
 
-`main()` builds the default registry (12 commands in OSS), mounts each command's argparse flags, runs cross-command validation, then dispatches. Adding a sub-command is one `Command` subclass + one `registry.add(...)` line — no four-place edit. Enterprise plugins inject extra sub-commands via the [`AdminCli`](#plugin-ports) plugin port, so `mirai --enterprise-action` lives in the same CLI namespace as OSS commands.
+`main()` builds the default registry (12 commands in OSS), mounts each command's argparse flags, runs cross-command validation, then dispatches. Adding a sub-command is one `Command` subclass + one `registry.add(...)` line — no four-place edit. Enterprise plugins inject extra sub-commands via the [`AdminCli`](#plugin-ports) plugin port, so `kumi --enterprise-action` lives in the same CLI namespace as OSS commands.
 
 ## Server-Side Tools
 
-Server-side tools are Python functions decorated with `@mirai_tool` in `mirai/tools/`. They are loaded at startup via `load_tools_from_directory()` and stored in `TOOL_REGISTRY`. SDK wiring for your project typically lives in a `bootstrap` module (e.g. `mirai/tools/bootstrap.py`) that calls `init_mirai()`.
+Server-side tools are Python functions decorated with `@kumi_tool` in `kumi/tools/`. They are loaded at startup via `load_tools_from_directory()` and stored in `TOOL_REGISTRY`. SDK wiring for your project typically lives in a `bootstrap` module (e.g. `kumi/tools/bootstrap.py`) that calls `init_kumi()`.
 
 ## Edge Tools
 
 Edge tools are registered by remote clients over WebSocket at `/ws/edge`. Each client sends a `register` message with tool schemas on connect. The server prefixes tool names with the edge name and stores them in `EDGE_TOOLS_REGISTRY`.
 
-Core server tools are loaded into every model request when enabled. Edge tools are routed dynamically: for each chat turn, Mirai builds retrieval documents from the Edge name, aliases, tool name, description, and parameter descriptions, embeds them with the configured embedding model, and sends only the most relevant Edge tool schemas to the provider (default: 20). This keeps the model-facing tool set small even when many Edge processes register hundreds of functions.
+Core server tools are loaded into every model request when enabled. Edge tools are routed dynamically: for each chat turn, Kumi builds retrieval documents from the Edge name, aliases, tool name, description, and parameter descriptions, embeds them with the configured embedding model, and sends only the most relevant Edge tool schemas to the provider (default: 20). This keeps the model-facing tool set small even when many Edge processes register hundreds of functions.
 
 When the LLM selects an edge tool, `EdgeToolExecutor` sends a `tool_call` message to the relevant client. The client executes the function and returns a `tool_result`. Cancellation, timeout, and disconnection are handled inside the executor; the orchestrator never sees raw WebSocket frames.
 
 ## Plugin Ports
 
-`mirai/core/plugins/ports.py` declares the protocols every commercial / enterprise build implements. The OSS core MUST only depend on these abstractions — never import anything from a commercial package directly.
+`kumi/core/plugins/ports.py` declares the protocols every commercial / enterprise build implements. The OSS core MUST only depend on these abstractions — never import anything from a commercial package directly.
 
 | Port | OSS default | Enterprise replacement |
 |---|---|---|
@@ -189,11 +189,11 @@ When the LLM selects an edge tool, `EdgeToolExecutor` sends a `tool_call` messag
 | `AuditSink` | log only | `PostgresAuditSink` |
 | `RouteExtender` | none | mounts `/admin`, `/auth`, `/tenancy/...` |
 | `MiddlewareExtender` | none | adds `TenancyAuthMiddleware` |
-| `AdminCli` | none | injects `mirai-enterprise --xxx` sub-commands |
+| `AdminCli` | none | injects `kumi-enterprise --xxx` sub-commands |
 
 ## Admin API
 
-Mirai exposes a local admin API for configuration, tools, and memory.
+Kumi exposes a local admin API for configuration, tools, and memory.
 
 | Method | Endpoint | Purpose |
 |---|---|---|
@@ -209,11 +209,11 @@ For HTTP details (chat NDJSON stream, Relay `/v1/*` mapping, curl examples), see
 
 ## Public API Stability
 
-Mirai is in the **0.x** stage. The interfaces intended for users to build on are:
+Kumi is in the **0.x** stage. The interfaces intended for users to build on are:
 
-- The `mirai` CLI (sub-commands and flags documented in `mirai --help`).
+- The `kumi` CLI (sub-commands and flags documented in `kumi --help`).
 - The documented HTTP routes in [HTTP_API.md](HTTP_API.md).
-- The `ChatEvent` schema in `mirai/core/api/events.py` and the `ChannelHandler` protocol in `mirai/core/api/stream_consumer.py` (for non-Python channel adapters or external SDK clients that want typed events).
-- The SDKs and templates under [`mirai/sdk/`](../mirai/sdk/README.md) and `mirai --edge`.
+- The `ChatEvent` schema in `kumi/core/api/events.py` and the `ChannelHandler` protocol in `kumi/core/api/stream_consumer.py` (for non-Python channel adapters or external SDK clients that want typed events).
+- The SDKs and templates under [`kumi/sdk/`](../kumi/sdk/README.md) and `kumi --edge`.
 
-Internal Python modules such as `mirai.core.dispatch.*`, `mirai.core.memories.repos.*`, and `mirai.core.api.routers.*` are implementation details and may change between releases. Breaking changes to user-facing surfaces are called out in the changelog and release notes.
+Internal Python modules such as `kumi.core.dispatch.*`, `kumi.core.memories.repos.*`, and `kumi.core.api.routers.*` are implementation details and may change between releases. Breaking changes to user-facing surfaces are called out in the changelog and release notes.

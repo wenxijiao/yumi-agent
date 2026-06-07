@@ -1,11 +1,11 @@
-"""Edge workspace scaffolding (``mirai --edge``) helpers."""
+"""Edge workspace scaffolding (``kumi --edge``) helpers."""
 
 import os
 import tempfile
 
-import mirai.cli as cli
+import kumi.cli as cli
 import pytest
-from mirai.edge.client import init_workspace
+from kumi.edge.client import init_workspace
 
 
 def test_parse_edge_langs_none():
@@ -31,8 +31,45 @@ def test_parse_edge_langs_mixed():
 def test_init_workspace_multi_lang_creates_both_trees():
     with tempfile.TemporaryDirectory() as tmp:
         init_workspace(tmp, lang=["python", "rust"])
-        assert os.path.isfile(os.path.join(tmp, "mirai_tools", "python", "mirai_setup.py"))
-        assert os.path.isfile(os.path.join(tmp, "mirai_tools", "rust", "Cargo.toml"))
+        assert os.path.isfile(os.path.join(tmp, "kumi_tools", "python", "kumi_setup.py"))
+        assert os.path.isfile(os.path.join(tmp, "kumi_tools", "rust", "Cargo.toml"))
+
+
+def test_init_workspace_creates_root_agent_guide():
+    with tempfile.TemporaryDirectory() as tmp:
+        created = init_workspace(tmp, lang=["python"])
+        guide_path = os.path.join(tmp, "AGENTS.md")
+
+        assert "AGENTS.md" in created
+        assert os.path.isfile(guide_path)
+        with open(guide_path, encoding="utf-8") as fh:
+            guide = fh.read()
+
+        assert "Kumi Edge Agent Guide" in guide
+        assert "kumi_tools/python/kumi_setup.py" in guide
+        assert "kumi/sdk/AGENTS.md" in guide
+
+
+def test_init_workspace_creates_agent_guide_when_target_dir_is_missing():
+    with tempfile.TemporaryDirectory() as tmp:
+        workspace = os.path.join(tmp, "new-edge-project")
+        init_workspace(workspace, lang=["python"])
+
+        assert os.path.isfile(os.path.join(workspace, "AGENTS.md"))
+        assert os.path.isfile(os.path.join(workspace, "kumi_tools", "python", "kumi_setup.py"))
+
+
+def test_init_workspace_does_not_overwrite_existing_agent_guide():
+    with tempfile.TemporaryDirectory() as tmp:
+        guide_path = os.path.join(tmp, "AGENTS.md")
+        with open(guide_path, "w", encoding="utf-8") as fh:
+            fh.write("custom project instructions\n")
+
+        created = init_workspace(tmp, lang=["python"])
+
+        assert "AGENTS.md" not in created
+        with open(guide_path, encoding="utf-8") as fh:
+            assert fh.read() == "custom project instructions\n"
 
 
 def test_init_workspace_rejects_unknown_lang():

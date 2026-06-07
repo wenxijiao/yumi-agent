@@ -9,10 +9,10 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
-from mirai.core.api.routers.stt import stt_transcribe_endpoint
-from mirai.core.api.schemas import TranscribeRequest
-from mirai.core.plugins import LOCAL_IDENTITY
-from mirai.core.stt import SttNotConfiguredError, TranscriptionResult, ensure_whisper_weights_cached
+from kumi.core.api.routers.stt import stt_transcribe_endpoint
+from kumi.core.api.schemas import TranscribeRequest
+from kumi.core.plugins import LOCAL_IDENTITY
+from kumi.core.stt import SttNotConfiguredError, TranscriptionResult, ensure_whisper_weights_cached
 
 
 def _install_fake_whisper_modules(monkeypatch, *, snapshot_download, whisper_model) -> None:
@@ -35,7 +35,7 @@ def test_stt_transcribe_endpoint_uses_provider(monkeypatch):
         assert language is None
         return TranscriptionResult(text="hello", language="en", duration_seconds=1.2)
 
-    monkeypatch.setattr("mirai.core.stt.transcribe_audio", _fake_transcribe)
+    monkeypatch.setattr("kumi.core.stt.transcribe_audio", _fake_transcribe)
     req = TranscribeRequest(filename="voice.ogg", content_base64=base64.b64encode(b"audio").decode("ascii"))
 
     response = asyncio.run(stt_transcribe_endpoint(LOCAL_IDENTITY, req))
@@ -49,7 +49,7 @@ def test_stt_transcribe_endpoint_reports_disabled(monkeypatch):
     async def _fake_transcribe(*_args, **_kwargs):
         raise SttNotConfiguredError("STT is not enabled")
 
-    monkeypatch.setattr("mirai.core.stt.transcribe_audio", _fake_transcribe)
+    monkeypatch.setattr("kumi.core.stt.transcribe_audio", _fake_transcribe)
     req = TranscribeRequest(filename="voice.ogg", content_base64=base64.b64encode(b"audio").decode("ascii"))
 
     with pytest.raises(HTTPException) as ei:
@@ -87,7 +87,7 @@ def test_ensure_whisper_weights_cached_triggers_model_download(monkeypatch, tmp_
         snapshot_download=_fake_snapshot_download,
         whisper_model=_FakeWhisperModel,
     )
-    monkeypatch.setattr("mirai.core.stt.whisper_provider._whisper_loads_from_disk", lambda **kwargs: False)
+    monkeypatch.setattr("kumi.core.stt.whisper_provider._whisper_loads_from_disk", lambda **kwargs: False)
     ensure_whisper_weights_cached(model=model, model_dir=str(tmp_path))
     assert len(snapshot_calls) == 1
     assert snapshot_calls[0][0][0] == repo_id
@@ -119,7 +119,7 @@ def test_ensure_whisper_weights_cached_skips_when_local(monkeypatch, tmp_path) -
         snapshot_download=_fake_snapshot_download,
         whisper_model=_FakeWhisperModel,
     )
-    monkeypatch.setattr("mirai.core.stt.whisper_provider._whisper_loads_from_disk", lambda **kwargs: True)
+    monkeypatch.setattr("kumi.core.stt.whisper_provider._whisper_loads_from_disk", lambda **kwargs: True)
 
     ensure_whisper_weights_cached(model="base", model_dir=str(tmp_path))
     assert snapshot_calls == []

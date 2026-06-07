@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import mirai.core.dispatch.usage as usage_mod
-from mirai.core.dispatch.context import TurnContext
-from mirai.core.dispatch.usage import UsageRecorder
+import kumi.core.dispatch.usage as usage_mod
+from kumi.core.dispatch.context import TurnContext
+from kumi.core.dispatch.usage import UsageRecorder
 
 
 def _ctx() -> TurnContext:

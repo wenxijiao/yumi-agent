@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <RootNamespace>Kumi</RootNamespace>
+    <AssemblyName>KumiSDK</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <Version>0.1.0</Version>
+    <Description>Embeddable edge client for Kumi — register tools and connect via WebSocket.</Description>
+  </PropertyGroup>
+
+</Project>

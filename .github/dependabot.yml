@@ -13,7 +13,7 @@ updates:
     open-pull-requests-limit: 10
 
   - package-ecosystem: npm
-    directory: /mirai/sdk/typescript
+    directory: /kumi/sdk/typescript
     schedule:
       interval: weekly
     open-pull-requests-limit: 10

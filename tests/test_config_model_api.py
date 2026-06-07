@@ -8,15 +8,15 @@ from pathlib import Path
 
 import pytest
 from fastapi import HTTPException
-from mirai.core.api.routers.config import _model_config_public_dict, update_model_config_endpoint
-from mirai.core.api.schemas import ModelConfigUpdateRequest
+from kumi.core.api.routers.config import _model_config_public_dict, update_model_config_endpoint
+from kumi.core.api.schemas import ModelConfigUpdateRequest
 
 
 def _patch_config_path(monkeypatch, tmp_path: Path, name: str = "c.json") -> Path:
     p = tmp_path / name
-    monkeypatch.setattr("mirai.core.config.paths.CONFIG_PATH", p)
-    monkeypatch.setattr("mirai.core.config.store.CONFIG_PATH", p)
-    monkeypatch.setattr("mirai.core.api.routers.config.CONFIG_PATH", p)
+    monkeypatch.setattr("kumi.core.config.paths.CONFIG_PATH", p)
+    monkeypatch.setattr("kumi.core.config.store.CONFIG_PATH", p)
+    monkeypatch.setattr("kumi.core.api.routers.config.CONFIG_PATH", p)
     return p
 
 
@@ -42,7 +42,7 @@ def test_put_config_model_rejects_unknown_chat_provider(monkeypatch, tmp_path: P
     exc = asyncio.run(_run())
     assert exc.status_code == 400
     assert isinstance(exc.detail, dict)
-    assert exc.detail["code"] == "MIRAI_UNKNOWN_PROVIDER"
+    assert exc.detail["code"] == "KUMI_UNKNOWN_PROVIDER"
 
 
 def test_put_config_model_missing_openai_key(monkeypatch, tmp_path: Path) -> None:
@@ -56,7 +56,7 @@ def test_put_config_model_missing_openai_key(monkeypatch, tmp_path: Path) -> Non
     p.write_text(json.dumps(cfg), encoding="utf-8")
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
-    import mirai.core.api.state as api_state
+    import kumi.core.api.state as api_state
 
     monkeypatch.setattr(api_state, "bot", None)
 
@@ -67,7 +67,7 @@ def test_put_config_model_missing_openai_key(monkeypatch, tmp_path: Path) -> Non
 
     exc = asyncio.run(_run())
     assert exc.status_code == 400
-    assert exc.detail["code"] == "MIRAI_MISSING_OPENAI_KEY"
+    assert exc.detail["code"] == "KUMI_MISSING_OPENAI_KEY"
     restored = json.loads(p.read_text(encoding="utf-8"))
     assert restored["chat_provider"] == cfg["chat_provider"]
     assert restored["chat_model"] == cfg["chat_model"]
@@ -106,8 +106,8 @@ def test_model_config_public_dict_includes_key_flags(monkeypatch, tmp_path: Path
 
 def test_create_provider_deepseek_wraps_openai_provider():
     pytest.importorskip("openai")
-    from mirai.core.providers import create_provider
-    from mirai.core.providers.openai_provider import OpenAIProvider
+    from kumi.core.providers import create_provider
+    from kumi.core.providers.openai_provider import OpenAIProvider
 
     p = create_provider(
         "deepseek",
@@ -161,10 +161,10 @@ def test_put_config_model_updates_edge_tool_routing_settings(monkeypatch, tmp_pa
         encoding="utf-8",
     )
 
-    import mirai.core.api.state as api_state
+    import kumi.core.api.state as api_state
 
     monkeypatch.setattr(api_state, "bot", None)
-    monkeypatch.setattr("mirai.core.api.routers.config.ensure_provider_available", lambda provider: None)
+    monkeypatch.setattr("kumi.core.api.routers.config.ensure_provider_available", lambda provider: None)
 
     async def _run():
         return await update_model_config_endpoint(

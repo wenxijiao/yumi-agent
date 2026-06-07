@@ -1,6 +1,6 @@
 # Commercial use and partnerships
 
-Mirai is distributed under the **Apache License 2.0** (see [LICENSE](LICENSE)). That license governs use, modification, and distribution of the source code in this repository.
+Kumi is distributed under the **Apache License 2.0** (see [LICENSE](LICENSE)). That license governs use, modification, and distribution of the source code in this repository.
 
 ## If you are a business
 

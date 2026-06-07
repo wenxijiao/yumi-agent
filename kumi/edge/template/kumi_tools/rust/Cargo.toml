@@ -1,0 +1,12 @@
+[package]
+name = "kumi_edge"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+kumi_sdk = { path = "kumi_sdk" }
+tokio = { version = "1", features = ["full", "signal", "macros"] }
+
+[[bin]]
+name = "kumi_edge"
+path = "src/main.rs"

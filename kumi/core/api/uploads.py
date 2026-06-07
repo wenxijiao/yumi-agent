@@ -1,0 +1,159 @@
+"""Session-scoped file uploads stored under ``~/.kumi/uploads``."""
+
+from __future__ import annotations
+
+import base64
+import binascii
+import re
+from pathlib import Path
+
+from fastapi import HTTPException
+
+# Keep in sync with ``kumi.tools.file_tools`` supported types users typically upload.
+_ALLOWED_EXTENSIONS = frozenset(
+    {
+        ".pdf",
+        ".txt",
+        ".md",
+        ".markdown",
+        ".csv",
+        ".json",
+        ".log",
+        ".rst",
+        ".yaml",
+        ".yml",
+        ".toml",
+        ".xml",
+        ".html",
+        ".htm",
+        ".py",
+        ".js",
+        ".ts",
+        ".tsx",
+        ".jsx",
+        ".css",
+        ".c",
+        ".cpp",
+        ".h",
+        ".go",
+        ".rs",
+        ".java",
+        ".sql",
+        ".docx",
+        # Image formats
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".webp",
+        ".bmp",
+        ".svg",
+        ".tiff",
+        ".tif",
+        ".ico",
+    }
+)
+
+IMAGE_EXTENSIONS = frozenset({".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tiff", ".tif", ".ico"})
+
+MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+
+_SESSION_RE = re.compile(r"^[a-zA-Z0-9_.:-]{1,200}$")
+
+
+def uploads_root() -> Path:
+    root = Path.home() / ".kumi" / "uploads"
+    root.mkdir(parents=True, exist_ok=True)
+    return root
+
+
+def _safe_session_dir(session_id: str) -> str:
+    s = (session_id or "default").strip() or "default"
+    if not _SESSION_RE.match(s):
+        raise HTTPException(status_code=400, detail="Invalid session_id for upload.")
+    return s
+
+
+def _safe_filename(original: str) -> str:
+    base = Path(original or "").name.strip() or "upload.bin"
+    base = re.sub(r"[^\w.\-]", "_", base, flags=re.ASCII)
+    if not base or base in (".", ".."):
+        base = "upload.bin"
+    if len(base) > 200:
+        stem, suf = Path(base).stem[:160], Path(base).suffix
+        base = stem + suf
+    ext = Path(base).suffix.lower()
+    if ext not in _ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File type '{ext or '(none)'}' is not allowed. Allowed: {', '.join(sorted(_ALLOWED_EXTENSIONS))}",
+        )
+    return base
+
+
+def _unique_path(dir_path: Path, filename: str) -> Path:
+    candidate = dir_path / filename
+    if not candidate.exists():
+        return candidate
+    stem = Path(filename).stem
+    suffix = Path(filename).suffix
+    for n in range(1, 10_000):
+        alt = dir_path / f"{stem}_{n}{suffix}"
+        if not alt.exists():
+            return alt
+    raise HTTPException(status_code=500, detail="Could not allocate a unique filename.")
+
+
+def decode_upload_payload(content_base64: str) -> bytes:
+    raw = (content_base64 or "").strip()
+    if "base64," in raw:
+        raw = raw.split("base64,", 1)[1]
+    raw = re.sub(r"\s+", "", raw)
+    try:
+        # Avoid ``standard_b64decode(..., validate=...)``: some Python 3.12 builds reject
+        # the ``validate`` keyword on ``standard_b64decode`` (TypeError).
+        data = base64.b64decode(raw)
+    except binascii.Error as exc:
+        raise HTTPException(status_code=400, detail="Invalid base64 content.") from exc
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large (max {MAX_UPLOAD_BYTES // (1024 * 1024)} MB).",
+        )
+    if not data:
+        raise HTTPException(status_code=400, detail="Empty file.")
+    return data
+
+
+def save_uploaded_file(
+    session_id: str,
+    original_filename: str,
+    data: bytes,
+    *,
+    owner_user_id: str | None = None,
+) -> dict:
+    """Write bytes to disk and return a JSON-serializable result dict.
+
+    When *owner_user_id* is provided (e.g. enterprise multi-tenant flow) the
+    file is stored under ``~/.kumi/uploads/<user_id>/<session>/...``.
+    OSS single-user code passes ``None`` and gets the flat layout.
+    """
+    session_seg = _safe_session_dir(session_id)
+    safe_name = _safe_filename(original_filename)
+    root = uploads_root()
+    if owner_user_id and owner_user_id != "_local":
+        dest_dir = root / owner_user_id / session_seg
+    else:
+        dest_dir = root / session_seg
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = _unique_path(dest_dir, safe_name)
+    dest.write_bytes(data)
+    resolved = str(dest.resolve())
+    ext = Path(safe_name).suffix.lower()
+    return {
+        "status": "success",
+        "path": resolved,
+        "saved_as": dest.name,
+        "size_bytes": len(data),
+        "is_image": ext in IMAGE_EXTENSIONS,
+    }

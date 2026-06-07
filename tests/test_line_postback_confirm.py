@@ -2,8 +2,8 @@
 
 import asyncio
 
-from mirai.line.flex_builders import format_postback, parse_postback
-from mirai.line.pending import PENDING_TOOL_CONFIRM
+from kumi.line.flex_builders import format_postback, parse_postback
+from kumi.line.pending import PENDING_TOOL_CONFIRM
 
 
 def test_tool_confirm_postback_sets_future():

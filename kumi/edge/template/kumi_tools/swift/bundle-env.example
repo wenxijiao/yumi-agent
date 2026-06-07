@@ -1,0 +1,14 @@
+# Optional: only if you prefer a bundle file instead of literals in KumiSetup.swift.
+#
+# Copy into your Xcode app target as a bundle resource.
+#
+# For iPhone / iPad when using this approach:
+#   1. Duplicate this file in your project.
+#   2. Rename the copy to: env   (no extension, or use kumi.env — see swift/README.md)
+#   3. Put it in a folder group named kumi_tools (so it ends up at kumi_tools/env in the bundle).
+#   4. Target membership: your app → Copy Bundle Resources.
+#
+# Same key=value format as kumi_tools/.env on disk:
+
+KUMI_CONNECTION_CODE=
+EDGE_NAME=

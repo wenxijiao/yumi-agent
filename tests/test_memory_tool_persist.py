@@ -2,8 +2,8 @@
 
 import tempfile
 
-from mirai.core.memories.memory import Memory, _is_degenerate_vector
-from mirai.core.memories.tool_replay import message_hidden_from_chat_ui
+from kumi.core.memories.memory import Memory, _is_degenerate_vector
+from kumi.core.memories.tool_replay import message_hidden_from_chat_ui
 
 
 def test_is_degenerate_vector():
@@ -73,9 +73,9 @@ def test_table_exists_prefers_list_tables_when_available():
 
 
 def test_message_hidden_from_chat_ui():
-    assert message_hidden_from_chat_ui({"role": "assistant", "content": "__mirai:v1:tc__\n{}"}) is True
+    assert message_hidden_from_chat_ui({"role": "assistant", "content": "__kumi:v1:tc__\n{}"}) is True
     assert message_hidden_from_chat_ui({"role": "assistant", "content": "Hello"}) is False
-    assert message_hidden_from_chat_ui({"role": "user", "content": "__mirai:v1:tc__\n{}"}) is False
+    assert message_hidden_from_chat_ui({"role": "user", "content": "__kumi:v1:tc__\n{}"}) is False
 
 
 def test_assistant_thought_persisted():

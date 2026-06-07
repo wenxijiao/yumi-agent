@@ -6,13 +6,13 @@ import asyncio
 from pathlib import Path
 
 import pytest
-from mirai.core.api.routers.chat import get_chat_debug_endpoint, put_chat_debug_endpoint
-from mirai.core.api.schemas import ChatDebugRequest
+from kumi.core.api.routers.chat import get_chat_debug_endpoint, put_chat_debug_endpoint
+from kumi.core.api.schemas import ChatDebugRequest
 
 
 def test_put_chat_debug_toggle(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    monkeypatch.setattr("mirai.core.api.chat_debug_trace.debug_dir", lambda: str(tmp_path))
-    from mirai.core.plugins import LOCAL_IDENTITY
+    monkeypatch.setattr("kumi.core.api.chat_debug_trace.debug_dir", lambda: str(tmp_path))
+    from kumi.core.plugins import LOCAL_IDENTITY
 
     async def _run():
         up = await put_chat_debug_endpoint(LOCAL_IDENTITY, ChatDebugRequest(session_id="default", enabled=True))
@@ -36,7 +36,7 @@ def test_put_chat_debug_toggle(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
 
 
 def test_put_chat_debug_end_when_inactive() -> None:
-    from mirai.core.plugins import LOCAL_IDENTITY
+    from kumi.core.plugins import LOCAL_IDENTITY
 
     async def _run():
         return await put_chat_debug_endpoint(LOCAL_IDENTITY, ChatDebugRequest(session_id="default", enabled=False))

@@ -9,8 +9,8 @@ import time
 
 import pytest
 from fastapi.testclient import TestClient
-from mirai.core.api import app
-from mirai.core.api.state import ACTIVE_CONNECTIONS, EDGE_TOOLS_REGISTRY
+from kumi.core.api import app
+from kumi.core.api.state import ACTIVE_CONNECTIONS, EDGE_TOOLS_REGISTRY
 
 
 @pytest.fixture(autouse=True)

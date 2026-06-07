@@ -1,9 +1,9 @@
 # Defensive: never accidentally commit closed-source enterprise code into
 # this OSS repo. Keep the directory name reserved.
 _enterprise_seed/
-mirai_enterprise/
+kumi_enterprise/
 
-# Cursor / Claude local worktrees (not part of the Mirai source tree)
+# Cursor / Claude local worktrees (not part of the Kumi source tree)
 .claude/
 
 **/.lancedb/
@@ -16,16 +16,16 @@ mirai_enterprise/
 **/.mypy_cache/
 **/.ruff_cache/
 *.egg-info/
-mirai/ui/.web/
-mirai/ui/.states/
-mirai/sdk/swift/.build/
-mirai/sdk/swift/.swiftpm/
-mirai/sdk/typescript/node_modules/
-mirai/sdk/typescript/dist/
-mirai/sdk/cpp/build/
-mirai/sdk/cpp/.cache/
-mirai/sdk/go/vendor/
-mirai/sdk/java/target/
-mirai/sdk/java/.idea/
-mirai/sdk/csharp/bin/
-mirai/sdk/csharp/obj/
+kumi/ui/.web/
+kumi/ui/.states/
+kumi/sdk/swift/.build/
+kumi/sdk/swift/.swiftpm/
+kumi/sdk/typescript/node_modules/
+kumi/sdk/typescript/dist/
+kumi/sdk/cpp/build/
+kumi/sdk/cpp/.cache/
+kumi/sdk/go/vendor/
+kumi/sdk/java/target/
+kumi/sdk/java/.idea/
+kumi/sdk/csharp/bin/
+kumi/sdk/csharp/obj/

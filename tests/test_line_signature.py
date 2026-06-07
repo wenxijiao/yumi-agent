@@ -4,7 +4,7 @@ import base64
 import hashlib
 import hmac
 
-from mirai.line.client import verify_line_signature, verify_signature
+from kumi.line.client import verify_line_signature, verify_signature
 
 
 def test_verify_line_signature_ok():

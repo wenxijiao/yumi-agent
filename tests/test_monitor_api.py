@@ -1,7 +1,7 @@
 """Monitor HTTP routes (local core, no Relay)."""
 
 from fastapi.testclient import TestClient
-from mirai.core.api import app
+from kumi.core.api import app
 
 
 def test_monitor_topology_ok():
@@ -9,7 +9,7 @@ def test_monitor_topology_ok():
     r = c.get("/monitor/topology")
     assert r.status_code == 200
     data = r.json()
-    assert data.get("server", {}).get("id") == "mirai-core"
+    assert data.get("server", {}).get("id") == "kumi-core"
     assert "local_tool_count" in data
     assert isinstance(data.get("edges"), list)
 

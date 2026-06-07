@@ -6,7 +6,7 @@ Covers loops in ``_run_loops`` that previously had no direct unit tests:
 * normalize-exhausted produces an error event
 * owner-mismatch yields FORBIDDEN
 
-The service yields :class:`mirai.core.api.events.ChatEvent` Pydantic models;
+The service yields :class:`kumi.core.api.events.ChatEvent` Pydantic models;
 serialisation to dicts happens at the HTTP boundary in ``core.api.chat``.
 """
 
@@ -16,10 +16,10 @@ import asyncio
 from collections.abc import AsyncIterator
 
 import pytest
-from mirai.core.dispatch import MAX_TOOL_LOOPS
-from mirai.core.plugins.identity import Identity, set_current_identity
-from mirai.core.runtime import RuntimeState
-from mirai.core.services.chat_turn import ChatTurnService
+from kumi.core.dispatch import MAX_TOOL_LOOPS
+from kumi.core.plugins.identity import Identity, set_current_identity
+from kumi.core.runtime import RuntimeState
+from kumi.core.services.chat_turn import ChatTurnService
 
 
 class _FakeBot:
@@ -59,12 +59,12 @@ def runtime():
 @pytest.fixture
 def install_fakes(monkeypatch):
     """Wire a fake bot pool, scope, and tool routing into chat_turn."""
-    from mirai.core.plugins.identity import LOCAL_IDENTITY, reset_current_identity
+    from kumi.core.plugins.identity import LOCAL_IDENTITY, reset_current_identity
 
     token = set_current_identity(LOCAL_IDENTITY)
 
     def install(bot: _FakeBot):
-        import mirai.core.services.chat_turn as svc
+        import kumi.core.services.chat_turn as svc
 
         monkeypatch.setattr(svc, "get_bot_pool", lambda: _FakeBotPool(bot))
 
@@ -137,7 +137,7 @@ def test_owner_mismatch_yields_forbidden(runtime, install_fakes, monkeypatch):
     bot = _FakeBot(scripted_chunks=[[{"type": "text", "content": "hi"}]])
     install_fakes(bot)
 
-    import mirai.core.services.chat_turn as svc_mod
+    import kumi.core.services.chat_turn as svc_mod
 
     class _Scope:
         def owner_user_from_session_id(self, _sid: str) -> str:

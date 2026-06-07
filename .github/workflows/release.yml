@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: mirai/sdk/typescript
+        working-directory: kumi/sdk/typescript
     steps:
       - name: Checkout
         uses: actions/checkout@v4

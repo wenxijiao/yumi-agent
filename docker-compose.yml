@@ -1,22 +1,22 @@
-# Example: run the OSS Mirai API server (single-user / LAN) with persistent
-# user data. Configure models via env vars or run `mirai --setup` on the
-# host and copy ~/.mirai into the volume.
+# Example: run the OSS Kumi API server (single-user / LAN) with persistent
+# user data. Configure models via env vars or run `kumi --setup` on the
+# host and copy ~/.kumi into the volume.
 #
 # Multi-tenant deployments (Postgres, multi-user auth, billing, relay)
-# require the closed-source `mirai-enterprise` package — not part of OSS.
+# require the closed-source `kumi-enterprise` package — not part of OSS.
 services:
-  mirai:
+  kumi:
     build: .
     ports:
       - "8000:8000"
     environment:
-      MIRAI_LOG_LEVEL: INFO
+      KUMI_LOG_LEVEL: INFO
       # Example overrides (uncomment as needed):
-      # MIRAI_CHAT_PROVIDER: ollama
-      # MIRAI_CHAT_MODEL: llama3.2
+      # KUMI_CHAT_PROVIDER: ollama
+      # KUMI_CHAT_MODEL: llama3.2
       # OLLAMA_HOST: http://host.docker.internal:11434
     volumes:
-      - mirai_data:/root/.mirai
+      - kumi_data:/root/.kumi
 
 volumes:
-  mirai_data:
+  kumi_data:

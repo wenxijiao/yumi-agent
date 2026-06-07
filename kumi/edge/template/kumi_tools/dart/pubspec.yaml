@@ -1,0 +1,12 @@
+name: kumi_edge
+description: Kumi edge sample (Dart VM)
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.2.0 <4.0.0"
+
+dependencies:
+  kumi_sdk:
+    path: kumi_sdk
+

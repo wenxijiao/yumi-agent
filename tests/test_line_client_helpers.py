@@ -1,6 +1,6 @@
 """LINE client message helpers (plan-named APIs)."""
 
-from mirai.line.client import (
+from kumi.line.client import (
     flex,
     flex_message,
     text,
