@@ -32,9 +32,9 @@ def _runtime_imports(path: pathlib.Path) -> list[str]:
             elif isinstance(node, ast.If):
                 # Skip `if TYPE_CHECKING:` guarded imports (never run at import time).
                 test = node.test
-                is_type_checking = (
-                    isinstance(test, ast.Name) and test.id == "TYPE_CHECKING"
-                ) or (isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING")
+                is_type_checking = (isinstance(test, ast.Name) and test.id == "TYPE_CHECKING") or (
+                    isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING"
+                )
                 if not is_type_checking:
                     visit_body(node.body)
                 visit_body(node.orelse)
@@ -76,8 +76,8 @@ _FOUNDATIONAL_FEATURES = {"config", "prompts"}
 # future cleanup (e.g. share the bit via platform), but not regressions today.
 _ALLOWED_FEATURE_EDGES = {
     ("prompts", "proactive"),  # prompt composition reuses proactive timezone utils
-    ("stt", "uploads"),        # stt router reuses the uploads service
-    ("tools", "edge"),         # tools router pushes confirmation policy to edge peers
+    ("stt", "uploads"),  # stt router reuses the uploads service
+    ("tools", "edge"),  # tools router pushes confirmation policy to edge peers
 }
 
 

@@ -345,9 +345,7 @@ class SchedulerService:
             visible = [t for t in visible if t.get("owner_user_id", oid) == oid]
         return visible
 
-    def cancel_timer_for_owner(
-        self, timer_id: str, owner_user_id: str | None = None
-    ) -> tuple[bool, str, dict | None]:
+    def cancel_timer_for_owner(self, timer_id: str, owner_user_id: str | None = None) -> tuple[bool, str, dict | None]:
         if timer_id not in self.active_timers:
             return False, f"Error: no active timer or task with ID '{timer_id}'.", None
 
