@@ -1,7 +1,7 @@
 """CORS configuration helpers for core and Relay apps."""
 
 import pytest
-from kumi.core.http_config import DEFAULT_LOCAL_BROWSER_ORIGINS, get_cors_settings
+from kumi.core.platform.security.http_config import DEFAULT_LOCAL_BROWSER_ORIGINS, get_cors_settings
 
 
 def test_cors_defaults_are_localhost_only(monkeypatch):

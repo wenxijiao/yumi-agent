@@ -56,7 +56,7 @@ def test_put_config_model_missing_openai_key(monkeypatch, tmp_path: Path) -> Non
     p.write_text(json.dumps(cfg), encoding="utf-8")
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
-    import kumi.core.api.state as api_state
+    import kumi.core.platform.runtime.accessors as api_state
 
     monkeypatch.setattr(api_state, "bot", None)
 
@@ -161,7 +161,7 @@ def test_put_config_model_updates_edge_tool_routing_settings(monkeypatch, tmp_pa
         encoding="utf-8",
     )
 
-    import kumi.core.api.state as api_state
+    import kumi.core.platform.runtime.accessors as api_state
 
     monkeypatch.setattr(api_state, "bot", None)
     monkeypatch.setattr("kumi.core.features.config.router.ensure_provider_available", lambda provider: None)

@@ -10,7 +10,7 @@ from kumi.core.platform.providers.gemini_provider import (
     GeminiProvider,
     _sanitize_gemini_tool_sequence,
 )
-from kumi.core.tool_call_normalize import normalize_tool_calls
+from kumi.core.platform.tools.tool_call_normalize import normalize_tool_calls
 
 _SIG = base64.b64encode(b"gemini-thought-signature").decode("ascii")
 

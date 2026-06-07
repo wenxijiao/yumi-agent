@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Internal restructure (`kumi/core/`): platform / features split.** Modules
+  were reorganized into `kumi/core/platform/` (cross-cutting infra),
+  `kumi/core/features/<feature>/` (self-contained capabilities), and a slim
+  `kumi/core/api/` HTTP composition root. Deprecated re-export **shims remain at
+  every old import path**, so existing code keeps working unchanged. New code
+  should use the new paths. See `docs/MIGRATION_PLATFORM_FEATURES.md` for the
+  full old→new map. Downstream packages (`kumi-enterprise`, `kumi-nexus`) still
+  import several old paths via the shims and should migrate before the shims are
+  removed in a future release.
+
 ### Security
 
 - `~/.kumi/config.json` is now written atomically with `0o600` and the parent

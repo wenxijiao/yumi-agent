@@ -10,7 +10,7 @@ from kumi.core.platform.dispatch.dispatcher import ToolDispatcher, canonical_loc
 from kumi.core.platform.dispatch.edge import EdgeToolExecutor
 from kumi.core.platform.dispatch.local import LocalToolExecutor
 from kumi.core.platform.runtime import get_default_runtime
-from kumi.core.tool import TOOL_REGISTRY
+from kumi.core.platform.tools.tool import TOOL_REGISTRY
 
 
 @pytest.fixture

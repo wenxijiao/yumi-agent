@@ -15,7 +15,7 @@ from kumi.core.features.proactive.service import ProactiveMessageService
 from kumi.core.features.proactive.state import ProactiveSessionState, ProactiveStateStore
 from kumi.core.features.proactive.timezone_utils import format_user_facing_time
 from kumi.core.features.proactive.tools import proactive_context_lines, proactive_tool_schemas
-from kumi.core.tool import TOOL_REGISTRY, register_tool
+from kumi.core.platform.tools.tool import TOOL_REGISTRY, register_tool
 
 
 def test_proactive_config_defaults_disabled():
