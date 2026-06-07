@@ -5,15 +5,15 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, HTTPException, Query
-from kumi.core.api.dependencies import CurrentIdentity
 from kumi.core.api.http_helpers import get_session_payload
-from kumi.core.api.schemas import (
+from kumi.core.api.state import get_memory_store_for_identity
+from kumi.core.platform.http.dependencies import CurrentIdentity
+from kumi.core.platform.http.schemas import (
     MemoryCreateRequest,
     MemoryUpdateRequest,
     SessionCreateRequest,
     SessionUpdateRequest,
 )
-from kumi.core.api.state import get_memory_store_for_identity
 from kumi.core.platform.plugins import get_session_scope
 
 router = APIRouter()

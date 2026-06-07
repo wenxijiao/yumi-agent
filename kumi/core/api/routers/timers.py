@@ -7,9 +7,9 @@ import json
 
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
-from kumi.core.api.dependencies import CurrentIdentity
 from kumi.core.api.state import TIMER_SUBSCRIBERS
 from kumi.core.features.proactive.timer_tools import cancel_timer_for_owner, timer_entries_for_owner
+from kumi.core.platform.http.dependencies import CurrentIdentity
 
 router = APIRouter()
 

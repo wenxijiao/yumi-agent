@@ -13,8 +13,6 @@ from typing import Any
 import httpx
 from fastapi import HTTPException
 
-from kumi.core.api.events import ErrorEvent, TextEvent, ToolConfirmationEvent, parse_chat_event
-from kumi.core.api.stream_consumer import BaseChannelHandler, consume_chat_stream
 from kumi.core.api.uploads import MAX_UPLOAD_BYTES, save_uploaded_file
 from kumi.core.features.config import get_telegram_allowed_user_ids, get_telegram_bot_token
 from kumi.core.features.proactive import record_user_message
@@ -25,6 +23,8 @@ from kumi.core.features.prompts.http_bridge import (
     http_get_session_prompt,
     http_put_session_prompt,
 )
+from kumi.core.platform.http.events import ErrorEvent, TextEvent, ToolConfirmationEvent, parse_chat_event
+from kumi.core.platform.http.stream_consumer import BaseChannelHandler, consume_chat_stream
 from kumi.core.platform.security.connection import DEFAULT_LOCAL_SERVER_URL, ConnectionConfig
 from kumi.logging_config import get_logger
 from kumi.telegram.bridge import chat_connection_config, save_token_for_telegram_user

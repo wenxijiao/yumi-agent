@@ -1,25 +1,5 @@
-"""FastAPI dependencies for Kumi API routes."""
+"""Deprecated shim — moved to kumi.core.platform.http.dependencies. Removed in phase E."""
+import sys as _sys
+from importlib import import_module as _imp
 
-from __future__ import annotations
-
-from typing import Annotated
-
-from fastapi import Depends, Request
-from kumi.core.platform.plugins import Identity, get_current_identity
-from kumi.core.platform.runtime import RuntimeState, get_default_runtime
-
-
-def get_runtime(request: Request | None = None) -> RuntimeState:
-    """Return the runtime attached to a FastAPI app, falling back to the default."""
-    if request is not None:
-        runtime = getattr(request.app.state, "runtime", None)
-        if runtime is not None:
-            return runtime
-    return get_default_runtime()
-
-
-def current_identity_dependency() -> Identity:
-    return get_current_identity()
-
-
-CurrentIdentity = Annotated[Identity, Depends(current_identity_dependency)]
+_sys.modules[__name__] = _imp("kumi.core.platform.http.dependencies")

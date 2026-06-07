@@ -19,7 +19,6 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 
 from kumi.core.api.chat_context import reset_chat_owner_user_id, set_chat_owner_user_id
-from kumi.core.api.events import ErrorEvent, TextEvent, ThoughtEvent, ToolStatusEvent
 from kumi.core.platform.dispatch import (
     LOCAL_TOOL_TIMEOUT_DEFAULT,
     MAX_TOOL_CALL_FORMAT_RETRIES,
@@ -35,6 +34,7 @@ from kumi.core.platform.dispatch import (
     UsageRecorder,
 )
 from kumi.core.platform.dispatch.normalizer import summarize_tool_args
+from kumi.core.platform.http.events import ErrorEvent, TextEvent, ThoughtEvent, ToolStatusEvent
 from kumi.core.platform.plugins import (
     SINGLE_USER_ID,
     get_bot_pool,

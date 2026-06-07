@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 from kumi.core.api.routers.chat import get_chat_debug_endpoint, put_chat_debug_endpoint
-from kumi.core.api.schemas import ChatDebugRequest
+from kumi.core.platform.http.schemas import ChatDebugRequest
 
 
 def test_put_chat_debug_toggle(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

@@ -3,13 +3,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
-from kumi.core.api.dependencies import CurrentIdentity
 from kumi.core.api.edge import persist_local_tool_confirmation_to_config, push_confirmation_policy_to_edge
-from kumi.core.api.schemas import (
-    ToolConfirmationResponse,
-    ToolConfirmationToggleRequest,
-    ToolToggleRequest,
-)
 from kumi.core.api.state import (
     ACTIVE_CONNECTIONS,
     ALWAYS_ALLOWED_TOOLS,
@@ -18,6 +12,12 @@ from kumi.core.api.state import (
     EDGE_TOOLS_REGISTRY,
     PENDING_CONFIRMATIONS,
     resolve_edge_for_prefixed_tool_name,
+)
+from kumi.core.platform.http.dependencies import CurrentIdentity
+from kumi.core.platform.http.schemas import (
+    ToolConfirmationResponse,
+    ToolConfirmationToggleRequest,
+    ToolToggleRequest,
 )
 from kumi.core.platform.tools.tool import TOOL_REGISTRY
 

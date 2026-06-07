@@ -12,9 +12,9 @@ import asyncio
 import logging
 
 from kumi.core.api.state import TIMER_SUBSCRIBERS, TIMER_TASKS
-from kumi.core.api.task_logging import log_task_exc_on_done
 from kumi.core.features.proactive.timer_tools import ACTIVE_TIMERS as TIMER_DATA
 from kumi.core.features.proactive.timer_tools import calc_next_recurring_delay
+from kumi.core.platform.http.task_logging import log_task_exc_on_done
 
 logger = logging.getLogger(__name__)
 

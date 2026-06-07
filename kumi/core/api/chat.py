@@ -8,21 +8,21 @@ for the three call sites:
 * ``kumi.core.api.timers`` (timer-fired follow-up turns),
 * ``kumi.line.handlers`` (LINE direct-mode bridge).
 
-Internally the orchestrator now yields :class:`~kumi.core.api.events.ChatEvent`
+Internally the orchestrator now yields :class:`~kumi.core.platform.http.events.ChatEvent`
 models for type safety; this façade serialises each event to ``dict`` at the
 public boundary so existing dict-shaped consumers keep working unchanged.
 External consumers that want the typed surface should import
-:mod:`kumi.core.api.events` and use :func:`parse_chat_event` (or migrate to
-the channel-handler pattern in :mod:`kumi.core.api.stream_consumer`).
+:mod:`kumi.core.platform.http.events` and use :func:`parse_chat_event` (or migrate to
+the channel-handler pattern in :mod:`kumi.core.platform.http.stream_consumer`).
 """
 
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
 
-from kumi.core.api.events import ChatEvent
 from kumi.core.api.state import SESSION_LOCKS
 from kumi.core.features.chat.service import ChatTurnService
+from kumi.core.platform.http.events import ChatEvent
 from kumi.core.platform.plugins import get_bot_pool, get_session_scope
 
 

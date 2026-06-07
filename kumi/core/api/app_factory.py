@@ -17,7 +17,6 @@ import kumi.core.api.state as _state
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from kumi.core.api.docs_middleware import DocsAccessMiddleware
 from kumi.core.api.edge import apply_local_tool_confirmation_from_saved_config
 from kumi.core.api.routers.chat import router as chat_router
 from kumi.core.api.routers.config import router as config_router
@@ -29,12 +28,13 @@ from kumi.core.api.routers.stt import router as stt_router
 from kumi.core.api.routers.timers import router as timers_router
 from kumi.core.api.routers.tools import router as tools_router
 from kumi.core.api.routers.uploads import router as uploads_router
-from kumi.core.api.task_logging import log_task_exc_on_done
 from kumi.core.api.timers import cancel_timer, schedule_timer
 from kumi.core.chatbot import KumiBot
 from kumi.core.features.config import ensure_chat_model_configured, ensure_embedding_provider_not_deepseek
 from kumi.core.features.memory.embedding_state import set_embed_provider
 from kumi.core.features.proactive.timer_tools import restore_schedules, set_timer_callbacks
+from kumi.core.platform.http.docs_middleware import DocsAccessMiddleware
+from kumi.core.platform.http.task_logging import log_task_exc_on_done
 from kumi.core.platform.plugins import (
     get_bot_pool,
     get_middleware_extender,

@@ -4,15 +4,7 @@ from __future__ import annotations
 
 import kumi.core.api.state as _state
 from fastapi import APIRouter, HTTPException
-from kumi.core.api.dependencies import CurrentIdentity
-from kumi.core.api.http_errors import model_apply_failed_http, provider_not_ready_http, unknown_provider_http
 from kumi.core.api.http_helpers import get_system_prompt_payload
-from kumi.core.api.schemas import (
-    ModelConfigUpdateRequest,
-    SessionPromptRequest,
-    SystemPromptUpdateRequest,
-    UIPreferencesRequest,
-)
 from kumi.core.features.config import (
     CONFIG_PATH,
     delete_session_prompt,
@@ -29,6 +21,14 @@ from kumi.core.features.config import (
     set_system_prompt,
 )
 from kumi.core.platform.exceptions import ProviderNotReadyError
+from kumi.core.platform.http.dependencies import CurrentIdentity
+from kumi.core.platform.http.http_errors import model_apply_failed_http, provider_not_ready_http, unknown_provider_http
+from kumi.core.platform.http.schemas import (
+    ModelConfigUpdateRequest,
+    SessionPromptRequest,
+    SystemPromptUpdateRequest,
+    UIPreferencesRequest,
+)
 from kumi.core.platform.plugins import get_session_scope
 from kumi.core.platform.providers import SUPPORTED_PROVIDERS, create_provider
 from kumi.logging_config import get_logger

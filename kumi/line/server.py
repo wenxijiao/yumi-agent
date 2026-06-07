@@ -8,8 +8,8 @@ import os
 import uvicorn
 from fastapi import FastAPI, Request, Response
 
-from kumi.core.api.task_logging import log_task_exc_on_done
 from kumi.core.features.config.line import get_line_bot_port, get_line_channel_secret
+from kumi.core.platform.http.task_logging import log_task_exc_on_done
 from kumi.logging_config import configure_logging, get_logger
 
 _LOG = get_logger(__name__)

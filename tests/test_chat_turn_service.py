@@ -6,7 +6,7 @@ Covers loops in ``_run_loops`` that previously had no direct unit tests:
 * normalize-exhausted produces an error event
 * owner-mismatch yields FORBIDDEN
 
-The service yields :class:`kumi.core.api.events.ChatEvent` Pydantic models;
+The service yields :class:`kumi.core.platform.http.events.ChatEvent` Pydantic models;
 serialisation to dicts happens at the HTTP boundary in ``core.api.chat``.
 """
 

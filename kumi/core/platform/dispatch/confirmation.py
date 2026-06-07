@@ -16,8 +16,8 @@ import asyncio
 import uuid
 from collections.abc import AsyncIterator
 
-from kumi.core.api.events import ChatEvent, ToolConfirmationEvent, ToolStatusEvent
 from kumi.core.platform.dispatch.context import ToolInvocation, TurnContext
+from kumi.core.platform.http.events import ChatEvent, ToolConfirmationEvent, ToolStatusEvent
 from kumi.core.platform.runtime import RuntimeState
 from kumi.core.platform.runtime.edge_naming import (
     edge_tool_key_prefix,

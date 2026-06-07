@@ -5,8 +5,8 @@ from __future__ import annotations
 import asyncio
 
 from fastapi import FastAPI, Request, Response
-from kumi.core.api.task_logging import log_task_exc_on_done
 from kumi.core.features.config.line import get_line_channel_secret
+from kumi.core.platform.http.task_logging import log_task_exc_on_done
 
 
 def try_register_line_webhook(app: FastAPI) -> None:

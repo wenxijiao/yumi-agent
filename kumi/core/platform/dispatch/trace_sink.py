@@ -8,7 +8,7 @@ Centralises three sources of side-effect that used to be scattered across
   ``write_chat_loop_diagnostic``),
 * fan-out of provider usage records.
 
-Callers ``sink.emit(event)`` with a typed :class:`~kumi.core.api.events.ChatEvent`;
+Callers ``sink.emit(event)`` with a typed :class:`~kumi.core.platform.http.events.ChatEvent`;
 the sink records the event then returns it so the orchestrator can ``yield``
 it directly. The HTTP boundary (``kumi.core.api.chat.generate_chat_events``)
 serialises models to dicts only at the public edge.
@@ -19,8 +19,8 @@ from __future__ import annotations
 from typing import Any
 
 from kumi.core.api import chat_debug_trace
-from kumi.core.api.events import ChatEvent
 from kumi.core.platform.dispatch.context import TurnContext
+from kumi.core.platform.http.events import ChatEvent
 from kumi.core.platform.providers.diagnostics import write_chat_diagnostic, write_chat_loop_diagnostic
 
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import kumi.core.api.state as _state
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
-from kumi.core.api.dependencies import CurrentIdentity
+from kumi.core.platform.http.dependencies import CurrentIdentity
 
 router = APIRouter()
 

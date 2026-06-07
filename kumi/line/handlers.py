@@ -17,8 +17,6 @@ from typing import Any
 import httpx
 from fastapi import HTTPException
 
-from kumi.core.api.events import ErrorEvent, TextEvent, ToolConfirmationEvent
-from kumi.core.api.stream_consumer import BaseChannelHandler, consume_chat_stream
 from kumi.core.api.uploads import MAX_UPLOAD_BYTES, save_uploaded_file
 from kumi.core.features.config import load_saved_model_config
 from kumi.core.features.config.line import (
@@ -40,6 +38,8 @@ from kumi.core.features.prompts.store import (
     get_session_prompt,
     set_session_prompt,
 )
+from kumi.core.platform.http.events import ErrorEvent, TextEvent, ToolConfirmationEvent
+from kumi.core.platform.http.stream_consumer import BaseChannelHandler, consume_chat_stream
 from kumi.core.platform.plugins import (
     LOCAL_IDENTITY,
     get_current_identity,

@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from fastapi import HTTPException
 from kumi.core.api.routers.config import _model_config_public_dict, update_model_config_endpoint
-from kumi.core.api.schemas import ModelConfigUpdateRequest
+from kumi.core.platform.http.schemas import ModelConfigUpdateRequest
 
 
 def _patch_config_path(monkeypatch, tmp_path: Path, name: str = "c.json") -> Path:

@@ -10,8 +10,8 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 from kumi.core.api.routers.stt import stt_transcribe_endpoint
-from kumi.core.api.schemas import TranscribeRequest
 from kumi.core.features.stt import SttNotConfiguredError, TranscriptionResult, ensure_whisper_weights_cached
+from kumi.core.platform.http.schemas import TranscribeRequest
 from kumi.core.platform.plugins import LOCAL_IDENTITY
 
 
