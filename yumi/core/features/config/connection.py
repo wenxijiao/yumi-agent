@@ -1,4 +1,4 @@
-"""Relay / pairing connection code persistence."""
+"""Pairing connection code persistence."""
 
 from yumi.core.features.config.store import load_saved_model_config, save_model_config
 

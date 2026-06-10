@@ -5,8 +5,8 @@ Background
 ``yumi.cli.main`` used to be a 100-line block of ``if args.server: ... elif
 args.ui: ... elif args.chat: ...`` with a separate hand-written pyramid of
 mutex validations. Adding a new sub-command meant editing four places
-(parser, validation, dispatch, help) and the enterprise plugin port for
-admin commands had no natural way to inject into that namespace.
+(parser, validation, dispatch, help), and plugin-provided admin commands had
+no natural way to inject into that namespace.
 
 This module replaces the dispatch tower with a small Command Pattern:
 
@@ -16,7 +16,7 @@ This module replaces the dispatch tower with a small Command Pattern:
   on the same ``argparse`` parser, then picks the one that ``matches`` the
   parsed args.
 
-OSS commands live in :mod:`yumi.cli.commands`. Enterprise plugins can call
+Core commands live in :mod:`yumi.cli.commands`. Plugins can call
 ``CommandRegistry.add`` from the ``AdminCli`` plugin port to inject extra
 sub-commands without modifying OSS code.
 """

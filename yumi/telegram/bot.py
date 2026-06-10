@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
-import os
 import uuid
 from collections.abc import Awaitable, Callable
 from typing import Any
@@ -25,9 +24,9 @@ from yumi.core.features.prompts.http_bridge import (
 from yumi.core.features.uploads.service import MAX_UPLOAD_BYTES, save_uploaded_file
 from yumi.core.platform.http.events import ErrorEvent, TextEvent, ToolConfirmationEvent, parse_chat_event
 from yumi.core.platform.http.stream_consumer import BaseChannelHandler, consume_chat_stream
-from yumi.core.platform.security.connection import DEFAULT_LOCAL_SERVER_URL, ConnectionConfig
+from yumi.core.platform.security.connection import ConnectionConfig
 from yumi.logging_config import get_logger
-from yumi.telegram.bridge import chat_connection_config, save_token_for_telegram_user
+from yumi.telegram.bridge import chat_connection_config
 
 # Pending tool confirmations: short_id -> Future[str] with values deny|allow|always
 _PENDING_TOOL_CONFIRM: dict[str, asyncio.Future[str]] = {}
@@ -45,14 +44,10 @@ def _truncate_for_telegram(text: str, max_chars: int = 4090) -> str:
 
 
 def _api_url(connection: ConnectionConfig, path: str) -> str:
-    if connection.mode == "relay":
-        return f"{connection.base_url.rstrip('/')}/v1{path}"
     return f"{connection.base_url.rstrip('/')}{path}"
 
 
 def _chat_url(connection: ConnectionConfig) -> str:
-    if connection.mode == "relay":
-        return f"{connection.base_url.rstrip('/')}/v1/chat"
     return f"{connection.base_url.rstrip('/')}/chat"
 
 
@@ -346,7 +341,6 @@ def build_application():
             "/system — view or change this chat's system prompt (not global)\n"
             "/timers — list active timers and scheduled tasks\n"
             "/cancel_timer <id> — cancel a timer or scheduled task\n"
-            "/link — bind this Telegram account to your Yumi user (multi-tenant)\n"
             "/start_log — write full chat traces to ~/.yumi/debug/chat_trace/ (this session)\n"
             "/end_log — stop chat tracing\n"
             "/help — this message"
@@ -407,39 +401,6 @@ def build_application():
         else:
             await update.message.reply_text("Chat debug logging was not active for this session.")
 
-    async def link_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        if not _authorized(update.effective_user.id if update.effective_user else None):
-            await update.message.reply_text("You are not authorized to use this bot.")
-            return
-        if not context.args or not str(context.args[0]).strip():
-            await update.message.reply_text(
-                "Usage: /link <yumi_... access token>\n"
-                "On yumi-enterprise, run: yumi-enterprise user-token <your_user_id> to get a token.\n"
-                "In multi-tenant mode you must link before the API can act as your user."
-            )
-            return
-        token = str(context.args[0]).strip()
-        base = os.getenv("YUMI_SERVER_URL", DEFAULT_LOCAL_SERVER_URL).rstrip("/")
-        url = f"{base}/telegram/link"
-        tg_uid = update.effective_user.id if update.effective_user else 0
-        try:
-            async with httpx.AsyncClient(timeout=httpx.Timeout(15.0)) as client:
-                r = await client.post(
-                    url,
-                    headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-                    json={"telegram_user_id": int(tg_uid)},
-                )
-        except Exception as exc:
-            await update.message.reply_text(_truncate_for_telegram(f"Link request failed: {exc}"))
-            return
-        if r.status_code >= 400:
-            await update.message.reply_text(_truncate_for_telegram(f"Link failed ({r.status_code}): {r.text[:500]}"))
-            return
-        save_token_for_telegram_user(int(tg_uid), token)
-        await update.message.reply_text(
-            "Linked successfully. You can chat as usual (multi-tenant mode uses your Yumi user identity)."
-        )
-
     async def timers_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if not _authorized(update.effective_user.id if update.effective_user else None):
             await update.message.reply_text("You are not authorized to use this bot.")
@@ -490,8 +451,7 @@ def build_application():
             "/system — or /system show — show the full composed prompt\n"
             "/system set <text> — set your addendum for this Telegram session\n"
             "/system reset — clear your addendum (defaults still apply)\n"
-            "/system help — this help\n\n"
-            "Multi-tenant: run /link first. Long prompts can be set via the API."
+            "/system help — this help"
         )
 
     async def system_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -506,12 +466,7 @@ def build_application():
         async def _do_show() -> None:
             sp, err = await http_get_session_prompt(connection, session_id)
             if err:
-                hint = (
-                    f"Auth required: multi-tenant users run /link <yumi_token> first. Detail: {err[:180]}"
-                    if ("401" in err or "403" in err)
-                    else err
-                )
-                await update.message.reply_text(_truncate_for_telegram(hint))
+                await update.message.reply_text(_truncate_for_telegram(err))
                 return
             gp, err2 = await http_get_global_system_prompt(connection)
             if err2:
@@ -757,7 +712,6 @@ def build_application():
     app.add_handler(CommandHandler("system", system_cmd))
     app.add_handler(CommandHandler("timers", timers_cmd))
     app.add_handler(CommandHandler("cancel_timer", cancel_timer_cmd))
-    app.add_handler(CommandHandler("link", link_cmd))
     app.add_handler(CallbackQueryHandler(on_callback, pattern=r"^tc\|"))
     # Text, photos, and documents (files). Images are inlined for vision-capable chat models;
     # other paths are read via the server `read_file` tool when needed.

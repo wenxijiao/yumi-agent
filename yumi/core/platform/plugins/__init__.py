@@ -1,12 +1,12 @@
 """Yumi plugin extension layer.
 
-The OSS core only ever talks to commercial / multi-tenant features through
-the ports defined here. Single-user defaults live in
+The core only talks to higher-layer capabilities through the ports defined
+here. Single-user defaults live in
 :mod:`yumi.core.platform.plugins.single_user` and ship with OSS so the codebase
 behaves correctly without any plugin installed.
 
-Enterprise plugins register richer implementations via :func:`register_plugin`,
-typically driven by the ``yumi.plugins`` entry-point group (see
+Plugins register richer implementations via :func:`register_plugin`, typically
+driven by the ``yumi.plugins`` entry-point group (see
 :func:`load_entry_point_plugins`).
 """
 
@@ -20,7 +20,6 @@ from yumi.core.platform.plugins.discovery import (
 from yumi.core.platform.plugins.identity import (
     LOCAL_IDENTITY,
     SINGLE_USER_ID,
-    SINGLE_USER_TENANT,
     Identity,
     context_identity,
     has_admin_scope,
@@ -78,7 +77,6 @@ __all__ = [
     "QuotaPolicy",
     "RouteExtender",
     "SINGLE_USER_ID",
-    "SINGLE_USER_TENANT",
     "SessionScope",
     "SystemPromptExtender",
     "context_identity",

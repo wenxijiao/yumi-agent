@@ -54,10 +54,9 @@ By default, tests **do not** start the full `yumi --server` / FastAPI lifespan (
 | API models | Pydantic models in `yumi.core.platform.http.schemas` |
 | App object | `create_app()` returns the same instance as the module-level `app` (no listening socket) |
 | Credentials | Encode/decode round-trip plus expiry / kind / scope / signature failures in `yumi.core.platform.security.auth` |
-| Relay auth | Bearer enforcement, scope rejection, and one-time join-code bootstrap behavior |
 | CLI env | Direct-mode environment selection without launching subprocesses |
 | Edge WebSocket | Register handshake, tool mounting, and disconnect cleanup via TestClient WebSocket |
-| Health endpoint | `/health` response shape and default relay status |
+| Health endpoint | `/health` response shape |
 | SDK contracts | Wire-format verification across Python, Go, TypeScript, and Java schema builders; register/tool_call/tool_result message shapes |
 
 For end-to-end or HTTP tests with mocks, add cases separately (e.g. `TestClient` with dependencies overridden).

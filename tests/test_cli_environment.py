@@ -10,8 +10,6 @@ import yumi.cli.runners as cli_runners
 
 def test_prepare_client_environment_prefers_reachable_direct_server(monkeypatch):
     monkeypatch.setenv("YUMI_SERVER_URL", "http://127.0.0.1:8000")
-    monkeypatch.delenv("YUMI_RELAY_URL", raising=False)
-    monkeypatch.delenv("YUMI_ACCESS_TOKEN", raising=False)
     monkeypatch.setattr(cli_runners, "is_server_running", lambda url: True)
 
     env = cli.prepare_client_environment("chat")

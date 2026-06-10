@@ -1,12 +1,11 @@
 """Plugin port definitions.
 
-Each ``Protocol`` describes one extension point that the OSS core calls into
-during normal request handling. The OSS ships trivial single-user defaults in
-:mod:`yumi.core.platform.plugins.single_user`; commercial / enterprise builds register
+Each ``Protocol`` describes one extension point that the core calls into during
+normal request handling. The package ships trivial single-user defaults in
+:mod:`yumi.core.platform.plugins.single_user`; higher layers can register
 richer implementations via :func:`yumi.core.platform.plugins.register_plugin`.
 
-The OSS core MUST only depend on these abstractions — never import anything
-from a commercial package directly.
+The core MUST only depend on these abstractions.
 """
 
 from __future__ import annotations
@@ -72,7 +71,7 @@ class BillingHook(Protocol):
 
 @runtime_checkable
 class SessionScope(Protocol):
-    """Map raw client session ids to storage session ids (per-user prefix in MT)."""
+    """Map raw client session ids to storage session ids."""
 
     def qualify_session_id(self, identity: Identity, client_session_id: str | None) -> str: ...
     def qualify_session_http(self, identity: Identity, client_session_id: str | None) -> str: ...
@@ -104,12 +103,12 @@ class MemoryFactory(Protocol):
 
 @runtime_checkable
 class EdgeScope(Protocol):
-    """Edge connection key / tool prefix scoping (per-user in MT, plain in OSS).
+    """Edge connection key / tool prefix scoping.
 
     The two lifecycle hooks (``on_edge_register`` / ``on_edge_disconnect``) let
-    enterprise plugins observe the WebSocket lifecycle without changing the
-    OSS edge protocol or message shapes. The OSS calls them at the natural
-    points in ``handle_edge_peer``; the default implementations do nothing.
+    plugins observe the WebSocket lifecycle without changing the edge protocol
+    or message shapes. The core calls them at the natural points in
+    ``handle_edge_peer``; the default implementations do nothing.
     """
 
     def connection_key(self, owner_user_id: str | None, edge_name: str) -> str: ...
@@ -134,7 +133,7 @@ class EdgeScope(Protocol):
 
 @runtime_checkable
 class AuditSink(Protocol):
-    """Audit logging hook (logs only in OSS, also persists in enterprise)."""
+    """Audit logging hook."""
 
     def event(self, event: str, user_id: str | None = None, **fields: object) -> None: ...
 
@@ -145,8 +144,8 @@ class SystemPromptExtender(Protocol):
 
     The composed prompt for a turn is built in fixed layers::
 
-        DEFAULT_SYSTEM_PROMPT  (L1 OSS — identity, language, tone, honesty)
-        + plugin sections      (L2 tenant info, L3 brand / app context, …)
+        DEFAULT_SYSTEM_PROMPT  (core identity, language, tone, honesty)
+        + plugin sections      (deployment / app context)
         + user addendum        (what the user wrote via /system set)
 
     Plugins return zero or more strings; the composer joins them with
@@ -161,7 +160,7 @@ class SystemPromptExtender(Protocol):
 
 @runtime_checkable
 class RouteExtender(Protocol):
-    """Mount additional FastAPI routes (admin, auth, relay)."""
+    """Mount additional FastAPI routes."""
 
     def mount(self, app: "FastAPI") -> None: ...
 
@@ -175,7 +174,7 @@ class MiddlewareExtender(Protocol):
 
 @runtime_checkable
 class AdminCli(Protocol):
-    """Inject extra CLI subcommands into ``yumi-enterprise`` (no-op for ``yumi``)."""
+    """Inject extra CLI subcommands."""
 
     def add_arguments(self, parser: Any) -> None: ...
     def handle(self, args: Any) -> bool:

@@ -78,7 +78,7 @@ def main():
 
     parser = argparse.ArgumentParser(
         description="Yumi command line interface",
-        epilog="OSS edition: local / LAN single-user. Multi-tenant + remote relay live in yumi-enterprise.",
+        epilog="Core edition: local / LAN single-user runtime.",
     )
     registry = build_default_registry()
     registry.install(parser)

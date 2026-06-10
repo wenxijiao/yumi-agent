@@ -1,7 +1,7 @@
 """Singleton plugin registry.
 
-Each accessor returns either the OSS single-user default or the implementation
-registered by an enterprise plugin via :func:`register_plugin`.
+Each accessor returns either the single-user default or the implementation
+registered by a plugin via :func:`register_plugin`.
 """
 
 from __future__ import annotations
@@ -70,9 +70,8 @@ def register_plugin(
 ) -> None:
     """Replace one or more plugin ports with the supplied implementation(s).
 
-    Called once per plugin module — typically from
-    ``yumi_enterprise.plugin.register()``. Calling more than once is allowed
-    but later registrations win on a per-port basis.
+    Called once per plugin module. Calling more than once is allowed, and later
+    registrations win on a per-port basis.
     """
     global _identity_provider, _quota_policy, _billing_hook, _session_scope
     global _bot_pool, _memory_factory, _edge_scope, _audit_sink

@@ -7,9 +7,8 @@ Each repository:
   helpers and time/SQL primitives are not duplicated,
 * exposes a small public API the :class:`Memory` façade delegates to.
 
-The split exists so enterprise builds can swap LanceDB for another store
-(e.g. PostgreSQL via ``yumi_enterprise.tenancy.postgres_store``) by
-implementing the same Repository surface without rewriting the façade.
+The split exists so deployments can swap LanceDB for another store by
+implementing the same repository surface without rewriting the façade.
 """
 
 from yumi.core.features.memory.repos.long_term import LongTermMemoryRepository

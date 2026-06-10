@@ -405,28 +405,17 @@ class State(rx.State):
 
     # ── private helpers ──
 
-    def _is_relay(self) -> bool:
-        return bool(os.getenv("YUMI_RELAY_URL") and os.getenv("YUMI_ACCESS_TOKEN"))
-
     def _base_url(self) -> str:
-        if self._is_relay():
-            return os.getenv("YUMI_RELAY_URL", DEFAULT_SERVER_URL).rstrip("/")
         return os.getenv("YUMI_SERVER_URL", DEFAULT_SERVER_URL).rstrip("/")
 
     def _api(self, path: str) -> str:
-        base = self._base_url()
-        return f"{base}/v1{path}" if self._is_relay() else f"{base}{path}"
+        return f"{self._base_url()}{path}"
 
     def _chat_endpoint(self) -> str:
-        base = self._base_url()
-        return f"{base}/v1/chat" if self._is_relay() else f"{base}/chat"
+        return f"{self._base_url()}/chat"
 
     def _headers(self) -> dict:
-        h: dict[str, str] = {"Content-Type": "application/json"}
-        token = (os.getenv("YUMI_USER_ACCESS_TOKEN") or os.getenv("YUMI_ACCESS_TOKEN") or "").strip()
-        if token:
-            h["Authorization"] = f"Bearer {token}"
-        return h
+        return {"Content-Type": "application/json"}
 
     def _fetch_sessions(self):
         try:

@@ -107,7 +107,6 @@ EDGE_NAME=My App
 Accepted connection-code shapes:
 
 - `yumi-lan_...` for LAN pairing
-- `yumi_...` for relay pairing
 - `ws://...` or `wss://...`
 - `http://...` or `https://...`
 

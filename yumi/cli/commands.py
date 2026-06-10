@@ -209,11 +209,58 @@ class SetupCommand(Command):
 
     def register(self, parser, mutex_group):
         mutex_group.add_argument("--setup", action="store_true", help="Configure Yumi models")
+        # Non-interactive setup (Docker/CI): pass --provider to skip all prompts.
+        parser.add_argument(
+            "--provider",
+            dest="setup_provider",
+            default=None,
+            help="With --setup: chat provider (ollama/openai/claude/gemini/deepseek), non-interactive",
+        )
+        parser.add_argument(
+            "--model",
+            dest="setup_model",
+            default=None,
+            help="With --setup: chat model (default: provider's recommended)",
+        )
+        parser.add_argument(
+            "--api-key", dest="setup_api_key", default=None, help="With --setup: API key for the chosen cloud provider"
+        )
+        parser.add_argument(
+            "--embedding-provider",
+            dest="setup_embed_provider",
+            default=None,
+            help="With --setup: embedding provider (ollama/openai/gemini); omit to disable embeddings",
+        )
+        parser.add_argument(
+            "--embedding-model", dest="setup_embed_model", default=None, help="With --setup: embedding model name"
+        )
+        parser.add_argument(
+            "--no-embeddings",
+            dest="setup_no_embed",
+            action="store_true",
+            help="With --setup: disable embeddings (long-term memory + dynamic tool routing off)",
+        )
 
     def matches(self, args):
         return bool(args.setup)
 
     def run(self, args):
+        provider = getattr(args, "setup_provider", None)
+        if provider:
+            from yumi.core.features.config import configure_models_noninteractive
+
+            cfg = configure_models_noninteractive(
+                provider=provider,
+                model=getattr(args, "setup_model", None),
+                api_key=getattr(args, "setup_api_key", None),
+                embedding_provider=getattr(args, "setup_embed_provider", None),
+                embedding_model=getattr(args, "setup_embed_model", None),
+                no_embeddings=getattr(args, "setup_no_embed", False),
+            )
+            emb = f"{cfg.embedding_provider}/{cfg.embedding_model}" if cfg.embedding_model else "off"
+            print(f"Saved: chat={cfg.chat_provider}/{cfg.chat_model}, embedding={emb}")
+            return
+
         from yumi.cli import run_model_setup
 
         run_model_setup(force=True)

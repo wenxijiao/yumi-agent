@@ -28,7 +28,7 @@ def init_yumi() -> None:
             "'1 分钟后跟我说我爱你'. "
             "DO NOT USE for user-visible reminders / calendar items / tasks that should persist "
             "and show up in a list — if the deployment has a calendar-style tool (e.g. "
-            "``create_temi``, ``create_event``, ``add_task``), route those there instead so "
+            "``create_event``, ``add_task``, ``create_reminder``), route those there instead so "
             "the user can see, edit and find them later. "
             "Timer state lives in process memory and is invisible to the user."
         ),
@@ -54,7 +54,7 @@ def init_yumi() -> None:
             "'every weekday 9am post the standup question'. "
             "DO NOT USE for personal reminders / tasks / habits the user expects to see and "
             "manage in their app. If the deployment exposes a calendar-style tool (e.g. "
-            "``create_temi``, ``create_event``, ``add_task``), prefer that — those items "
+            "``create_event``, ``add_task``, ``create_reminder``), prefer that — those items "
             "are persisted, editable, surfaced in a UI, and survive a server restart. "
             "schedule_task lives only in process memory."
         ),

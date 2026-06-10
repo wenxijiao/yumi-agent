@@ -96,7 +96,7 @@ initYumi();
 
 - No top-level `fs`, `path`, `os`, or `ws` imports, so browser bundlers can import the SDK cleanly
 - Confirmation policy is memory-only in the browser
-- Relay bootstrap uses `fetch`
+- Network calls use `fetch`
 
 ## Node Notes
 

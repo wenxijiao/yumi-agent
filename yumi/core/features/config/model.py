@@ -187,3 +187,35 @@ RECOMMENDED_EMBEDDING_MODEL = "qwen3-embedding:0.6b"
 RECOMMENDED_STT_MODEL = "base"
 
 DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com"
+
+# Curated default chat models shown in `yumi --setup` so cloud users don't have
+# to memorise model ids. First entry is the recommended default. Edit here when
+# providers ship new models; users can always pick "custom".
+RECOMMENDED_CHAT_MODELS: dict[str, list[str]] = {
+    "openai": ["gpt-4o", "gpt-4o-mini"],
+    "claude": ["claude-sonnet-4-6", "claude-opus-4-8", "claude-haiku-4-5-20251001"],
+    "gemini": ["gemini-2.0-flash", "gemini-2.5-pro"],
+    "deepseek": ["deepseek-chat", "deepseek-reasoner"],
+    "ollama": [RECOMMENDED_CHAT_MODEL],
+}
+
+# Providers that expose a text-embedding endpoint. Claude and DeepSeek do not,
+# so memory/tool-routing embeddings must use one of these (or be disabled).
+EMBEDDING_CAPABLE_PROVIDERS: tuple[str, ...] = ("ollama", "openai", "gemini")
+
+RECOMMENDED_EMBEDDING_MODELS: dict[str, str] = {
+    "openai": "text-embedding-3-small",
+    "gemini": "text-embedding-004",
+    "ollama": RECOMMENDED_EMBEDDING_MODEL,
+}
+
+
+def embeddings_enabled(config: "ModelConfig") -> bool:
+    """True when long-term-memory / tool-routing embeddings are configured.
+
+    Embeddings are *off* when no model is set or the provider is the sentinel
+    ``"disabled"``. The whole embedding pipeline already degrades to zero-vectors
+    in that case (see ``EmbeddingProcessor``); this helper lets callers skip
+    provider instantiation and availability checks entirely.
+    """
+    return bool(config.embedding_model) and (config.embedding_provider or "") not in ("", "disabled")

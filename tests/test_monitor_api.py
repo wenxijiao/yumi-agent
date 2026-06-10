@@ -1,4 +1,4 @@
-"""Monitor HTTP routes (local core, no Relay)."""
+"""Monitor HTTP routes for the local core."""
 
 from fastapi.testclient import TestClient
 from yumi.core.api import app

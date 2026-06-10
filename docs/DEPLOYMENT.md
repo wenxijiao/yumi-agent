@@ -55,8 +55,7 @@ across container restarts. Expose `8000` for the HTTP API.
   startup.
 * **Health check.** `GET /health` returns readiness — wire it to your
   orchestrator's liveness/readiness probes.
-* **Graceful shutdown.** SIGTERM drains in-flight work (and the relay connection
-  in enterprise builds) before exit.
+* **Graceful shutdown.** SIGTERM drains in-flight work before exit.
 
 ## Verifying a clean install
 

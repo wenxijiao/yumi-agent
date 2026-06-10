@@ -1,6 +1,6 @@
-# Yumi HTTP API (core server and Relay)
+# Yumi HTTP API (core server)
 
-HTTP integration guide for **any language**. Core implementation lives in the [`yumi/core/api/`](../yumi/core/api/) package. The Relay gateway ships in the separate **`yumi-enterprise`** package (not in this OSS repo); see [UPGRADING_TO_ENTERPRISE.md](UPGRADING_TO_ENTERPRISE.md).
+HTTP integration guide for **any language**. Core implementation lives in the [`yumi/core/api/`](../yumi/core/api/) package.
 
 ## Basics
 
@@ -17,10 +17,9 @@ HTTP integration guide for **any language**. Core implementation lives in the [`
 | Scenario | What to assume | Recommendations |
 |----------|----------------|-----------------|
 | **Core server on `127.0.0.1`** | Only local processes can reach the API | Default for development; do not forward this port to the public Internet without adding auth/TLS |
-| **LAN binding** | Anyone on the same network may call unauthenticated admin routes unless you add controls | Use a firewall; prefer **Tailscale** or similar for remote access instead of raw port exposure |
-| **Relay mode** (`YUMI_ENABLE_RELAY`) | Clients use Bearer tokens against the Relay base URL; TLS depends on your deployment | Terminate TLS at a reverse proxy when exposing Relay; rotate join codes and tokens if leaked, and set exact browser origins when serving a web app |
+| **LAN binding** | Anyone on the same network may call local management routes unless you add controls | Use a firewall; prefer **Tailscale** or similar for remote access instead of raw port exposure |
 
-The **core** HTTP API does not require a Bearer token by default: treat it as **trusted network** only. **Relay** adds Bearer-scoped access for remote clients; still avoid exposing services you do not intend to run.
+The **core** HTTP API does not require a Bearer token by default: treat it as **trusted network** only.
 
 ### Browser CORS configuration
 
@@ -28,28 +27,19 @@ Yumi now uses **restricted browser defaults**:
 
 - `YUMI_CORS_ORIGINS` controls which browser origins may call the **core** API.
 - `YUMI_CORS_ALLOW_CREDENTIALS` controls whether browsers may send credentials to the **core** API.
-- `YUMI_RELAY_CORS_ORIGINS` controls which browser origins may call the **Relay** API.
-- `YUMI_RELAY_CORS_ALLOW_CREDENTIALS` controls whether browsers may send credentials to the **Relay** API.
 
 Behavior:
 
-- If unset, both services allow only localhost-style development origins.
+- If unset, the core allows only localhost-style development origins.
 - Browser credentials are **off by default**.
 - If you set origins to `*`, Yumi forces browser credentials back off because wildcard origins and credentialed requests are incompatible in browsers.
 
 Examples:
 
 ```bash
-# Allow a production web app to call Relay over HTTPS.
-export YUMI_RELAY_CORS_ORIGINS="https://app.example.com"
-
 # Allow a custom browser client to call the core API on a trusted private network.
 export YUMI_CORS_ORIGINS="https://dashboard.example.internal"
 ```
-
-### Relay CORS and browsers
-
-The Relay gateway can be opened to additional browser origins with env vars, but **do not rely on browser CORS alone for security**. In production, put Relay behind HTTPS, restrict origins if you serve a web app, and use short-lived tokens. Native clients and server-side callers are unaffected by browser CORS.
 
 ---
 
@@ -104,11 +94,7 @@ All paths are relative to the core base URL (e.g. `http://127.0.0.1:8000`).
 
 ### Health
 
-- `GET /health` — JSON with `status`, `remote_access_enabled`, `relay_connected`, etc.
-
-### Multi-tenant routes (enterprise only)
-
-`yumi-agent` (this OSS package) is single-user / LAN. Multi-tenant routes (`/tenancy/*`, `/admin/*`, `/auth/*`, `/relay/*`, `/telegram/link`, `/line/link`, …) are added by the closed-source `yumi-enterprise` plugin via the `yumi.core.platform.plugins` port system. See [UPGRADING_TO_ENTERPRISE.md](UPGRADING_TO_ENTERPRISE.md) for details.
+- `GET /health` — JSON with server status and runtime readiness details.
 
 ### Sessions and memory
 
@@ -166,44 +152,6 @@ Traces may be mirrored to `~/.yumi/tool_traces.jsonl` on disk (append-only); the
 ### Timer events (NDJSON stream)
 
 - `GET /timer-events` — long-lived stream, `application/x-ndjson`, for timer pushes (includes `heartbeat`).
-
----
-
-## Relay gateway (`YUMI_ENABLE_RELAY=1`)
-
-After the core registers with Relay, remote clients should use the **Relay HTTP base URL**, not `http://127.0.0.1` on the core machine.
-
-### Authentication
-
-For most routes, send:
-
-```http
-Authorization: Bearer <access_token>
-```
-
-Obtain `access_token` from `POST /v1/bootstrap` using a join code; see the Relay / bootstrap types in **`yumi-enterprise`** (not shipped in this repository).
-
-### Path mapping
-
-Relay prefixes core paths with `/v1`, for example:
-
-| Core (local) | Relay (remote) |
-|----------------|----------------|
-| `POST /chat` | `POST /v1/chat` |
-| `POST /clear` | `POST /v1/clear` |
-| `GET /config/system-prompt` | `GET /v1/config/system-prompt` |
-| `GET /memory/search?query=...` | `GET /v1/memory/search?query=...` |
-| `GET /monitor/topology` | `GET /v1/monitor/topology` |
-| `GET /monitor/traces` | `GET /v1/monitor/traces` |
-| `GET /monitor/traces/export` | `GET /v1/monitor/traces/export` |
-
-**Scopes:** chat typically requires `chat` or `ui` on the token; memory admin routes often require `ui`. See Relay and `verify_relay_access_token` for details.
-
-### Relay health
-
-- `GET /health` — Relay process status (not the same as the core `/health`).
-
----
 
 ## Trying the API manually
 

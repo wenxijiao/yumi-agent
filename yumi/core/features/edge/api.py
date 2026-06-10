@@ -140,11 +140,7 @@ def cleanup_edge_connection(connection_key: str, peer):
 
 
 async def handle_edge_peer(peer):
-    """OSS edge peer loop: LAN-only, no per-user tenancy.
-
-    Enterprise builds wrap this loop (or replace ``ws/edge`` entirely) to add
-    user-token verification and per-owner connection key scoping.
-    """
+    """Core edge peer loop: LAN-only, with plugin hooks for extra scoping."""
     edge_name = "Unknown"
     connection_key = "Unknown"
     tool_prefix = ""

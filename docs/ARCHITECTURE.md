@@ -38,7 +38,7 @@ flowchart LR
   Bot --> Prov
 ```
 
-Yumi is **local-first**: it ships a runnable server, terminal UI, Reflex web UI, and first-class edge-tool hosts so your game, app, or device can expose tools from its own process. The same FastAPI app accepts traffic from local clients (loopback HTTP), the LINE/Telegram bridges, and — in enterprise builds — relay frames forwarded from a public gateway.
+Yumi is **local-first**: it ships a runnable server, terminal UI, Reflex web UI, and first-class edge-tool hosts so your game, app, or device can expose tools from its own process. The same FastAPI app accepts traffic from local clients (loopback HTTP) and the LINE/Telegram bridges.
 
 ## Module Layout (platform / features / api)
 
@@ -64,7 +64,7 @@ yumi/core/
 * `features/*` do **not** import each other; shared needs go through `platform`.
 * `api/` (the composition root) may import both `platform` and `features`.
 * `platform/` has **no import-time dependency on features** — the few residual
-  needs (config + embeddings in tool routing; the OSS default memory/bot
+  needs (config + embeddings in tool routing; the default memory/bot
   factories) are deferred via lazy default-wiring through the plugin ports.
 
 To understand or delete one capability, look in one folder: e.g. everything for
@@ -89,7 +89,7 @@ artifact. `yumi/ui/` is otherwise frozen pending that migration.
 
 `yumi/core/api/app_factory.py` is the single source of truth for HTTP composition. It owns:
 
-* Process lifespan (`init_yumi`, model-config preflight, bot warm-up, signal handlers, relay drain on SIGTERM, proactive-message service).
+* Process lifespan (`init_yumi`, model-config preflight, bot warm-up, signal handlers, proactive-message service).
 * CORS, docs-access middleware, and any middleware contributed by the [`MiddlewareExtender`](#plugin-ports) plugin port.
 * Mounting every resource router under `yumi/core/api/routers/`. Each router file owns one resource group:
 
@@ -106,17 +106,7 @@ artifact. `yumi/ui/` is otherwise frozen pending that migration.
   | `tools.py` | tool listing and confirmation policy |
   | `uploads.py` | `POST /uploads` |
 
-There are no compatibility shims, no `sys.modules` indirection, and no router file mirroring routes for relay — adding a new endpoint is a one-router edit.
-
-### Relay (enterprise)
-
-The enterprise relay client (`yumi_enterprise.relay_client.RelayClient`) receives `relay_http_request` frames from the public gateway and forwards them through `yumi_enterprise.relay_http_dispatch`. That module is now a transparent **ASGI proxy**:
-
-1. Verifies the relay credential against a small path-prefix → required-scopes table.
-2. Binds the per-user `Identity` via `set_current_identity` so OSS plugin ports see the right user.
-3. Synthesises an ASGI `(scope, receive, send)` triple (with an `X-Yumi-Source: relay` header) and dispatches through the OSS `app_factory.app` directly.
-
-`TenancyAuthMiddleware` recognises the relay marker and skips token validation (the relay handler has already done it). Streaming responses (`/chat` NDJSON) are forwarded chunk-by-chunk through the proxy's `send` callable. Adding a new HTTP route in OSS reaches the relay automatically — zero per-route mirroring.
+There are no compatibility shims or `sys.modules` indirection; adding a new endpoint is a one-router edit.
 
 ## Chat Turn Pipeline
 
@@ -192,9 +182,9 @@ memory/
     └── summaries.py       # SessionSummaryRepository (session_summaries)
 ```
 
-`Memory(...)` keeps its historical signature and every public method (`add_message`, `create_message`, `list_sessions`, …); each one delegates to the appropriate repository. Legacy private helpers (`_has_table`, `_open_table`, `_build_where_clause`, …) are preserved as instance methods so external collaborators (`memories/context.py`, `memories/storage.py`, `memories/writer.py`, enterprise per-user memory) keep functioning unchanged.
+`Memory(...)` keeps its historical signature and every public method (`add_message`, `create_message`, `list_sessions`, …); each one delegates to the appropriate repository. Legacy private helpers (`_has_table`, `_open_table`, `_build_where_clause`, …) are preserved as instance methods so external collaborators (`memories/context.py`, `memories/storage.py`, `memories/writer.py`, plugin memory factories) keep functioning unchanged.
 
-The split exists so the enterprise PostgreSQL backend (`yumi_enterprise.tenancy.postgres_store`) can implement the same Repository surface without rewriting the façade. See [`MEMORY.md`](MEMORY.md) for the on-disk layout and retrieval semantics.
+The split exists so alternate storage backends can implement the same Repository surface without rewriting the façade. See [`MEMORY.md`](MEMORY.md) for the on-disk layout and retrieval semantics.
 
 ## CLI
 
@@ -206,7 +196,7 @@ The CLI is a **Command Pattern + Registry** in `yumi/cli/`:
 | `cli/registry.py` | `Command` ABC + `CommandRegistry` |
 | `cli/commands.py` | One `Command` subclass per sub-command, plus `validate_cross_command_flags` |
 
-`main()` builds the default registry (12 commands in OSS), mounts each command's argparse flags, runs cross-command validation, then dispatches. Adding a sub-command is one `Command` subclass + one `registry.add(...)` line — no four-place edit. Enterprise plugins inject extra sub-commands via the [`AdminCli`](#plugin-ports) plugin port, so `yumi --enterprise-action` lives in the same CLI namespace as OSS commands.
+`main()` builds the default registry, mounts each command's argparse flags, runs cross-command validation, then dispatches. Adding a sub-command is one `Command` subclass + one `registry.add(...)` line — no four-place edit. Higher layers can inject extra sub-commands via the [`AdminCli`](#plugin-ports) plugin port without changing L1.
 
 ## Server-Side Tools
 
@@ -222,21 +212,21 @@ When the LLM selects an edge tool, `EdgeToolExecutor` sends a `tool_call` messag
 
 ## Plugin Ports
 
-`yumi/core/platform/plugins/ports.py` declares the protocols every commercial / enterprise build implements. The OSS core MUST only depend on these abstractions — never import anything from a commercial package directly.
+`yumi/core/platform/plugins/ports.py` declares the protocols higher layers can implement. The core MUST only depend on these abstractions and never import L2/L3 packages directly.
 
-| Port | OSS default | Enterprise replacement |
+| Port | Core default | Higher-layer replacement |
 |---|---|---|
-| `IdentityProvider` | `LocalIdentityProvider` (single user) | `MultiTenantIdentityProvider` |
-| `QuotaPolicy` | no-op | `PostgresQuotaPolicy` |
-| `BillingHook` | returns 0.0 | `RoughUsdBilling` |
-| `SessionScope` | identity transparent | `PerUserSessionScope` |
-| `BotPool` | shared singleton | `PerUserBotPool` |
-| `MemoryFactory` | `SharedMemoryFactory` | `PerUserMemoryFactory` |
-| `EdgeScope` | name = key | `PerUserEdgeScope` |
-| `AuditSink` | log only | `PostgresAuditSink` |
-| `RouteExtender` | none | mounts `/admin`, `/auth`, `/tenancy/...` |
-| `MiddlewareExtender` | none | adds `TenancyAuthMiddleware` |
-| `AdminCli` | none | injects `yumi-enterprise --xxx` sub-commands |
+| `IdentityProvider` | local synthetic user | authenticated identity |
+| `QuotaPolicy` | no-op | usage policy |
+| `BillingHook` | returns 0.0 | cost estimator |
+| `SessionScope` | identity transparent | scoped sessions |
+| `BotPool` | shared singleton | scoped bot pool |
+| `MemoryFactory` | `SharedMemoryFactory` | scoped/alternate memory |
+| `EdgeScope` | name = key | scoped edge tools |
+| `AuditSink` | log only | persistent audit sink |
+| `RouteExtender` | none | mounts additional routes |
+| `MiddlewareExtender` | none | adds middleware |
+| `AdminCli` | none | injects extra sub-commands |
 
 ## Admin API
 
@@ -249,10 +239,8 @@ Yumi exposes a local admin API for configuration, tools, and memory.
 | `GET` | `/tools` | List server and edge tools |
 | `POST` | `/tools/toggle` | Enable or disable a tool |
 | `GET` | `/memory/search` | Search memory |
-| `GET` | `/tenancy/me` | Multi-tenant: user, tenant label, daily chat quota; single-user: mode only |
-| `GET` | `/tenancy/audit` | Multi-tenant: recent audit rows for the current user |
 
-For HTTP details (chat NDJSON stream, Relay `/v1/*` mapping, curl examples), see [HTTP_API.md](HTTP_API.md).
+For HTTP details (chat NDJSON stream, curl examples), see [HTTP_API.md](HTTP_API.md).
 
 ## Public API Stability
 

@@ -2,10 +2,10 @@
 
 The module-level UPPERCASE names (``ACTIVE_CONNECTIONS``, ``DISABLED_TOOLS``,
 ``TIMER_TASKS`` …) and lowercase singletons (``bot``, ``proactive_service``,
-``RELAY_CLIENT``, ``server_draining``) are read-through views of
+``server_draining``) are read-through views of
 :data:`_runtime`. Attribute access goes via PEP 562 ``__getattr__`` so the
-*runtime instance* is the single source of truth — swapping ``_runtime`` (e.g.
-in enterprise tests) is one assignment and every reader sees it immediately.
+*runtime instance* is the single source of truth — swapping ``_runtime`` in
+tests is one assignment and every reader sees it immediately.
 
 This lives in ``platform`` and imports nothing from ``features`` — feature code
 (proactive, plugins) depends on it, not the other way round. Memory-store
@@ -31,7 +31,6 @@ if TYPE_CHECKING:
     EDGE_TOOLS_REGISTRY: dict
     PENDING_TOOL_CALLS: dict
     PENDING_EDGE_OPS: dict
-    RELAY_EDGE_PEERS: dict
     DISABLED_TOOLS: set[str]
     CONFIRMATION_TOOLS: set[str]
     ALWAYS_ALLOWED_TOOLS: set[str]
@@ -41,7 +40,6 @@ if TYPE_CHECKING:
     TIMER_SUBSCRIBERS: list[tuple[Any, str | None]]
     bot: YumiBot | None
     proactive_service: ProactiveMessageService | None
-    RELAY_CLIENT: Any
     server_draining: bool
 
 
@@ -54,7 +52,6 @@ _RUNTIME_ATTR_MAP: dict[str, tuple[str, ...]] = {
     "EDGE_TOOLS_REGISTRY": ("edge_registry", "tools"),
     "PENDING_TOOL_CALLS": ("edge_registry", "pending_tool_calls"),
     "PENDING_EDGE_OPS": ("edge_registry", "pending_file_ops"),
-    "RELAY_EDGE_PEERS": ("edge_registry", "relay_edge_peers"),
     "DISABLED_TOOLS": ("tool_policy", "disabled_tools"),
     "CONFIRMATION_TOOLS": ("tool_policy", "confirmation_tools"),
     "ALWAYS_ALLOWED_TOOLS": ("tool_policy", "always_allowed_tools"),
@@ -64,7 +61,6 @@ _RUNTIME_ATTR_MAP: dict[str, tuple[str, ...]] = {
     "TIMER_SUBSCRIBERS": ("timer_registry", "subscribers"),
     "bot": ("bot",),
     "proactive_service": ("proactive_service",),
-    "RELAY_CLIENT": ("relay_client",),
     "server_draining": ("server_draining",),
 }
 
@@ -108,10 +104,6 @@ def set_bot(active_bot: "YumiBot") -> None:
 
 def set_proactive_service(service: "ProactiveMessageService | None") -> None:
     _runtime.proactive_service = service
-
-
-def set_relay_client(client) -> None:
-    _runtime.relay_client = client
 
 
 def set_server_draining(value: bool) -> None:

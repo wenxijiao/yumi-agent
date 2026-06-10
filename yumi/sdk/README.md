@@ -45,7 +45,7 @@ sdk/
 | Go | Go modules | `yumi_sdk.NewAgent` | local-module workflow via `replace` |
 | Java | Maven | `new YumiAgent(...)` | JDK 11+ native WebSocket; only external dep is Gson |
 | C# | .NET 6+ | `new YumiAgent(...)` | native `System.Net.WebSockets`, zero external deps |
-| Rust | Cargo, Tokio | `YumiAgent::new` | `tokio-tungstenite`, relay bootstrap via `reqwest` |
+| Rust | Cargo, Tokio | `YumiAgent::new` | `tokio-tungstenite` |
 | Kotlin | JVM, Gradle | `YumiAgent(...)` | OkHttp WebSocket + Gson |
 | Dart | `dart pub`, VM / Flutter | `YumiAgent(...)` | `web_socket_channel` + `http` |
 
@@ -71,13 +71,12 @@ When `yumi --edge` runs, code from this tree is copied into the user's project a
 
 Every SDK resolves the connection in the same order:
 
-1. `YUMI_RELAY_URL` + `YUMI_ACCESS_TOKEN`
-2. Explicit connection code passed to the SDK
-3. `YUMI_CONNECTION_CODE`
-4. Legacy `BRAIN_URL` (where supported)
-5. Local fallback such as `ws://127.0.0.1:8000/ws/edge`
+1. Explicit connection code passed to the SDK
+2. `YUMI_CONNECTION_CODE`
+3. Legacy `BRAIN_URL` (where supported)
+4. Local fallback such as `ws://127.0.0.1:8000/ws/edge`
 
-Accepted connection-code shapes: `yumi-lan_…` (LAN), `yumi_…` (relay pairing), `ws://…` / `wss://…`, `http://…` / `https://…`.
+Accepted connection-code shapes: `yumi-lan_…` (LAN), `ws://…` / `wss://…`, `http://…` / `https://…`.
 
 Tool confirmation policy is persisted to local disk where the host platform allows it; browser-based TypeScript keeps it in memory.
 

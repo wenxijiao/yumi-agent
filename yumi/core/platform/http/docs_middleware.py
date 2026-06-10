@@ -15,8 +15,8 @@ class DocsAccessMiddleware(BaseHTTPMiddleware):
 
     Set ``YUMI_EXPOSE_DOCS=1`` to disable this gate entirely.
 
-    OSS single-user mode always returns an admin-scoped identity, so this is
-    transparently a pass-through; enterprise plugins enforce the real check.
+    Single-user mode always returns an admin-scoped identity, so this is
+    transparently a pass-through unless a plugin supplies stricter identity.
     """
 
     async def dispatch(self, request: Request, call_next) -> Response:

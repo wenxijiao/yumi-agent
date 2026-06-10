@@ -3,8 +3,8 @@
 The model-facing prompt is a **stack of layers**, not a single overwritable
 string::
 
-    DEFAULT_SYSTEM_PROMPT          ← L1 OSS (identity, language, tone, honesty)
-    + plugin extension sections    ← L2 tenant / L3 brand / app-aware blocks
+    DEFAULT_SYSTEM_PROMPT          ← core identity, language, tone, honesty
+    + plugin extension sections    ← deployment / app-aware blocks
     + user addendum                ← what the user wrote via /system set
 
 Each layer adds to the next. The user can only edit the addendum (their own

@@ -2,8 +2,6 @@
 # user data. Configure models via env vars or run `yumi --setup` on the
 # host and copy ~/.yumi into the volume.
 #
-# Multi-tenant deployments (Postgres, multi-user auth, billing, relay)
-# require the closed-source `yumi-enterprise` package — not part of OSS.
 services:
   yumi:
     build: .

@@ -9,8 +9,11 @@ from yumi.core.features.config.credentials import (
     get_api_credentials,
 )
 from yumi.core.features.config.model import (
+    EMBEDDING_CAPABLE_PROVIDERS,
     RECOMMENDED_CHAT_MODEL,
+    RECOMMENDED_CHAT_MODELS,
     RECOMMENDED_EMBEDDING_MODEL,
+    RECOMMENDED_EMBEDDING_MODELS,
     RECOMMENDED_STT_MODEL,
     ModelConfig,
 )
@@ -38,30 +41,6 @@ def _choose_installed_model(models: list[str], label: str) -> str:
             continue
         if 1 <= selected_index <= len(models):
             return models[selected_index - 1]
-        print("That selection is out of range.")
-
-
-def _choose_provider(label: str, *, exclude: tuple[str, ...] = ()) -> str:
-    from yumi.core.platform.providers import SUPPORTED_PROVIDERS
-
-    choices = tuple(p for p in SUPPORTED_PROVIDERS if p not in exclude)
-    if not choices:
-        raise RuntimeError("No providers available for this step.")
-
-    print()
-    print(f"Choose a {label} provider:")
-    for i, name in enumerate(choices, 1):
-        print(f"  {i}. {name}")
-
-    while True:
-        choice = input("> ").strip()
-        try:
-            idx = int(choice)
-        except ValueError:
-            print("Please enter a valid number.")
-            continue
-        if 1 <= idx <= len(choices):
-            return choices[idx - 1]
         print("That selection is out of range.")
 
 
@@ -256,49 +235,233 @@ def _prompt_stt_config(config: ModelConfig) -> None:
         print("  Voice transcription will retry the download on first use.")
 
 
+# ── top-level run-mode + cloud pickers ──────────────────────────────────────
+
+_CLOUD_PROVIDERS: tuple[tuple[str, str], ...] = (
+    ("openai", "OpenAI"),
+    ("claude", "Anthropic (Claude)"),
+    ("gemini", "Gemini"),
+    ("deepseek", "DeepSeek"),
+)
+
+
+def _choose_run_mode() -> str:
+    """Return 'cloud', 'local', or 'skip'. Cloud and local are presented equally."""
+    print("How do you want to run the AI model?")
+    print("  1. Cloud API key   — quickest start, any machine (OpenAI / Claude / Gemini / DeepSeek)")
+    print("  2. Local (Ollama)  — fully private & offline; needs Ollama + a model download")
+    print("  3. Skip for now    — set up later with `yumi --setup` or env vars")
+    while True:
+        choice = input("> ").strip()
+        if choice == "1":
+            return "cloud"
+        if choice == "2":
+            return "local"
+        if choice == "3":
+            return "skip"
+        print("Please enter 1, 2, or 3.")
+
+
+def _choose_cloud_provider() -> str:
+    print()
+    print("Which provider?")
+    for i, (_key, label) in enumerate(_CLOUD_PROVIDERS, 1):
+        print(f"  {i}. {label}")
+    while True:
+        choice = input("> ").strip()
+        try:
+            idx = int(choice)
+        except ValueError:
+            print("Please enter a valid number.")
+            continue
+        if 1 <= idx <= len(_CLOUD_PROVIDERS):
+            return _CLOUD_PROVIDERS[idx - 1][0]
+        print("That selection is out of range.")
+
+
+def _choose_recommended_model(provider: str, label: str) -> str:
+    """Pick from the curated default models for a cloud provider (or custom)."""
+    models = RECOMMENDED_CHAT_MODELS.get(provider, [])
+    if not models:
+        return _prompt_model_name(provider, label)
+
+    print()
+    print(f"Choose a {label} model:")
+    for i, name in enumerate(models, 1):
+        tag = "  (recommended)" if i == 1 else ""
+        print(f"  {i}. {name}{tag}")
+    custom_idx = len(models) + 1
+    print(f"  {custom_idx}. Enter a custom model name")
+
+    while True:
+        choice = input("> ").strip()
+        if not choice:
+            return models[0]
+        try:
+            idx = int(choice)
+        except ValueError:
+            print("Please enter a valid number.")
+            continue
+        if 1 <= idx <= len(models):
+            return models[idx - 1]
+        if idx == custom_idx:
+            name = input(f"  {label.capitalize()} model name: ").strip()
+            if name:
+                return name
+            print("  Model name cannot be empty.")
+            continue
+        print("That selection is out of range.")
+
+
+def _setup_embeddings(config: ModelConfig, chat_provider: str) -> None:
+    """Smart-default embedding selection. Enter accepts the recommended option."""
+    creds = get_api_credentials()
+    options: list[tuple[str, str, str]] = []  # (label, provider, model)
+    seen: set[str] = set()
+
+    def add(provider: str, suffix: str = "") -> None:
+        model = RECOMMENDED_EMBEDDING_MODELS.get(provider)
+        if not model or provider in seen:
+            return
+        seen.add(provider)
+        options.append((f"Use {provider} embeddings ({model}){suffix}", provider, model))
+
+    # Smartest first: reuse the chat provider when it can embed.
+    if chat_provider in EMBEDDING_CAPABLE_PROVIDERS:
+        add(chat_provider)
+    # Local Ollama is always a candidate.
+    add("ollama", "" if chat_provider == "ollama" else " — local, needs Ollama")
+    # Cloud embedders the user already has a key for.
+    if creds.get("openai_api_key"):
+        add("openai")
+    if creds.get("gemini_api_key"):
+        add("gemini")
+
+    print()
+    print("Long-term memory & smart tool-search use text embeddings. Enable?")
+    for i, (label, _p, _m) in enumerate(options, 1):
+        tag = "  (recommended)" if i == 1 else ""
+        print(f"  {i}. {label}{tag}")
+    off_idx = len(options) + 1
+    print(f"  {off_idx}. No — skip (cross-session memory + dynamic tool routing stay off)")
+
+    while True:
+        choice = input("> ").strip()
+        sel = 1 if not choice else None
+        if sel is None:
+            try:
+                sel = int(choice)
+            except ValueError:
+                print("Please enter a valid number.")
+                continue
+        if 1 <= sel <= len(options):
+            _label, provider, model = options[sel - 1]
+            if provider != "ollama" and provider != chat_provider:
+                _prompt_api_key(provider, announce_save=False)
+            if provider == "ollama" and chat_provider != "ollama":
+                try:
+                    ensure_provider_available("ollama")
+                except Exception:
+                    print("  Warning: Ollama not reachable yet; embeddings activate once it's running.")
+            config.embedding_provider = provider
+            config.embedding_model = model
+            return
+        if sel == off_idx:
+            config.embedding_provider = "disabled"
+            config.embedding_model = None
+            print("  Embeddings off. Enable later with `yumi --setup`.")
+            return
+        print("That selection is out of range.")
+
+
+def configure_models_noninteractive(
+    *,
+    provider: str,
+    model: str | None = None,
+    api_key: str | None = None,
+    embedding_provider: str | None = None,
+    embedding_model: str | None = None,
+    no_embeddings: bool = False,
+) -> ModelConfig:
+    """Apply a model config without any prompts (for `--setup --provider ...`/CI).
+
+    Missing ``model`` falls back to the provider's recommended default. Embeddings
+    default to off unless an embedding provider/model is given.
+    """
+    config = load_saved_model_config()
+    config.chat_provider = provider
+    config.chat_model = model or (RECOMMENDED_CHAT_MODELS.get(provider) or [None])[0]
+    if not config.chat_model:
+        raise ValueError(f"No model given and no recommended default for provider {provider!r}.")
+    if api_key:
+        # Set on this config (the single save below persists it) + process env.
+        _key_fields = {
+            "openai": ("OPENAI_API_KEY", "openai_api_key"),
+            "gemini": ("GEMINI_API_KEY", "gemini_api_key"),
+            "claude": ("ANTHROPIC_API_KEY", "claude_api_key"),
+            "deepseek": ("DEEPSEEK_API_KEY", "deepseek_api_key"),
+        }
+        pair = _key_fields.get(provider)
+        if pair:
+            env_var, field = pair
+            os.environ[env_var] = api_key
+            setattr(config, field, api_key)
+
+    if no_embeddings:
+        config.embedding_provider = "disabled"
+        config.embedding_model = None
+    elif embedding_provider:
+        config.embedding_provider = embedding_provider
+        config.embedding_model = embedding_model or RECOMMENDED_EMBEDDING_MODELS.get(embedding_provider)
+    else:
+        config.embedding_provider = "disabled"
+        config.embedding_model = None
+
+    save_model_config(config)
+    return config
+
+
 def run_model_setup(force: bool = False) -> ModelConfig:
     current = load_saved_model_config()
     if current.chat_model and not force:
         return load_model_config()
 
     print("Welcome to Yumi.")
-    print("Let's configure the models used by the server.")
-    if current.chat_model or current.embedding_model:
-        print(
-            f"Current config: "
-            f"chat={current.chat_provider}/{current.chat_model or 'unset'}, "
-            f"embedding={current.embedding_provider}/{current.embedding_model or 'unset'}"
-        )
+    print("Let's set up the AI model.\n")
+    if current.chat_model:
+        print(f"Current: chat={current.chat_provider}/{current.chat_model}\n")
 
-    chat_provider = _choose_provider("chat")
-    if chat_provider != "ollama":
+    mode = _choose_run_mode()
+    if mode == "skip":
+        print("\nSkipped. Configure later with `yumi --setup`, `YUMI_CHAT_MODEL`, or a cloud API key.")
+        return load_model_config()
+
+    if mode == "cloud":
+        chat_provider = _choose_cloud_provider()
         _prompt_api_key(chat_provider, announce_save=False)
-    else:
-        ensure_provider_available("ollama")
-    chat_model = _prompt_model_name(chat_provider, "chat")
-
-    embedding_provider = _choose_provider("embedding", exclude=("deepseek",))
-    if embedding_provider != "ollama" and embedding_provider != chat_provider:
-        _prompt_api_key(embedding_provider, announce_save=False)
-    if embedding_provider == "ollama":
+        chat_model = _choose_recommended_model(chat_provider, "chat")
+    else:  # local
+        chat_provider = "ollama"
         try:
             ensure_provider_available("ollama")
-        except RuntimeError:
-            print("Warning: Ollama is not available. Embedding features will be disabled.")
-    embedding_model = _prompt_model_name(embedding_provider, "embedding")
+        except Exception:
+            print("\n  Warning: Ollama isn't reachable. Install it from https://ollama.com and start it,")
+            print("  then re-run `yumi --setup` (or pick a cloud API key instead).")
+        chat_model = _prompt_model_name("ollama", "chat")
 
     config = load_saved_model_config()
     config.chat_provider = chat_provider
     config.chat_model = chat_model
-    config.embedding_provider = embedding_provider
-    config.embedding_model = embedding_model
     config.system_prompt = current.system_prompt
+
+    _setup_embeddings(config, chat_provider)
     _prompt_stt_config(config)
     save_model_config(config)
 
     print()
     print(f"Saved Yumi model config to {CONFIG_PATH}.")
     print(f"Chat: {config.chat_provider} / {config.chat_model}")
-    print(f"Embedding: {config.embedding_provider} / {config.embedding_model}")
+    emb = f"{config.embedding_provider} / {config.embedding_model}" if config.embedding_model else "off"
+    print(f"Embedding: {emb}")
     print(f"STT: {config.stt_provider} / {config.stt_model or 'disabled'}")
     return config

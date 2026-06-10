@@ -19,7 +19,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from yumi.core.chatbot import YumiBot
 from yumi.core.features.chat.router import router as chat_router
-from yumi.core.features.config import ensure_chat_model_configured, ensure_embedding_provider_not_deepseek
+from yumi.core.features.config import (
+    embeddings_enabled,
+    ensure_chat_model_configured,
+    ensure_embedding_provider_not_deepseek,
+)
 from yumi.core.features.config.router import router as config_router
 from yumi.core.features.edge.api import apply_local_tool_confirmation_from_saved_config
 from yumi.core.features.edge.router import router as edge_router
@@ -64,20 +68,27 @@ async def lifespan(app: FastAPI):
     apply_local_tool_confirmation_from_saved_config()
 
     config = ensure_chat_model_configured(interactive=False)
-    try:
-        ensure_embedding_provider_not_deepseek(config.embedding_provider)
-    except ValueError as exc:
-        raise RuntimeError(
-            f"{exc} Fix ~/.yumi/config.json (embedding_provider) or set YUMI_EMBEDDING_PROVIDER."
-        ) from exc
 
     chat_provider = create_provider(config.chat_provider)
-    embed_provider = (
-        chat_provider
-        if config.embedding_provider == config.chat_provider
-        else create_provider(config.embedding_provider)
-    )
-    set_embed_provider(embed_provider)
+
+    # Embeddings are optional: when disabled, the memory/tool-routing pipeline
+    # degrades gracefully (zero-vectors, full tool set) and no embed provider is
+    # instantiated. Only validate/create one when embeddings are actually on.
+    if embeddings_enabled(config):
+        try:
+            ensure_embedding_provider_not_deepseek(config.embedding_provider)
+        except ValueError as exc:
+            raise RuntimeError(
+                f"{exc} Fix ~/.yumi/config.json (embedding_provider) or set YUMI_EMBEDDING_PROVIDER."
+            ) from exc
+        embed_provider = (
+            chat_provider
+            if config.embedding_provider == config.chat_provider
+            else create_provider(config.embedding_provider)
+        )
+        set_embed_provider(embed_provider)
+    else:
+        set_embed_provider(None)
 
     _state.set_bot(YumiBot(provider=chat_provider, model_name=config.chat_model, think=False))
     await _state.get_bot().warm_up()
@@ -167,11 +178,6 @@ async def lifespan(app: FastAPI):
         voice_warm_task.cancel()
         with contextlib.suppress(asyncio.CancelledError, Exception):
             await voice_warm_task
-    if _state.RELAY_CLIENT is not None:
-        try:
-            await _state.RELAY_CLIENT.stop()
-        except Exception:
-            pass
     if _state.proactive_service is not None:
         await _state.proactive_service.stop()
         _state.set_proactive_service(None)
