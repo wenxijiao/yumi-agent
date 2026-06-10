@@ -1,9 +1,4 @@
-"""LAN-only connection helpers.
-
-Relay profile bootstrap (StoredProfile / bootstrap_profile / saved profile
-selection) lives in the enterprise package — OSS only ships direct LAN
-connection configuration.
-"""
+"""LAN-only connection helpers for the core runtime."""
 
 from __future__ import annotations
 
@@ -24,24 +19,9 @@ class ConnectionConfig(BaseModel):
     mode: Literal["direct"]
     scope: Literal["chat", "ui", "edge"]
     base_url: str
-    access_token: str | None = None
 
     def auth_headers(self) -> dict[str, str]:
-        if not self.access_token:
-            return {}
-        return {"Authorization": f"Bearer {self.access_token}"}
-
-    def relay_edge_ws_url(self) -> str:
-        return http_to_ws(self.base_url.rstrip("/")) + "/ws/edge"
-
-
-def http_to_ws(url: str) -> str:
-    if url.startswith("https://"):
-        return "wss://" + url[len("https://") :]
-    if url.startswith("http://"):
-        return "ws://" + url[len("http://") :]
-    return url
-
+        return {}
 
 def _is_usable_lan_ip(address: str) -> bool:
     try:

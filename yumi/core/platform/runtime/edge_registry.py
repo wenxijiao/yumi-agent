@@ -15,8 +15,6 @@ class EdgeRegistry:
     tools: dict[str, dict] = field(default_factory=dict)
     pending_tool_calls: dict[str, dict[str, Any]] = field(default_factory=dict)
     pending_file_ops: dict[str, dict[str, Any]] = field(default_factory=dict)
-    relay_edge_peers: dict[str, Any] = field(default_factory=dict)
-
     def cancel_pending_for_peer(self, connection_key: str, peer: Any, exc: BaseException) -> None:
         """Fail all pending edge operations owned by a disconnected peer."""
         for call_id, pending in list(self.pending_tool_calls.items()):

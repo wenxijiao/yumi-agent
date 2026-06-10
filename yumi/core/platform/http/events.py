@@ -6,7 +6,7 @@ Background
 keyed by ``type`` — ``text`` / ``thought`` / ``tool_status`` /
 ``tool_confirmation`` / ``error``. Until now the schema lived in prose in
 ``docs/HTTP_API.md`` and as ad-hoc ``dict`` literals at every emit site.
-Consumers (LINE / Telegram / SDK / web UI / enterprise relay) each parsed
+Consumers (LINE / Telegram / SDK / web UI) each parsed
 the dicts via stringly-typed branches; new event types could silently slip
 through.
 

@@ -87,12 +87,11 @@ class AgentOptions {
   /// ``yumi_…`` connection code, and connects straight to
   /// ``<relayUrl>/ws/edge`` using ``accessToken`` for register-time auth.
   ///
-  /// Set both when you already hold an L2 access token — typically an
-  /// app that signed in through an identity bridge (``/nexus/exchange-
-  /// firebase-token``) and got back a user-scoped, app-tagged token.
+  /// Set both when a trusted wrapper already holds the credentials needed by
+  /// its deployment.
   /// The token itself doesn't have to encode a real ``relay_url`` (it
   /// often carries the placeholder ``https://yumi.local``) — that
-  /// field is then just a tenant-scoping sentinel, not a routing hint.
+  /// field is then just a deployment sentinel, not a routing hint.
   final String? relayUrl;
   final String? accessToken;
 

@@ -19,9 +19,8 @@ and `platform/` has no import-time dependency on `features/`.
 During the migration every moved module/package kept a thin re-export shim at
 its **old** import path so existing consumers would keep working. Those shims
 have since been **removed** — no shim remains at any old path, so importing one
-now raises `ModuleNotFoundError`. Downstream consumers (notably
-`yumi-enterprise` / `yumi-nexus`) must import the **new** paths directly, using
-the map below.
+now raises `ModuleNotFoundError`. Downstream consumers must import the **new**
+paths directly, using the map below.
 
 ## Old → new import map
 

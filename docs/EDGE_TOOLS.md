@@ -230,18 +230,16 @@ Native Unreal Engine 5 module. See [`yumi/sdk/ue5/`](../yumi/sdk/ue5/) for sourc
 
 Connection resolution is the same across all SDKs:
 
-1. `YUMI_RELAY_URL` + `YUMI_ACCESS_TOKEN` env vars
-2. Explicit connection code passed to the SDK
-3. `YUMI_CONNECTION_CODE` env var
-4. Legacy `BRAIN_URL` env var (where supported)
-5. Local fallback: `ws://127.0.0.1:8000/ws/edge`
+1. Explicit connection code passed to the SDK
+2. `YUMI_CONNECTION_CODE` env var
+3. Legacy `BRAIN_URL` env var (where supported)
+4. Local fallback: `ws://127.0.0.1:8000/ws/edge`
 
 ### Connection Code Formats
 
 | Format | Example |
 |---|---|
 | LAN code | `yumi-lan_...` |
-| Relay token | `yumi_...` |
 | WebSocket URL | `ws://192.168.1.10:8000/ws/edge` |
 | HTTP URL | `http://192.168.1.10:8000` |
 

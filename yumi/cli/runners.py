@@ -861,11 +861,7 @@ def run_cleanup_memory() -> None:
 
 
 def prepare_client_environment(scope: str) -> dict:
-    """Return an env dict pointing at a reachable local/LAN Yumi API.
-
-    Single-user / LAN only: enterprise relay / multi-tenant profiles are
-    handled by ``yumi-enterprise``.
-    """
+    """Return an env dict pointing at a reachable local/LAN Yumi API."""
     env = os.environ.copy()
     configured_server_url = env.get("YUMI_SERVER_URL", SERVER_URL)
 

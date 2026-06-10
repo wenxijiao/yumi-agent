@@ -4,7 +4,7 @@ This document describes what Yumi persists and how it reaches the model.
 
 ## Internal layout
 
-The OSS implementation is split into a façade plus per-aggregate repositories so backends (LanceDB today, PostgreSQL in enterprise) can be swapped without rewriting the public surface:
+The core implementation is split into a façade plus per-aggregate repositories so storage backends can be swapped without rewriting the public surface:
 
 ```
 yumi/core/features/memory/
@@ -19,7 +19,7 @@ yumi/core/features/memory/
     └── summaries.py       # SessionSummaryRepository — session_summaries
 ```
 
-Every public method on `Memory` (e.g. `add_message`, `create_session`, `list_long_term_memories`) is a one-line delegate to the appropriate repository. The `Memory` constructor signature has not changed; existing call sites (`YumiBot.session_memory(...)`, enterprise per-user memory factory, tests that pass `storage_dir=tmpdir`) keep working unchanged.
+Every public method on `Memory` (e.g. `add_message`, `create_session`, `list_long_term_memories`) is a one-line delegate to the appropriate repository. The `Memory` constructor signature has not changed; existing call sites (`YumiBot.session_memory(...)`, plugin memory factories, tests that pass `storage_dir=tmpdir`) keep working unchanged.
 
 ## Storage
 

@@ -13,7 +13,7 @@ import YumiSDK
 
 // MARK: - Connection (edit here — simplest on iPhone; no bundle file needed)
 
-private let yumiConnectionCode = "yumi-lan_..."  // paste from `yumi --server`, or yumi_... for relay
+private let yumiConnectionCode = "yumi-lan_..."  // paste from `yumi --server`
 private let yumiEdgeName = "My IOS Device"            // shown in the Yumi UI
 
 func initYumi() -> YumiAgent {

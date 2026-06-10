@@ -145,7 +145,7 @@ def test_owner_mismatch_yields_forbidden(runtime, install_fakes, monkeypatch):
 
     monkeypatch.setattr(svc_mod, "get_session_scope", lambda: _Scope())
 
-    fake_identity = Identity(user_id="me", tenant_id="t1", scopes=("user",), source="bearer")
+    fake_identity = Identity(user_id="me", scopes=("user",), source="plugin")
     monkeypatch.setattr(svc_mod, "get_current_identity", lambda: fake_identity)
 
     service = ChatTurnService(runtime)

@@ -14,6 +14,6 @@ def test_edge_tool_key_prefix_matches_gemini_rules():
     assert p.startswith("edge_")
     assert p.endswith("__")
     assert " " not in p
-    full = f"{p}memori_ping"
+    full = f"{p}device_ping"
     allowed = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.:-")
     assert all(c in allowed for c in full)

@@ -20,9 +20,6 @@ Quick test — run this file only (no separate main.py)::
     python yumi_setup.py
 
 Requires: pip install websockets
-
-Multi-tenant server (``yumi-enterprise``): set ``YUMI_ACCESS_TOKEN`` to your user
-``yumi_...`` token if your deployment requires authenticated Edge registration.
 """
 
 try:

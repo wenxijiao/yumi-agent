@@ -66,8 +66,6 @@ Available commands:
 
 
 def _api_url(connection, path: str) -> str:
-    if connection.mode == "relay":
-        return f"{connection.base_url}/v1{path}"
     return f"{connection.base_url}{path}"
 
 
@@ -305,10 +303,10 @@ def _handle_slash_command(user_input: str, session_id: str) -> bool:
 
 def chat_stream(prompt, session_id=DEFAULT_SESSION_ID):
     connection = resolve_connection_config("chat")
-    url = f"{connection.base_url}/v1/chat" if connection.mode == "relay" else f"{connection.base_url}/chat"
+    url = f"{connection.base_url}/chat"
     payload = {"prompt": prompt, "session_id": session_id}
     headers = connection.auth_headers()
-    target_name = "Yumi remote gateway" if connection.mode == "relay" else "Yumi server"
+    target_name = "Yumi server"
 
     printed_text = False
     try:
@@ -395,10 +393,7 @@ def main() -> None:
     print(f"Session: {DEFAULT_SESSION_ID}\n")
 
     connection = resolve_connection_config("chat")
-    timer_url = connection.base_url
-    if connection.mode == "relay":
-        timer_url = connection.base_url
-    _start_timer_listener(timer_url, connection.auth_headers(), DEFAULT_SESSION_ID)
+    _start_timer_listener(connection.base_url, connection.auth_headers(), DEFAULT_SESSION_ID)
 
     while True:
         user_input = input("You: ")

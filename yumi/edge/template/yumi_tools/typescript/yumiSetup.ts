@@ -19,7 +19,7 @@ import { YumiAgent } from "./yumi_sdk/src";
 
 // ── Connection (edit here, or set in .env) ──
 
-const YUMI_CONNECTION_CODE = "yumi-lan_..."; // paste from `yumi --server`, or yumi_... for relay
+const YUMI_CONNECTION_CODE = "yumi-lan_..."; // paste from `yumi --server`
 const YUMI_EDGE_NAME = "My Node App";
 
 export function initYumi(): YumiAgent {

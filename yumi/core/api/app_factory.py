@@ -167,11 +167,6 @@ async def lifespan(app: FastAPI):
         voice_warm_task.cancel()
         with contextlib.suppress(asyncio.CancelledError, Exception):
             await voice_warm_task
-    if _state.RELAY_CLIENT is not None:
-        try:
-            await _state.RELAY_CLIENT.stop()
-        except Exception:
-            pass
     if _state.proactive_service is not None:
         await _state.proactive_service.stop()
         _state.set_proactive_service(None)

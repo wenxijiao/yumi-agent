@@ -10,8 +10,6 @@ from yumi.core.platform.security.connection import ConnectionConfig
 
 
 def _api_url(connection: ConnectionConfig, path: str) -> str:
-    if connection.mode == "relay":
-        return f"{connection.base_url.rstrip('/')}/v1{path}"
     return f"{connection.base_url.rstrip('/')}{path}"
 
 

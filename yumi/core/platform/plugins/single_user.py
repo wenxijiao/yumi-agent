@@ -1,7 +1,7 @@
 """Default single-user implementations of every plugin port.
 
 These ship with OSS so the codebase has zero behavioural dependency on
-commercial extensions. ``yumi-enterprise`` overrides each port via
+external extensions. Plugins can override each port via
 :func:`yumi.core.platform.plugins.register_plugin` at import time.
 """
 

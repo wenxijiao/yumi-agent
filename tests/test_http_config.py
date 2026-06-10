@@ -1,4 +1,4 @@
-"""CORS configuration helpers for core and Relay apps."""
+"""CORS configuration helpers for core apps."""
 
 import pytest
 from yumi.core.platform.security.http_config import DEFAULT_LOCAL_BROWSER_ORIGINS, get_cors_settings

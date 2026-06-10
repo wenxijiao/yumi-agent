@@ -190,19 +190,16 @@ You can mix providers — for example OpenAI for chat and Ollama for embeddings.
 | [HTTP API](docs/HTTP_API.md) | Chat NDJSON stream, all routes, curl examples |
 | [Memory](docs/MEMORY.md) | Session history and LanceDB embeddings |
 | [Testing](docs/TESTING.md) | Running and writing tests |
-| [Upgrading to Enterprise](docs/UPGRADING_TO_ENTERPRISE.md) | Switching to multi-tenant `yumi-enterprise` |
 
 ## How Yumi Differs
 
 Yumi is **not** another Python-only LLM chaining library. It ships a runnable server, terminal UI, and web UI, plus **first-class edge tool hosts** across eleven languages. The focus is on **device-side tool execution**: your game, phone app, IoT sensor, or desktop program exposes functions, and the AI calls them directly in your process.
 
-## OSS vs. Enterprise
+## Core Scope
 
-This package (`yumi-agent`) is the **open-source single-user / LAN core**. It runs locally or on your home network, has no Bearer auth, no per-tenant scoping, and no quotas. Everything you need to chat with an agent and register tools across languages is here.
+This package (`yumi-agent`) is the **open-source single-user / LAN core**. It runs locally or on your home network, has no Bearer auth, no account scoping, and no quotas. Everything you need to chat with an agent and register tools across languages is here.
 
-A separate **`yumi-enterprise`** package extends this core via the `yumi.core.platform.plugins` port system to add multi-tenant identity, per-user encryption, billing/usage metering, an admin API, the public **relay** for remote pairing, and PostgreSQL-backed storage. It depends on this OSS package, registers itself via Python `entry_points` (group `yumi.plugins`), and ships its own CLI (`yumi-enterprise serve`). It is distributed privately and not on PyPI.
-
-If you only need a personal or LAN agent, you do **not** need the enterprise package. When you do need multi-tenant identity, billing, relay, or PostgreSQL-backed storage, see [Upgrading to Enterprise](docs/UPGRADING_TO_ENTERPRISE.md).
+Advanced deployments can add identity, storage, policy, or routing behavior through the plugin port abstractions under `yumi.core.platform.plugins`. Those higher layers live outside this L1 repository; the core only depends on the abstractions.
 
 ## License
 

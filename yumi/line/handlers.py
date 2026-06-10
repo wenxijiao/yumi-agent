@@ -1,9 +1,4 @@
-"""LINE webhook event handling: /chat stream, Flex cards, postbacks (OSS single-user).
-
-Multi-tenant LINE flows (``/link``, ``/usage``, per-user model overrides,
-relay-mode chat URLs) live in the ``yumi_enterprise.line`` package and
-attach via the plugin system.
-"""
+"""LINE webhook event handling: /chat stream, Flex cards, postbacks."""
 
 from __future__ import annotations
 
@@ -742,7 +737,7 @@ async def _append_line_media_to_parts(
         parts.append(str(exc.detail))
         return False
     parts.append(str(res.get("path", "")))
-    # silence unused-arg lint while keeping stable signature for enterprise overrides
+    # Silence unused-arg lint while keeping the bridge signature stable.
     _ = line_user_id
     return True
 
@@ -935,7 +930,7 @@ async def dispatch_line_webhook(
     await process_line_events(events, line_client, use_http=use_http)
 
 
-# Re-exported for enterprise overrides that import them by name.
+# Public bridge helpers imported by callers that embed the LINE integration.
 __all__ = (
     "dispatch_line_webhook",
     "verify_and_parse_line_webhook",

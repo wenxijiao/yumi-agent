@@ -1,9 +1,7 @@
 """LAN code primitives.
 
-The OSS Yumi server only deals in LAN access codes (host + optional HMAC).
-All ``YumiCredential`` / relay access-token / refresh-token machinery has
-moved to the enterprise package — keeping the OSS surface tiny and focused
-on the local-area-network experience.
+The core Yumi server only deals in LAN access codes (host + optional HMAC)
+and stays focused on the local-area-network experience.
 """
 
 from __future__ import annotations

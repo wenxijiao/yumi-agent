@@ -1,8 +1,8 @@
 """Tests for the plugin port registry and its single-user (OSS) defaults.
 
 The registry is a process-global singleton (``yumi.core.platform.plugins.registry``)
-whose accessors return the OSS default unless an enterprise plugin overrides a
-port via :func:`register_plugin`. These tests assert the default wiring, the
+whose accessors return the OSS default unless a plugin overrides a port via
+:func:`register_plugin`. These tests assert the default wiring, the
 per-port replacement semantics, and the behaviour of each single-user default.
 
 Every test that mutates the registry restores the original ports via the
@@ -129,7 +129,7 @@ def test_identity_provider_returns_local_by_default():
 
 
 def test_identity_provider_honours_bound_context_identity():
-    bound = Identity(user_id="someone", source="bearer")
+    bound = Identity(user_id="someone", source="plugin")
     token = set_current_identity(bound)
     try:
         assert get_current_identity() is bound

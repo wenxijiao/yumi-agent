@@ -134,7 +134,7 @@ def save_uploaded_file(
 ) -> dict:
     """Write bytes to disk and return a JSON-serializable result dict.
 
-    When *owner_user_id* is provided (e.g. enterprise multi-tenant flow) the
+    When *owner_user_id* is provided by a caller with scoped storage needs, the
     file is stored under ``~/.yumi/uploads/<user_id>/<session>/...``.
     OSS single-user code passes ``None`` and gets the flat layout.
     """

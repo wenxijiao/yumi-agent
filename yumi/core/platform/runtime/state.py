@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from yumi.core.platform.runtime.edge_registry import EdgeRegistry
 from yumi.core.platform.runtime.session_locks import SessionLockRegistry
@@ -29,8 +29,6 @@ class RuntimeState:
 
     bot: YumiBot | None = None
     proactive_service: ProactiveMessageService | None = None
-    # Enterprise relay client (plugged at runtime); no OSS class to type against.
-    relay_client: Any = None
     server_draining: bool = False
     edge_registry: EdgeRegistry = field(default_factory=EdgeRegistry)
     session_locks: SessionLockRegistry = field(default_factory=SessionLockRegistry)

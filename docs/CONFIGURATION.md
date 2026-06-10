@@ -33,7 +33,7 @@ Prompt and session fields:
 
 Connection and UI fields:
 
-- `connection_code`: Saved LAN/relay/WebSocket connection code for clients and Edge SDKs.
+- `connection_code`: Saved LAN/WebSocket connection code for clients and Edge SDKs.
 - `ui_dark_mode`: UI dark mode preference. Default: `true`.
 - `lan_secret`: Local LAN pairing secret. Usually managed by Yumi.
 
@@ -135,7 +135,6 @@ Chat NDJSON tracing (optional): from Telegram (`/start_log` / `/end_log`), LINE,
 |---|---|
 | `YUMI_SERVER_URL` | Manual direct server URL (default `http://127.0.0.1:8000`) |
 | `YUMI_CONNECTION_CODE` | Connection code for edge SDKs (LAN code or WebSocket URL) |
-| `YUMI_USER_ACCESS_TOKEN` | Bearer token for clients when talking to a multi-tenant `yumi-enterprise` server (ignored by OSS) |
 
 ### Memory
 
@@ -230,8 +229,6 @@ yumi --tool-routing --enable-edge-tool-routing --edge-tools-limit 20
 |---|---|
 | `YUMI_CORS_ORIGINS` | Comma-separated browser origins allowed to call the core API. Default: localhost origins only |
 | `YUMI_CORS_ALLOW_CREDENTIALS` | Set to `1`/`true` to allow browser credentials on the core API |
-| `YUMI_RELAY_CORS_ORIGINS` | Comma-separated browser origins allowed to call the Relay API. Default: localhost origins only |
-| `YUMI_RELAY_CORS_ALLOW_CREDENTIALS` | Set to `1`/`true` to allow browser credentials on Relay |
 
 ### Edge SDK
 
@@ -272,7 +269,7 @@ Telegram-related dependencies (`python-telegram-bot`, `httpx`) are included in t
 ### Running
 
 - **`yumi --server --telegram`** (recommended) -- starts the API and the Telegram bot together on one machine.
-- **`yumi --telegram`** -- runs only the Telegram bot, connecting to the API like `yumi --chat` (LAN code / relay profile).
+- **`yumi --telegram`** -- runs only the Telegram bot, connecting to the API like `yumi --chat` (LAN code / server URL).
 
 ### Timer & Push Notifications
 
@@ -362,12 +359,11 @@ The merge happens in `yumi/core/features/memory/context.py::ContextBuilder._rece
 | Path | Contents |
 |---|---|
 | `~/.yumi/config.json` | Model config, prompt config, saved connection code |
-| `~/.yumi/profiles.json` | Saved remote profiles |
 | `~/.yumi/memory/` | Session history and embeddings |
 
 `config.json` can hold **multiple provider API keys at once** (`openai_api_key`, `gemini_api_key`, `claude_api_key`, `deepseek_api_key`, and optional `openai_base_url`, `deepseek_base_url`). You can also use **`openai` + `openai_base_url`** pointed at DeepSeek’s OpenAI-compatible endpoint instead of `chat_provider: "deepseek"`. Environment variables still win when set. `yumi --setup` only asks for what the chosen chat/embedding providers need; you can add other keys later via the web UI **Model Configuration** dialog or by editing `config.json`, so switching providers does not require re-entering keys once they are saved.
 
-To clear only memory and embeddings (keeping config and profiles):
+To clear only memory and embeddings (keeping config):
 
 ```bash
 yumi --cleanup-memory
@@ -401,15 +397,12 @@ Typical flow:
 3. Run `yumi --server` on the host machine
 4. Use the Tailscale hostname or IP from `yumi --ui` or `yumi --chat`
 
-Yumi also supports a relay-based pairing flow, but it is optional and not the default setup.
-
 ## Deployment Hardening
 
 Yumi defaults to **local-first** operation. Browser CORS is limited to localhost-style origins by default, and browser credentials are disabled unless you explicitly opt in.
 
 - Keep the core API on `127.0.0.1` unless you intentionally trust your LAN.
 - Prefer Tailscale or another private network over exposing the core API directly.
-- If you expose Relay behind HTTPS for browser clients, set exact origins with `YUMI_RELAY_CORS_ORIGINS`.
 - If you need third-party browser pages to call the core API, set `YUMI_CORS_ORIGINS` explicitly instead of relying on permissive wildcards.
 
 ## Docker

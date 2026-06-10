@@ -4,8 +4,8 @@ The legacy ``Memory`` god class has been decomposed into focused collaborators
 (see :mod:`yumi.core.features.memory.backend`, :mod:`yumi.core.features.memory.embedding_runner`,
 :mod:`yumi.core.features.memory.repos`). This module keeps the historical
 :class:`Memory` public API stable so every caller — chatbot, routers,
-LINE/Telegram bridges, enterprise per-user memory factory, tests — continues
-to work without changes.
+LINE/Telegram bridges, plugin memory factories, tests — continues to work
+without changes.
 
 What stayed
 -----------

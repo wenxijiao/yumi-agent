@@ -15,7 +15,7 @@
 
 // ── Connection (edit here, or set in .env) ──
 
-static const char* YUMI_CONNECTION_CODE = "yumi-lan_...";  // from `yumi --server`, or yumi_... for relay
+static const char* YUMI_CONNECTION_CODE = "yumi-lan_...";  // from `yumi --server`
 static const char* YUMI_EDGE_NAME = "My C++ App";
 
 yumi::YumiAgent* initYumi() {

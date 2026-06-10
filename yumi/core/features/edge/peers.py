@@ -1,8 +1,4 @@
-"""WebSocket peer abstractions for local edge connections.
-
-Relay peer (``RelayEdgePeer``) lives in the enterprise package — OSS only
-needs the local LAN peer wrapper.
-"""
+"""WebSocket peer abstractions for local edge connections."""
 
 from __future__ import annotations
 
