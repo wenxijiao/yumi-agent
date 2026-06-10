@@ -106,9 +106,58 @@ def ensure_model_ready(provider_name: str, model_name: str) -> str:
     return model_name
 
 
+# API-key env var -> provider, in priority order. Lets a cloud user boot with
+# nothing but e.g. OPENAI_API_KEY set (Docker/CI friendly) — no wizard needed.
+_ENV_KEY_TO_PROVIDER: tuple[tuple[str, str], ...] = (
+    ("OPENAI_API_KEY", "openai"),
+    ("ANTHROPIC_API_KEY", "claude"),
+    ("GEMINI_API_KEY", "gemini"),
+    ("DEEPSEEK_API_KEY", "deepseek"),
+)
+
+
+def infer_chat_from_env() -> tuple[str, str] | None:
+    """Infer ``(provider, chat_model)`` from the environment, or ``None``.
+
+    Used when no chat model is configured: if a cloud API key is present we pick
+    that provider plus its recommended default model, so `yumi --server` and
+    Docker images work with zero setup. ``YUMI_CHAT_PROVIDER`` (with optional
+    ``YUMI_CHAT_MODEL``) takes precedence over key sniffing.
+    """
+    from yumi.core.features.config.model import RECOMMENDED_CHAT_MODELS
+
+    def _default_model(provider: str) -> str | None:
+        return os.getenv("YUMI_CHAT_MODEL") or (RECOMMENDED_CHAT_MODELS.get(provider) or [None])[0]
+
+    explicit = os.getenv("YUMI_CHAT_PROVIDER")
+    if explicit:
+        model = _default_model(explicit)
+        return (explicit, model) if model else None
+
+    for env_var, provider in _ENV_KEY_TO_PROVIDER:
+        if os.getenv(env_var):
+            model = _default_model(provider)
+            if model:
+                return provider, model
+    return None
+
+
 def ensure_chat_model_configured(interactive: bool = False) -> ModelConfig:
     config = load_model_config()
     if config.chat_model:
+        return config
+
+    inferred = infer_chat_from_env()
+    if inferred:
+        from yumi.core.features.config.store import save_model_config
+
+        provider, model = inferred
+        config.chat_provider = provider
+        config.chat_model = model
+        try:
+            save_model_config(config)
+        except Exception:
+            pass  # read-only config dir (e.g. Docker): in-memory config still works
         return config
 
     if interactive and sys.stdin.isatty() and sys.stdout.isatty():
@@ -116,4 +165,7 @@ def ensure_chat_model_configured(interactive: bool = False) -> ModelConfig:
 
         return run_model_setup(force=False)
 
-    raise RuntimeError("No Yumi chat model is configured. Run `yumi --setup` or set `YUMI_CHAT_MODEL`.")
+    raise RuntimeError(
+        "No Yumi chat model is configured. Run `yumi --setup`, set `YUMI_CHAT_MODEL`, "
+        "or provide a cloud API key (e.g. OPENAI_API_KEY)."
+    )

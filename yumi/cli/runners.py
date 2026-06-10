@@ -18,6 +18,7 @@ from yumi.core.features.config import (
     CONFIG_PATH,
     cleanup_memory_data,
     cleanup_user_data,
+    embeddings_enabled,
     ensure_chat_model_configured,
     ensure_full_model_config_file,
     ensure_provider_available,
@@ -276,15 +277,41 @@ def _print_lan_codes() -> None:
     print()
 
 
-def run_server():
+def _preflight_models():
+    """Make sure a chat model is configured and its provider is reachable.
+
+    Order matters: configure first (env auto-detect or the interactive wizard),
+    *then* check provider readiness — so a fresh user without Ollama isn't hard
+    -crashed before they can pick a cloud API key. Exits with a friendly hint on
+    failure instead of a traceback.
+    """
     config = load_model_config()
-    ensure_provider_available(config.chat_provider)
-    if config.embedding_provider != config.chat_provider:
+    if not config.chat_model:
+        config = ensure_chat_model_configured(interactive=True)
+
+    try:
+        ensure_provider_available(config.chat_provider)
+    except Exception as exc:
+        print()
+        print(f"  Cannot start: chat provider '{config.chat_provider}' is not ready.")
+        print(f"  {exc}")
+        if config.chat_provider == "ollama":
+            print("  Tip: install/start Ollama (https://ollama.com), or run `yumi --setup` to use a cloud API key.")
+        else:
+            print("  Tip: run `yumi --setup` to set the API key, or export it (e.g. OPENAI_API_KEY).")
+        sys.exit(1)
+
+    if embeddings_enabled(config) and config.embedding_provider != config.chat_provider:
         try:
             ensure_provider_available(config.embedding_provider)
-        except RuntimeError as exc:
-            print(f"  Warning: embedding provider not available: {exc}")
-    ensure_chat_model_configured(interactive=True)
+        except Exception as exc:
+            print(f"  Warning: embedding provider '{config.embedding_provider}' not available: {exc}")
+            print("  Long-term memory search stays degraded until it's reachable.")
+    return config
+
+
+def run_server():
+    config = _preflight_models()
 
     rows = _server_banner_rows(config)
     _print_banner("Yumi Server", rows, ["Mode: local / LAN (single user)"])
@@ -298,14 +325,7 @@ def run_server_with_telegram() -> None:
     if not _prompt_telegram_bot_token_if_missing():
         sys.exit(1)
 
-    config = load_model_config()
-    ensure_provider_available(config.chat_provider)
-    if config.embedding_provider != config.chat_provider:
-        try:
-            ensure_provider_available(config.embedding_provider)
-        except RuntimeError as exc:
-            print(f"  Warning: embedding provider not available: {exc}")
-    ensure_chat_model_configured(interactive=True)
+    config = _preflight_models()
 
     rows = _server_banner_rows(config)
     _print_banner(
@@ -349,14 +369,7 @@ def run_server_with_voice() -> None:
     the voice task. ``voice_owner_id`` is propagated through the env so the
     child process names the voice session ``voice_<owner>``.
     """
-    config = load_model_config()
-    ensure_provider_available(config.chat_provider)
-    if config.embedding_provider != config.chat_provider:
-        try:
-            ensure_provider_available(config.embedding_provider)
-        except RuntimeError as exc:
-            print(f"  Warning: embedding provider not available: {exc}")
-    ensure_chat_model_configured(interactive=True)
+    config = _preflight_models()
 
     rows = _server_banner_rows(config)
     owner = (config.voice_owner_id or os.getenv("USER") or os.getenv("USERNAME") or "default").strip() or "default"
@@ -380,14 +393,7 @@ def run_server_with_telegram_and_voice() -> None:
     if not _prompt_telegram_bot_token_if_missing():
         sys.exit(1)
 
-    config = load_model_config()
-    ensure_provider_available(config.chat_provider)
-    if config.embedding_provider != config.chat_provider:
-        try:
-            ensure_provider_available(config.embedding_provider)
-        except RuntimeError as exc:
-            print(f"  Warning: embedding provider not available: {exc}")
-    ensure_chat_model_configured(interactive=True)
+    config = _preflight_models()
 
     rows = _server_banner_rows(config)
     owner = (config.voice_owner_id or os.getenv("USER") or os.getenv("USERNAME") or "default").strip() or "default"
@@ -453,14 +459,7 @@ def run_server_with_line() -> None:
     if not _prompt_line_credentials_if_missing():
         sys.exit(1)
 
-    config = load_model_config()
-    ensure_provider_available(config.chat_provider)
-    if config.embedding_provider != config.chat_provider:
-        try:
-            ensure_provider_available(config.embedding_provider)
-        except RuntimeError as exc:
-            print(f"  Warning: embedding provider not available: {exc}")
-    ensure_chat_model_configured(interactive=True)
+    config = _preflight_models()
 
     rows = _server_banner_rows(config)
     port = get_line_bot_port()

@@ -8,6 +8,7 @@ from yumi.core.features.config.credentials import (
     ensure_model_ready,
     ensure_provider_available,
     get_api_credentials,
+    infer_chat_from_env,
     is_model_available,
 )
 from yumi.core.features.config.lan import get_lan_secret
@@ -24,9 +25,13 @@ from yumi.core.features.config.line import (
     save_line_channel_secret,
 )
 from yumi.core.features.config.model import (
+    EMBEDDING_CAPABLE_PROVIDERS,
     RECOMMENDED_CHAT_MODEL,
+    RECOMMENDED_CHAT_MODELS,
     RECOMMENDED_EMBEDDING_MODEL,
+    RECOMMENDED_EMBEDDING_MODELS,
     ModelConfig,
+    embeddings_enabled,
 )
 from yumi.core.features.config.paths import (
     CONFIG_DIR,
@@ -41,7 +46,7 @@ from yumi.core.features.config.paths import (
     get_memory_dir,
     migrate_legacy_memory_dir,
 )
-from yumi.core.features.config.setup_wizard import run_model_setup
+from yumi.core.features.config.setup_wizard import configure_models_noninteractive, run_model_setup
 from yumi.core.features.config.store import (
     ensure_full_model_config_file,
     load_model_config,
@@ -71,9 +76,13 @@ __all__ = [
     "DEFAULT_SYSTEM_PROMPT",
     "LEGACY_MEMORY_DIR",
     "MEMORY_DIR",
+    "EMBEDDING_CAPABLE_PROVIDERS",
     "RECOMMENDED_CHAT_MODEL",
+    "RECOMMENDED_CHAT_MODELS",
     "RECOMMENDED_EMBEDDING_MODEL",
+    "RECOMMENDED_EMBEDDING_MODELS",
     "ModelConfig",
+    "embeddings_enabled",
     "cleanup_memory_data",
     "cleanup_user_data",
     "delete_session_prompt",
@@ -85,6 +94,7 @@ __all__ = [
     "ensure_model_ready",
     "ensure_ollama_available",
     "ensure_provider_available",
+    "infer_chat_from_env",
     "_get_provider",
     "get_api_credentials",
     "get_legacy_memory_dir",
@@ -111,6 +121,7 @@ __all__ = [
     "migrate_legacy_memory_dir",
     "pull_model",
     "reset_system_prompt",
+    "configure_models_noninteractive",
     "run_model_setup",
     "save_connection_code",
     "save_model_config",
