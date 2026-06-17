@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="220" viewBox="0 0 760 220" role="img" aria-labelledby="title desc">
+  <title id="title">Yumi Nexus logo</title>
+  <desc id="desc">The Yumi Nexus company logo with a warm-to-cool smile-shaped mark and a two-tone wordmark.</desc>
+  <defs>
+    <linearGradient id="markGradient" x1="60" y1="110" x2="152" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF654F"/>
+      <stop offset="0.5" stop-color="#C94ED8"/>
+      <stop offset="0.78" stop-color="#7462F5"/>
+      <stop offset="1" stop-color="#315DFF"/>
+    </linearGradient>
+    <linearGradient id="leftDot" x1="54" y1="52" x2="72" y2="70" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF7359"/>
+      <stop offset="1" stop-color="#F35F66"/>
+    </linearGradient>
+    <linearGradient id="rightDot" x1="140" y1="52" x2="158" y2="70" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7462F5"/>
+      <stop offset="1" stop-color="#315DFF"/>
+    </linearGradient>
+  </defs>
+
+  <g aria-hidden="true">
+    <path
+      d="M63 91 C63 135 80 160 106 160 C132 160 149 135 149 91"
+      fill="none"
+      stroke="url(#markGradient)"
+      stroke-width="18"
+      stroke-linecap="round"
+      stroke-linejoin="round"/>
+    <circle cx="63" cy="61" r="8.5" fill="url(#leftDot)"/>
+    <circle cx="149" cy="61" r="8.5" fill="url(#rightDot)"/>
+  </g>
+
+  <text x="190" y="132"
+        font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif"
+        font-size="70"
+        letter-spacing="-0.6"
+        dominant-baseline="alphabetic">
+    <tspan font-weight="720" fill="#26324A">yumi</tspan><tspan dx="12" font-weight="430" fill="#758197">nexus</tspan>
+  </text>
+</svg>

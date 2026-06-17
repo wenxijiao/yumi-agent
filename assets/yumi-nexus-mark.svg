@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Yumi Nexus mark</title>
+  <desc id="desc">A warm-to-cool smile-shaped Yumi Nexus brand mark.</desc>
+  <defs>
+    <linearGradient id="markGradient" x1="70" y1="128" x2="186" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF654F"/>
+      <stop offset="0.5" stop-color="#C94ED8"/>
+      <stop offset="0.78" stop-color="#7462F5"/>
+      <stop offset="1" stop-color="#315DFF"/>
+    </linearGradient>
+    <linearGradient id="leftDot" x1="74" y1="45" x2="92" y2="63" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF7359"/>
+      <stop offset="1" stop-color="#F35F66"/>
+    </linearGradient>
+    <linearGradient id="rightDot" x1="164" y1="45" x2="182" y2="63" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7462F5"/>
+      <stop offset="1" stop-color="#315DFF"/>
+    </linearGradient>
+  </defs>
+
+  <path
+    d="M80 89 C80 139 99 167 128 167 C157 167 176 139 176 89"
+    fill="none"
+    stroke="url(#markGradient)"
+    stroke-width="22"
+    stroke-linecap="round"
+    stroke-linejoin="round"/>
+  <circle cx="80" cy="54" r="11" fill="url(#leftDot)"/>
+  <circle cx="176" cy="54" r="11" fill="url(#rightDot)"/>
+</svg>
