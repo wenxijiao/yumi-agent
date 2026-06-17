@@ -23,6 +23,7 @@ class ConnectionConfig(BaseModel):
     def auth_headers(self) -> dict[str, str]:
         return {}
 
+
 def _is_usable_lan_ip(address: str) -> bool:
     try:
         parsed = ip_address(address)
