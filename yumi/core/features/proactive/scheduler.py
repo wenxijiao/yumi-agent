@@ -54,10 +54,12 @@ async def _timer_fire(timer_id: str, delay: int, description: str, session_id: s
     except Exception as exc:
         collected.append({"type": "error", "content": str(exc)})
 
+    from yumi.discord.notify import send_timer_result_to_discord
     from yumi.line.notify import send_timer_result_to_line
     from yumi.telegram.notify import send_timer_result_to_telegram
 
     await send_timer_result_to_telegram(session_id, description, collected)
+    await send_timer_result_to_discord(session_id, description, collected)
     await send_timer_result_to_line(session_id, description, collected)
 
     payload = {

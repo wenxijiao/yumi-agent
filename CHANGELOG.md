@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0] - 2026-06-19
 
 ### Changed
 
@@ -35,6 +35,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Discord bridge**: chat with Yumi from a Discord bot — `yumi --server --discord`
+  or `yumi --discord` (gateway connection, no public URL needed). Tool confirmations
+  are Allow / Deny / Always-allow buttons; allowlist via `DISCORD_ALLOWED_USER_IDS`.
+  New optional extra `[discord]`. Joins the existing Telegram and LINE bridges.
+- **SDK robustness (`YumiAgent`)**: logs via the `yumi.sdk` logger instead of
+  `print`; exposes `is_connected` and an optional `on_error` callback; resolves the
+  connection inside the reconnect loop so a transient connection-bootstrap failure
+  at startup no longer permanently kills the client; `register()` now raises on a
+  duplicate or empty tool name; and `yumi.run()` configures the default agent via
+  the public `run_in_background(...)` instead of touching private attributes.
 - **Microphone wake-word voice mode**: `yumi --server --voice` (composable
   with `--telegram`) attaches a Picovoice + faster-whisper loop. New optional
   extras: `[voice]` (sounddevice + webrtcvad + pvporcupine) and `[stt]`
@@ -100,6 +110,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `build` to the development extras and documented a local pre-release smoke check for maintainers.
 - Added `yumi --cleanup-memory` to clear persisted memory without deleting saved config, prompts, profiles, or connection codes.
 
+[0.3.0]: https://github.com/wenxijiao/yumi-agent/releases/tag/v0.3.0
 [0.2.0]: https://github.com/wenxijiao/yumi-agent/releases/tag/v0.2.0
 
 ## [0.1.0] - 2026-04-11

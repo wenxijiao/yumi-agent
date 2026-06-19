@@ -5,19 +5,14 @@ Import your own functions and register them with a description.
 Parameter types are auto-extracted from type hints, and parameter
 descriptions from the docstring Args section.
 
-Usage — embed in your app::
+Two ways to run::
 
-    from yumi_tools.python.yumi_setup import init_yumi
-
-    init_yumi()
-    # Your program continues to run as usual
-
-Quick test — run this file only (no separate main.py)::
-
-    python -m yumi_tools.python.yumi_setup
-
-    # or from ``yumi_tools/python/``:
+    # Standalone — this script IS the edge (blocks until Ctrl+C):
     python yumi_setup.py
+
+    # Embedded — start it from your own program and keep going:
+    from yumi_tools.python.yumi_setup import init_yumi
+    init_yumi().run_in_background()   # returns immediately
 
 Requires: pip install websockets
 """
@@ -57,17 +52,14 @@ def init_yumi():
     # Tool confirmation choices (Tools page / chat "always allow") are saved next to your
     # .env as .yumi_tool_confirmation.json (override with YUMI_TOOL_CONFIRMATION_PATH).
 
-    agent.run_in_background()
+    # Tools are registered; the caller decides how to run:
+    #   standalone script:  init_yumi().run()                (blocks until Ctrl+C)
+    #   embedded in an app:  init_yumi().run_in_background()  (returns at once)
     return agent
 
 
 if __name__ == "__main__":
     import sys
-    import threading
 
-    init_yumi()
-    print("Yumi edge running (setup as __main__). Press Ctrl+C to stop.", file=sys.stderr)
-    try:
-        threading.Event().wait()
-    except KeyboardInterrupt:
-        pass
+    print("Yumi edge running (standalone). Press Ctrl+C to stop.", file=sys.stderr)
+    init_yumi().run()

@@ -158,20 +158,28 @@ async def handle_edge_peer(peer):
         previous_peer = ACTIVE_CONNECTIONS.get(connection_key)
 
         if previous_peer is not None and previous_peer is not peer:
-            logger.info("Edge device [%s] reconnected; replacing old socket.", edge_name)
-            for call_id, pending in list(PENDING_TOOL_CALLS.items()):
-                if pending["edge_name"] == connection_key and pending["peer"] is previous_peer:
-                    try:
-                        await previous_peer.send_json({"type": "cancel", "call_id": call_id})
-                    except Exception as cancel_exc:
-                        logger.debug("Cancel in-flight tool on edge reconnect: %s", cancel_exc)
-                    future = pending["future"]
-                    if not future.done():
-                        future.set_exception(
-                            ConnectionError(f"Edge device '{edge_name}' reconnected; stale call cancelled.")
-                        )
-                    PENDING_TOOL_CALLS.pop(call_id, None)
-            await previous_peer.close(code=1012, reason="Replaced by a newer connection")
+            # An edge with this name is already connected. Reject the NEW
+            # connection and keep the existing one. edge_name is the identity
+            # used for tool namespacing and routing, so two different edges must
+            # not share it. (This replaces the old "replace the socket" behaviour,
+            # which made two same-named edges ping-pong-kick each other on every
+            # reconnect.) A genuine reconnect still works: the old socket closing
+            # clears ACTIVE_CONNECTIONS, after which the name is free again.
+            logger.warning(
+                "Rejecting edge connection: name [%s] is already in use by an active edge.",
+                edge_name,
+            )
+            try:
+                await peer.send_json(
+                    {
+                        "type": "register_rejected",
+                        "reason": (f"An edge named '{edge_name}' is already connected. Use a unique edge_name."),
+                    }
+                )
+                await peer.close(code=4409, reason="edge_name already in use")
+            except Exception as reject_exc:
+                logger.debug("Error rejecting duplicate edge connection: %s", reject_exc)
+            return
 
         ACTIVE_CONNECTIONS[connection_key] = peer
         EDGE_TOOLS_REGISTRY[connection_key] = {}

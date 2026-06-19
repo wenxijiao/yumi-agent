@@ -79,6 +79,14 @@ def test_telegram_overrides_and_allowed_ids_filtering(isolated_config, monkeypat
     assert cfg.telegram_allowed_user_ids == [111, 222, 333]  # non-int dropped
 
 
+def test_discord_overrides_and_allowed_ids_filtering(isolated_config, monkeypatch):
+    monkeypatch.setenv("DISCORD_BOT_TOKEN", "dtok-123")
+    monkeypatch.setenv("DISCORD_ALLOWED_USER_IDS", "111, 222, notanid, 333")
+    cfg = load_model_config()
+    assert cfg.discord_bot_token == "dtok-123"
+    assert cfg.discord_allowed_user_ids == [111, 222, 333]  # non-int dropped
+
+
 def test_line_port_clamped_and_invalid_ignored(isolated_config, monkeypatch):
     monkeypatch.setenv("LINE_BOT_PORT", "999999")  # clamp to 65535
     assert load_model_config().line_bot_port == 65535

@@ -7,6 +7,7 @@ dedicated module so ``yumi/cli/__init__.py`` stays a thin entry point.
 """
 
 import os
+import socket
 import subprocess
 import sys
 import time
@@ -22,6 +23,7 @@ from yumi.core.features.config import (
     ensure_chat_model_configured,
     ensure_full_model_config_file,
     ensure_provider_available,
+    get_discord_bot_token,
     get_lan_secret,
     get_line_bot_port,
     get_line_channel_access_token,
@@ -32,6 +34,7 @@ from yumi.core.features.config import (
     load_saved_model_config,
     run_model_setup,  # noqa: F401 — re-exported for `yumi.cli.commands.SetupCommand`
     save_connection_code,
+    save_discord_bot_token,
     save_line_channel_access_token,
     save_line_channel_secret,
     save_model_config,
@@ -100,6 +103,36 @@ def _prompt_telegram_bot_token_if_missing() -> bool:
             continue
         try:
             save_telegram_bot_token(line)
+        except ValueError as exc:
+            print(f"  {exc}\n")
+            continue
+        print(f"  Token saved to {CONFIG_PATH}\n")
+        return True
+
+
+def _prompt_discord_bot_token_if_missing() -> bool:
+    """If no token in env/config, prompt on TTY and save to ~/.yumi/config.json."""
+    if get_discord_bot_token():
+        return True
+    if not sys.stdin.isatty() or not sys.stdout.isatty():
+        print(f"\n  Discord bot token required. Set DISCORD_BOT_TOKEN or add discord_bot_token to {CONFIG_PATH}\n")
+        return False
+    print()
+    print("  No Discord bot token found.")
+    print("  In the Discord Developer Portal, create an application + bot, enable the")
+    print("  MESSAGE CONTENT intent, then copy the bot token.")
+    print()
+    while True:
+        try:
+            line = input("  Paste bot token (Enter to exit): ").strip()
+        except EOFError:
+            print("  Exiting.\n")
+            return False
+        if not line:
+            print("  Exiting.\n")
+            return False
+        try:
+            save_discord_bot_token(line)
         except ValueError as exc:
             print(f"  {exc}\n")
             continue
@@ -234,6 +267,9 @@ def _subprocess_env_ensure_platform_tokens() -> dict:
     token = get_telegram_bot_token()
     if token and not (env.get("TELEGRAM_BOT_TOKEN") or "").strip():
         env["TELEGRAM_BOT_TOKEN"] = token
+    dc = get_discord_bot_token()
+    if dc and not (env.get("DISCORD_BOT_TOKEN") or "").strip():
+        env["DISCORD_BOT_TOKEN"] = dc
     ls = get_line_channel_secret()
     if ls and not (env.get("LINE_CHANNEL_SECRET") or "").strip():
         env["LINE_CHANNEL_SECRET"] = ls
@@ -454,6 +490,68 @@ def run_telegram_standalone() -> None:
     run_telegram_bot_sync()
 
 
+def run_server_with_discord() -> None:
+    """Start Yumi API in a subprocess, then run the Discord bot against localhost."""
+    if not _prompt_discord_bot_token_if_missing():
+        sys.exit(1)
+
+    config = _preflight_models()
+
+    rows = _server_banner_rows(config)
+    _print_banner(
+        "Yumi Server + Discord",
+        rows,
+        ["Mode: local / LAN (single user)", "Discord bot: will start after server is ready"],
+    )
+    _print_lan_codes()
+
+    proc = subprocess.Popen(
+        [sys.executable, "-m", "yumi.core.api"],
+        env=_subprocess_env_ensure_platform_tokens(),
+    )
+    local_url = "http://127.0.0.1:8000"
+    try:
+        if not _wait_for_server_health(local_url, timeout=90):
+            print("\n  Yumi server did not become healthy in time.\n")
+            return
+        os.environ["YUMI_SERVER_URL"] = local_url
+        dc = get_discord_bot_token()
+        if dc and not (os.environ.get("DISCORD_BOT_TOKEN") or "").strip():
+            os.environ["DISCORD_BOT_TOKEN"] = dc
+        print("  Discord bot: running (Ctrl+C stops the server and bot)\n")
+        from yumi.discord.bot import run_discord_bot_sync
+
+        run_discord_bot_sync()
+    except KeyboardInterrupt:
+        print("\n  Shutting down Yumi.\n")
+    finally:
+        proc.terminate()
+        try:
+            proc.wait(timeout=15)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+
+
+def run_discord_standalone() -> None:
+    """Run only the Discord bot; connect to the configured local/LAN Yumi API."""
+    if not _prompt_discord_bot_token_if_missing():
+        sys.exit(1)
+
+    env = prepare_client_environment("chat")
+    target = env.get("YUMI_SERVER_URL", SERVER_URL)
+    _print_banner("Yumi Discord", [("Backend:", target), ("Mode:", "direct")])
+
+    if not is_server_running(server_health_url(target)):
+        print("\n  Yumi server is not running. Start it first with: yumi --server\n")
+        sys.exit(1)
+
+    os.environ.update(env)
+
+    from yumi.discord.bot import run_discord_bot_sync
+
+    run_discord_bot_sync()
+
+
 def run_server_with_line() -> None:
     """Start Yumi API in a subprocess, then run the LINE webhook sidecar."""
     if not _prompt_line_credentials_if_missing():
@@ -606,8 +704,61 @@ def _read_env_connection_code(env_path: str) -> str:
     return ""
 
 
-def run_edge(lang: str | list[str] | None = None):
+_EDGE_LANG_CHOICES = (
+    "python",
+    "swift",
+    "typescript",
+    "cpp",
+    "ue5",
+    "go",
+    "java",
+    "csharp",
+    "rust",
+    "kotlin",
+    "dart",
+)
+
+
+def _set_env_var(env_path: str, key: str, value: str) -> None:
+    """Set ``KEY=value`` in an existing/created .env file (replace or append)."""
+    line = f"{key}={value}"
+    if not os.path.isfile(env_path):
+        with open(env_path, "w", encoding="utf-8") as f:
+            f.write(line + "\n")
+        return
+    with open(env_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    if f"{key}=" in content:
+        content = "\n".join(line if ln.startswith(f"{key}=") else ln for ln in content.splitlines()) + "\n"
+    else:
+        content = content.rstrip("\n") + f"\n{line}\n"
+    with open(env_path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+
+def _prompt_edge_languages() -> list[str] | None:
+    """Interactive language picker. Returns a normalized list, or None for all."""
+    print("  Which language(s) for this edge?")
+    print("  Options: " + ", ".join(_EDGE_LANG_CHOICES))
+    raw = input("  Languages (comma-separated, Enter = all): ").strip()
+    return _parse_edge_langs([raw]) if raw else None
+
+
+def _prompt_edge_name() -> str:
+    """Ask for a unique edge name (defaults to the hostname)."""
+    default = socket.gethostname() or "my-edge"
+    print("  Each edge needs a UNIQUE name — it routes tools to this device.")
+    raw = input(f"  Edge name [{default}]: ").strip()
+    return raw or default
+
+
+def run_edge(lang: str | list[str] | None = None, edge_name: str | None = None):
     workspace = os.getcwd()
+    interactive = sys.stdin.isatty()
+
+    # When --lang wasn't given, let an interactive user pick the language(s).
+    if lang is None and interactive:
+        lang = _prompt_edge_languages()
 
     rows = [("Workspace:", workspace)]
     if lang:
@@ -636,6 +787,15 @@ def run_edge(lang: str | list[str] | None = None):
         print("  Workspace OK.\n")
 
     env_path = os.path.join(workspace, "yumi_tools", ".env")
+
+    # Edge name (its unique identity). Prompt when not given and interactive,
+    # then persist as EDGE_NAME so the scaffolded edge defaults to a unique name.
+    if edge_name is None and interactive:
+        edge_name = _prompt_edge_name()
+    if edge_name:
+        _set_env_var(env_path, "EDGE_NAME", edge_name)
+        print(f"  Edge name: {edge_name}  (saved as EDGE_NAME in yumi_tools/.env)")
+
     existing_code = _read_env_connection_code(env_path)
 
     if existing_code:

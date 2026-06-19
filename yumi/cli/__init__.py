@@ -25,10 +25,12 @@ from yumi.cli.runners import (
     run_cleanup,
     run_cleanup_memory,
     run_config_file,
+    run_discord_standalone,
     run_edge,
     run_line_standalone,
     run_model_setup,
     run_server,
+    run_server_with_discord,
     run_server_with_line,
     run_server_with_telegram,
     run_server_with_telegram_and_voice,
@@ -49,10 +51,12 @@ __all__ = [
     "run_cleanup",
     "run_cleanup_memory",
     "run_config_file",
+    "run_discord_standalone",
     "run_edge",
     "run_line_standalone",
     "run_model_setup",
     "run_server",
+    "run_server_with_discord",
     "run_server_with_line",
     "run_server_with_telegram",
     "run_server_with_telegram_and_voice",
@@ -78,7 +82,10 @@ def main():
 
     parser = argparse.ArgumentParser(
         description="Yumi command line interface",
-        epilog="Core edition: local / LAN single-user runtime.",
+        epilog=(
+            "Open-source core: self-host locally, chat via Telegram/LINE/Discord. "
+            "Cross-network edges, cloud, and multi-user are the enterprise layer."
+        ),
     )
     registry = build_default_registry()
     registry.install(parser)

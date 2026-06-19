@@ -118,6 +118,24 @@ def load_model_config() -> ModelConfig:
         if ids:
             config.telegram_allowed_user_ids = ids
 
+    dc_token = os.getenv("DISCORD_BOT_TOKEN")
+    if dc_token and dc_token.strip():
+        config.discord_bot_token = dc_token.strip()
+
+    dc_allow = os.getenv("DISCORD_ALLOWED_USER_IDS")
+    if dc_allow and dc_allow.strip():
+        dc_ids: list[int] = []
+        for part in dc_allow.split(","):
+            part = part.strip()
+            if not part:
+                continue
+            try:
+                dc_ids.append(int(part))
+            except ValueError:
+                pass
+        if dc_ids:
+            config.discord_allowed_user_ids = dc_ids
+
     line_secret = os.getenv("LINE_CHANNEL_SECRET")
     if line_secret and line_secret.strip():
         config.line_channel_secret = line_secret.strip()

@@ -14,9 +14,9 @@ control (custom connection code, edge name, multiple agents) use
 
 from __future__ import annotations
 
-__all__ = ["__version__", "YumiAgent", "register", "run", "stop"]
+__all__ = ["__version__", "YumiAgent", "register", "run", "run_in_background", "stop"]
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 from yumi.sdk import YumiAgent as YumiAgent
 
@@ -75,18 +75,27 @@ def run(
     connection_code: str | None = None,
     edge_name: str | None = None,
 ) -> None:
-    """Start the default agent in the background.
+    """Run the default agent in the FOREGROUND until interrupted (Ctrl+C).
 
-    Optional *connection_code* and *edge_name* are applied to the
-    default agent before starting.  If the agent is already running
-    this is a no-op.
+    For a standalone script (the script itself is the edge). Optional
+    *connection_code* / *edge_name* configure the agent before it starts.
+    Embedded hosts (a GUI app, a game, another service) should call
+    :func:`run_in_background` instead, which returns immediately.
     """
-    agent = _get_default_agent()
-    if connection_code is not None:
-        agent._connection_code = connection_code
-    if edge_name is not None:
-        agent._edge_name = edge_name
-    agent.run_in_background()
+    _get_default_agent().run(connection_code=connection_code, edge_name=edge_name)
+
+
+def run_in_background(
+    *,
+    connection_code: str | None = None,
+    edge_name: str | None = None,
+) -> None:
+    """Start the default agent in a background thread and return immediately.
+
+    For embedding the edge in another program that stays alive on its own.
+    A standalone script should use :func:`run` so the process doesn't exit.
+    """
+    _get_default_agent().run_in_background(connection_code=connection_code, edge_name=edge_name)
 
 
 def stop() -> None:

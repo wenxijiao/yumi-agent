@@ -10,6 +10,7 @@ import base64
 import copy
 import inspect
 import json
+import logging
 import os
 import random
 import re
@@ -24,7 +25,7 @@ from urllib.parse import urlparse
 
 import websockets
 
-_LOG_PREFIX = "[Yumi]"
+_LOG = logging.getLogger("yumi.sdk")
 
 _TOOL_CONFIRMATION_FILENAME = ".yumi_tool_confirmation.json"
 
@@ -382,6 +383,8 @@ class YumiAgent:
         connection_code: str | None = None,
         edge_name: str | None = None,
         env_path: str | None = None,
+        *,
+        on_error: Callable[[Exception], None] | None = None,
     ):
         if env_path:
             env_file = env_path
@@ -401,6 +404,8 @@ class YumiAgent:
         self._thread: threading.Thread | None = None
         self._stop_event = threading.Event()
         self._in_flight: dict[str, asyncio.Task] = {}
+        self._on_error = on_error
+        self._connected = False
 
     def _confirmation_policy_path(self) -> str:
         override = (os.getenv("YUMI_TOOL_CONFIRMATION_PATH") or "").strip()
@@ -444,6 +449,25 @@ class YumiAgent:
             pass
 
     # ── public API ──
+
+    @property
+    def is_connected(self) -> bool:
+        """True while the edge is connected to the server.
+
+        Set by the background client, so it's meaningful after
+        :meth:`run_in_background`. Lets embedders detect connection state
+        instead of guessing from the absence of a return value.
+        """
+        return self._connected
+
+    def _emit_error(self, exc: Exception) -> None:
+        """Forward a connection error to the optional ``on_error`` callback."""
+        if self._on_error is None:
+            return
+        try:
+            self._on_error(exc)
+        except Exception:
+            _LOG.exception("on_error callback raised")
 
     def register(
         self,
@@ -515,6 +539,10 @@ class YumiAgent:
         if timeout is not None:
             schema["timeout"] = timeout
         tool_name = schema["function"]["name"]
+        if not tool_name or not str(tool_name).strip():
+            raise ValueError("Tool name cannot be empty; pass a non-empty name=.")
+        if tool_name in self._tools:
+            raise ValueError(f"A tool named {tool_name!r} is already registered; use a unique name= for each tool.")
         self._tools[tool_name] = {
             "schema": schema,
             "callable": func,
@@ -526,13 +554,28 @@ class YumiAgent:
             "proactive_context_description": proactive_context_description,
         }
 
-    def run_in_background(self) -> None:
-        """Start the edge client in a background daemon thread."""
+    def run_in_background(
+        self,
+        *,
+        connection_code: str | None = None,
+        edge_name: str | None = None,
+    ) -> None:
+        """Start the edge client in a background daemon thread.
+
+        Optional *connection_code* / *edge_name* override the values supplied at
+        construction, applied just before the client starts. No-op if already
+        running.
+        """
         if self._thread is not None and self._thread.is_alive():
             return
 
+        if connection_code is not None:
+            self._connection_code = connection_code
+        if edge_name is not None:
+            self._edge_name = edge_name
+
         if not self._tools:
-            print(f"{_LOG_PREFIX} Warning: no tools registered.")
+            _LOG.warning("No tools registered.")
 
         self._stop_event.clear()
         self._thread = threading.Thread(
@@ -541,6 +584,29 @@ class YumiAgent:
             daemon=True,
         )
         self._thread.start()
+
+    def run(
+        self,
+        *,
+        connection_code: str | None = None,
+        edge_name: str | None = None,
+    ) -> None:
+        """Run in the FOREGROUND until interrupted (Ctrl+C) or stopped.
+
+        Use this for a standalone edge script that *is* the process — it keeps
+        the program alive so the edge stays connected. An embedded host (a GUI
+        app, a game, another running service) should use
+        :meth:`run_in_background`, which returns immediately and lets the host
+        own the lifecycle.
+        """
+        self.run_in_background(connection_code=connection_code, edge_name=edge_name)
+        try:
+            while not self._stop_event.is_set():
+                self._stop_event.wait(0.5)
+        except KeyboardInterrupt:
+            pass
+        finally:
+            self.stop()
 
     def stop(self) -> None:
         """Gracefully shut down the background client."""
@@ -606,75 +672,89 @@ class YumiAgent:
             loop.close()
 
     async def _connect_loop(self) -> None:
-        try:
-            connection = self._resolve_connection()
-        except Exception as exc:
-            print(f"{_LOG_PREFIX} Failed to resolve connection: {exc}")
-            return
-
-        if connection.mode == "relay":
-            ws_url = connection.relay_edge_ws_url()
-        else:
-            ws_url = connection.base_url
-
-        register_payload = {
-            "type": "register",
-            "edge_name": self._edge_name,
-            "tools": [_wire_tool_schema(t) for t in list(self._tools.values())],
-            "tool_confirmation_policy": self._load_confirmation_policy(),
-        }
-        if connection.access_token:
-            register_payload["access_token"] = connection.access_token
-
         reconnect_delay = 3
 
         while not self._stop_event.is_set():
             try:
+                # Resolve the connection on EACH attempt so a transient bootstrap
+                # failure (e.g. the relay briefly unreachable at startup) is
+                # retried rather than permanently killing the client thread.
+                connection = self._resolve_connection()
+                ws_url = connection.relay_edge_ws_url() if connection.mode == "relay" else connection.base_url
+
+                register_payload = {
+                    "type": "register",
+                    "edge_name": self._edge_name,
+                    "tools": [_wire_tool_schema(t) for t in list(self._tools.values())],
+                    "tool_confirmation_policy": self._load_confirmation_policy(),
+                }
+                if connection.access_token:
+                    register_payload["access_token"] = connection.access_token
+
                 async with websockets.connect(ws_url) as ws:
                     reconnect_delay = 3
-                    register_payload["tools"] = [_wire_tool_schema(t) for t in list(self._tools.values())]
-                    register_payload["tool_confirmation_policy"] = self._load_confirmation_policy()
                     await ws.send(json.dumps(register_payload))
-                    print(f"{_LOG_PREFIX} Connected as [{self._edge_name}] with {len(self._tools)} tool(s).")
+                    self._connected = True
+                    _LOG.info(
+                        "Connected as [%s] with %d tool(s).",
+                        self._edge_name,
+                        len(self._tools),
+                    )
 
                     self._in_flight.clear()
 
-                    while not self._stop_event.is_set():
-                        try:
-                            raw = await asyncio.wait_for(ws.recv(), timeout=1.0)
-                        except asyncio.TimeoutError:
-                            continue
+                    try:
+                        while not self._stop_event.is_set():
+                            try:
+                                raw = await asyncio.wait_for(ws.recv(), timeout=1.0)
+                            except asyncio.TimeoutError:
+                                continue
 
-                        msg = json.loads(raw)
-                        msg_type = msg.get("type")
+                            msg = json.loads(raw)
+                            msg_type = msg.get("type")
 
-                        if msg_type == "persist_tool_confirmation_policy":
-                            aa = msg.get("always_allow") or []
-                            fc = msg.get("force_confirm") or []
-                            if isinstance(aa, list) and isinstance(fc, list):
-                                self._save_confirmation_policy(
-                                    {
-                                        "always_allow": [str(x) for x in aa if x],
-                                        "force_confirm": [str(x) for x in fc if x],
-                                    }
-                                )
-                        elif msg_type == "tool_call":
-                            asyncio.ensure_future(self._handle_tool_call(ws, msg))
-                        elif msg_type == "cancel":
-                            call_id = msg.get("call_id", "")
-                            task = self._in_flight.get(call_id)
-                            if task and not task.done():
-                                task.cancel()
+                            if msg_type == "persist_tool_confirmation_policy":
+                                aa = msg.get("always_allow") or []
+                                fc = msg.get("force_confirm") or []
+                                if isinstance(aa, list) and isinstance(fc, list):
+                                    self._save_confirmation_policy(
+                                        {
+                                            "always_allow": [str(x) for x in aa if x],
+                                            "force_confirm": [str(x) for x in fc if x],
+                                        }
+                                    )
+                            elif msg_type == "tool_call":
+                                asyncio.ensure_future(self._handle_tool_call(ws, msg))
+                            elif msg_type == "cancel":
+                                call_id = msg.get("call_id", "")
+                                task = self._in_flight.get(call_id)
+                                if task and not task.done():
+                                    task.cancel()
+                            elif msg_type == "register_rejected":
+                                # The server refused this edge_name (already in
+                                # use). Do NOT reconnect — that would just be
+                                # rejected again. Stop and surface a clear error
+                                # so the user picks a unique edge_name.
+                                reason = msg.get("reason") or "edge_name already in use"
+                                _LOG.error("Edge registration rejected by server: %s", reason)
+                                self._emit_error(RuntimeError(f"Edge registration rejected: {reason}"))
+                                self._stop_event.set()
+                                return
+                    finally:
+                        self._connected = False
 
             except asyncio.CancelledError:
                 self._cancel_in_flight()
+                self._connected = False
                 break
             except Exception as exc:
                 self._cancel_in_flight()
+                self._connected = False
                 if self._stop_event.is_set():
                     break
+                self._emit_error(exc)
                 wait = _reconnect_delay_sec_with_jitter(reconnect_delay)
-                print(f"{_LOG_PREFIX} Connection lost: {exc}. Reconnecting in {wait:.1f}s...")
+                _LOG.warning("Connection lost: %s. Reconnecting in %.1fs...", exc, wait)
                 await asyncio.sleep(wait)
                 reconnect_delay = min(reconnect_delay * 2, 30)
 

@@ -26,6 +26,7 @@ def _select_name(argv: list[str]) -> str | None:
     "argv,expected",
     [
         (["--server"], "server"),
+        (["--discord"], "discord"),
         (["--ui"], "ui"),
         (["--chat"], "chat"),
         (["--edge"], "edge"),
@@ -51,7 +52,16 @@ def test_mutually_exclusive_primary_flags_rejected_by_argparse():
 
 def test_telegram_and_line_together_is_rejected():
     err = validate_cross_command_flags(_parse(["--server", "--telegram", "--line"]))
-    assert err and "not both" in err
+    assert err and "only one of" in err
+
+
+def test_telegram_and_discord_together_is_rejected():
+    err = validate_cross_command_flags(_parse(["--server", "--telegram", "--discord"]))
+    assert err and "only one of" in err
+
+
+def test_discord_with_server_is_valid():
+    assert validate_cross_command_flags(_parse(["--server", "--discord"])) is None
 
 
 def test_voice_requires_server():

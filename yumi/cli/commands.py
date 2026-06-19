@@ -5,13 +5,13 @@ in :mod:`yumi.cli`. The split exists so adding / removing / re-ordering
 commands is a one-line ``registry.add(...)`` change instead of a four-place
 edit across :func:`main`.
 
-The composition rules between ``--server`` / ``--telegram`` / ``--line`` are
-enforced here too:
+The composition rules between ``--server`` / ``--telegram`` / ``--discord`` /
+``--line`` are enforced here too:
 
 * ``ServerCommand`` runs as ``server`` / ``server_with_telegram`` /
-  ``server_with_line`` based on the modifier flags.
-* ``TelegramStandaloneCommand`` and ``LineStandaloneCommand`` only fire when
-  ``--server`` is absent.
+  ``server_with_discord`` / ``server_with_line`` based on the modifier flags.
+* ``TelegramStandaloneCommand`` / ``DiscordStandaloneCommand`` /
+  ``LineStandaloneCommand`` only fire when ``--server`` is absent.
 * :func:`validate_cross_command_flags` rejects forbidden combinations (e.g.
   ``--telegram + --line``) before any command runs.
 """
@@ -37,6 +37,7 @@ class ServerCommand(Command):
     def run(self, args):
         from yumi.cli import (
             run_server,
+            run_server_with_discord,
             run_server_with_line,
             run_server_with_telegram,
             run_server_with_telegram_and_voice,
@@ -47,6 +48,8 @@ class ServerCommand(Command):
             run_server_with_telegram_and_voice()
         elif args.telegram:
             run_server_with_telegram()
+        elif getattr(args, "discord", False):
+            run_server_with_discord()
         elif args.line:
             run_server_with_line()
         elif getattr(args, "voice", False):
@@ -74,6 +77,27 @@ class TelegramStandaloneCommand(Command):
         from yumi.cli import run_telegram_standalone
 
         run_telegram_standalone()
+
+
+class DiscordStandaloneCommand(Command):
+    name = "discord"
+
+    def register(self, parser, mutex_group):
+        # ``--discord`` doubles as a modifier for ``--server``, so it lives
+        # outside the mutex group; ``ServerCommand.run`` handles the combo.
+        parser.add_argument(
+            "--discord",
+            action="store_true",
+            help=("Run Discord bot (with --server: same process after API starts; alone: client like --chat)"),
+        )
+
+    def matches(self, args):
+        return bool(getattr(args, "discord", False)) and not args.server
+
+    def run(self, args):
+        from yumi.cli import run_discord_standalone
+
+        run_discord_standalone()
 
 
 class LineStandaloneCommand(Command):
@@ -175,6 +199,16 @@ class EdgeCommand(Command):
                 "Default: scaffold all languages."
             ),
         )
+        parser.add_argument(
+            "--edge-name",
+            dest="edge_name",
+            default=None,
+            metavar="NAME",
+            help=(
+                "Name for this edge (must be unique across your edges; "
+                "default: hostname). With --edge it prefills the scaffold."
+            ),
+        )
 
     def matches(self, args):
         return bool(args.edge)
@@ -182,7 +216,7 @@ class EdgeCommand(Command):
     def run(self, args):
         from yumi.cli import _parse_edge_langs, run_edge
 
-        run_edge(lang=_parse_edge_langs(args.langs))
+        run_edge(lang=_parse_edge_langs(args.langs), edge_name=args.edge_name)
 
 
 class DemoCommand(Command):
@@ -372,12 +406,13 @@ def validate_cross_command_flags(args: argparse.Namespace) -> str | None:
     Per-command checks live in each :class:`Command.validate`. This helper
     handles the combinations the OSS CLI has historically rejected:
 
-    * ``--telegram + --line`` together,
-    * ``--telegram`` or ``--line`` combined with any non-server command,
+    * any two of ``--telegram`` / ``--discord`` / ``--line`` together,
+    * ``--telegram`` / ``--discord`` / ``--line`` combined with any non-server command,
     * ``--tool-routing``-only flags used without ``--tool-routing``.
     """
-    if getattr(args, "telegram", False) and getattr(args, "line", False):
-        return "Use either --telegram or --line, not both."
+    bridge_flags = [f for f in ("telegram", "discord", "line") if getattr(args, f, False)]
+    if len(bridge_flags) > 1:
+        return "Use only one of --telegram / --discord / --line, not several."
 
     if not getattr(args, "tool_routing", False) and (
         getattr(args, "edge_tools_limit", None) is not None
@@ -388,11 +423,13 @@ def validate_cross_command_flags(args: argparse.Namespace) -> str | None:
 
     flag_list = _format_non_server_flag_list()
 
-    if getattr(args, "telegram", False) or getattr(args, "line", False):
+    if bridge_flags:
         if any(getattr(args, flag, False) for flag in _NON_SERVER_BASE_FLAGS):
-            return f"Cannot combine --telegram/--line with {flag_list}."
+            return f"Cannot combine --telegram/--discord/--line with {flag_list}."
 
     if getattr(args, "voice", False):
+        if getattr(args, "discord", False):
+            return "Cannot combine --voice with --discord."
         if getattr(args, "line", False):
             return "Cannot combine --voice with --line."
         if any(getattr(args, flag, False) for flag in _NON_SERVER_BASE_FLAGS):
@@ -426,6 +463,7 @@ def build_default_registry() -> CommandRegistry:
     registry.add(CleanupMemoryCommand())
     # standalone commands that double as modifier flags
     registry.add(TelegramStandaloneCommand())
+    registry.add(DiscordStandaloneCommand())
     registry.add(LineStandaloneCommand())
     registry.add(VoiceModifierCommand())
     return registry
@@ -437,6 +475,7 @@ __all__ = [
     "CleanupMemoryCommand",
     "ConfigCommand",
     "DemoCommand",
+    "DiscordStandaloneCommand",
     "EdgeCommand",
     "LineStandaloneCommand",
     "ServerCommand",

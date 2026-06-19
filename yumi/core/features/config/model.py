@@ -45,6 +45,9 @@ class ModelConfig(BaseModel):
     # Telegram bot (optional): token in config or TELEGRAM_BOT_TOKEN; empty allowed_user_ids = no restriction
     telegram_bot_token: str | None = None
     telegram_allowed_user_ids: list[int] = Field(default_factory=list)
+    # Discord bot (optional): token in config or DISCORD_BOT_TOKEN; empty allowed_user_ids = no restriction
+    discord_bot_token: str | None = None
+    discord_allowed_user_ids: list[int] = Field(default_factory=list)
     # LINE Messaging API (optional): secrets in config or LINE_* env; empty line_allowed_user_ids = no restriction
     line_channel_secret: str | None = None
     line_channel_access_token: str | None = None

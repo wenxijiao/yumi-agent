@@ -2,7 +2,6 @@
 
 from yumi.core.features.config.connection import get_saved_connection_code, save_connection_code
 from yumi.core.features.config.credentials import (
-    _get_provider,
     ensure_chat_model_configured,
     ensure_embedding_provider_not_deepseek,
     ensure_model_ready,
@@ -10,6 +9,11 @@ from yumi.core.features.config.credentials import (
     get_api_credentials,
     infer_chat_from_env,
     is_model_available,
+)
+from yumi.core.features.config.discord import (
+    get_discord_allowed_user_ids,
+    get_discord_bot_token,
+    save_discord_bot_token,
 )
 from yumi.core.features.config.lan import get_lan_secret
 from yumi.core.features.config.legacy import ensure_ollama_available, list_local_models, pull_model
@@ -86,6 +90,9 @@ __all__ = [
     "cleanup_memory_data",
     "cleanup_user_data",
     "delete_session_prompt",
+    "get_discord_allowed_user_ids",
+    "get_discord_bot_token",
+    "save_discord_bot_token",
     "ensure_chat_model_configured",
     "ensure_config_dir",
     "ensure_embedding_provider_not_deepseek",
@@ -95,7 +102,6 @@ __all__ = [
     "ensure_ollama_available",
     "ensure_provider_available",
     "infer_chat_from_env",
-    "_get_provider",
     "get_api_credentials",
     "get_legacy_memory_dir",
     "get_memory_dir",
