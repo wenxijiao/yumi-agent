@@ -479,7 +479,7 @@ class YumiAgent:
         returns: str | None = None,
         timeout: int | None = None,
         require_confirmation: bool = False,
-        mode: str = "retrieval",
+        mode: str = "dynamic",
         context_args: dict[str, Any] | None = None,
         context_label: str | None = None,
         allow_proactive: bool = False,
@@ -506,16 +506,16 @@ class YumiAgent:
 
         **Exposure mode** (``mode=``, pick one per tool):
 
-        * ``"retrieval"`` (default) — the tool joins dynamic top-K retrieval; the
+        * ``"dynamic"`` (default) — the tool joins dynamic top-K retrieval; the
           model sees it only when it's relevant to the turn.
-        * ``"always"`` — the tool's schema is exposed to the model every turn
+        * ``"pinned"`` — the tool's schema is exposed to the model every turn
           (skips retrieval). For a few high-value tools.
-        * ``"context"`` — the tool is NOT offered to the model; instead it is run
+        * ``"autorun"`` — the tool is NOT offered to the model; instead it is run
           automatically before every reply and its result is injected as context
           for that turn only (never saved to history). Use it for ambient state
           the agent should always know — e.g. an edge ``get_user_context()``
           returning the user's recent mood/plans. Pass fixed arguments via
-          ``context_args`` and a label via ``context_label`` (a ``context`` tool
+          ``context_args`` and a label via ``context_label`` (an ``autorun`` tool
           must be callable with no other required args).
 
         **Cancellation behaviour:** When the server cancels an in-flight
@@ -540,7 +540,7 @@ class YumiAgent:
             require_confirmation: If True, the user must approve in the
                 Yumi UI or terminal chat before the server invokes this tool
                 on the edge.
-            mode: Exposure mode — "retrieval" (default), "always", or "context"
+            mode: Exposure mode — "dynamic" (default), "pinned", or "autorun"
                 (see above).
             context_args: Fixed arguments for a ``mode="context"`` tool.
             context_label: Label shown when a ``mode="context"`` result is
@@ -553,16 +553,16 @@ class YumiAgent:
             proactive_context_description: Deprecated — use ``context_label``.
         """
         # Map the `mode` API onto the existing wire flags (one mode per tool).
-        if mode == "always":
+        if mode == "pinned":
             always_include = True
-        elif mode == "context":
+        elif mode == "autorun":
             proactive_context = True
             if context_args is not None:
                 proactive_context_args = context_args
             if context_label is not None:
                 proactive_context_description = context_label
-        elif mode != "retrieval":
-            raise ValueError(f"mode must be 'retrieval', 'always', or 'context'; got {mode!r}")
+        elif mode != "dynamic":
+            raise ValueError(f"mode must be 'dynamic', 'pinned', or 'autorun'; got {mode!r}")
 
         schema = _build_tool_schema(func, name, description, params, returns)
         if timeout is not None:

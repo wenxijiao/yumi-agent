@@ -8,12 +8,12 @@ def _agent() -> YumiAgent:
     return YumiAgent(edge_name="test-edge")
 
 
-def test_mode_context_maps_to_proactive_fields():
+def test_mode_autorun_maps_to_context_fields():
     a = _agent()
     a.register(
         lambda: "x",
         "desc",
-        mode="context",
+        mode="autorun",
         context_args={"city": "AKL"},
         context_label="User context",
         name="ctx",
@@ -25,15 +25,15 @@ def test_mode_context_maps_to_proactive_fields():
     assert e["always_include"] is False
 
 
-def test_mode_always_maps_to_always_include():
+def test_mode_pinned_maps_to_always_include():
     a = _agent()
-    a.register(lambda: "y", "desc", mode="always", name="alw")
+    a.register(lambda: "y", "desc", mode="pinned", name="alw")
     e = a._tools["alw"]
     assert e["always_include"] is True
     assert e["proactive_context"] is False
 
 
-def test_mode_retrieval_is_the_default():
+def test_mode_dynamic_is_the_default():
     a = _agent()
     a.register(lambda: "z", "desc", name="ret")
     e = a._tools["ret"]

@@ -155,7 +155,7 @@ def register_tool(
         allow_proactive: If True, this read-only tool may be exposed to proactive messaging.
         proactive_context: If True, run this tool before EVERY generation (a normal chat reply
             or a proactive message) and inject its result as context for that turn only (never
-            saved to history). The model sees the result, not the tool. (SDK: ``mode="context"``.)
+            saved to history). The model sees the result, not the tool. (SDK: ``mode="autorun"``.)
         proactive_context_args: Fixed arguments used for proactive context calls.
         proactive_context_description: Label for the injected proactive context line.
         default_require_confirmation: If True, the tool is added to the runtime confirmation set on

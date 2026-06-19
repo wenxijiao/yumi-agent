@@ -1,8 +1,35 @@
 package yumi_sdk
 
+import "fmt"
+
 // BuildToolSchema creates the JSON schema object for a registered tool,
 // matching the wire format expected by the Yumi server.
+//
+// It panics if opts.Mode is set to anything other than "dynamic", "pinned",
+// or "autorun" (an invalid mode is a programming error, surfaced at register time).
 func BuildToolSchema(opts RegisterOptions) map[string]interface{} {
+	// Map the Mode API onto the existing wire flags (one mode per tool).
+	alwaysInclude := opts.AlwaysInclude
+	proactiveContext := opts.ProactiveContext
+	proactiveContextArgs := opts.ProactiveContextArgs
+	proactiveContextDescription := opts.ProactiveContextDescription
+	switch opts.Mode {
+	case "", "dynamic":
+		// no change
+	case "pinned":
+		alwaysInclude = true
+	case "autorun":
+		proactiveContext = true
+		if opts.ContextArgs != nil {
+			proactiveContextArgs = opts.ContextArgs
+		}
+		if opts.ContextLabel != "" {
+			proactiveContextDescription = opts.ContextLabel
+		}
+	default:
+		panic(fmt.Sprintf("mode must be 'dynamic', 'pinned', or 'autorun'; got %q", opts.Mode))
+	}
+
 	properties := make(map[string]interface{})
 	required := make([]string, 0)
 
@@ -41,20 +68,20 @@ func BuildToolSchema(opts RegisterOptions) map[string]interface{} {
 	if opts.RequireConfirmation {
 		schema["require_confirmation"] = true
 	}
-	if opts.AlwaysInclude {
+	if alwaysInclude {
 		schema["always_include"] = true
 	}
 	if opts.AllowProactive {
 		schema["allow_proactive"] = true
 	}
-	if opts.ProactiveContext {
+	if proactiveContext {
 		schema["proactive_context"] = true
 	}
-	if opts.ProactiveContextArgs != nil {
-		schema["proactive_context_args"] = opts.ProactiveContextArgs
+	if proactiveContextArgs != nil {
+		schema["proactive_context_args"] = proactiveContextArgs
 	}
-	if opts.ProactiveContextDescription != "" {
-		schema["proactive_context_description"] = opts.ProactiveContextDescription
+	if proactiveContextDescription != "" {
+		schema["proactive_context_description"] = proactiveContextDescription
 	}
 
 	return schema

@@ -54,8 +54,21 @@ class YumiAgent(opts: AgentOptions) {
     }
 
     fun register(opts: RegisterOptions) {
-        val schema = buildToolSchema(opts)
-        tools[opts.name] = RegisteredTool(schema, opts.handler, opts.requireConfirmation)
+        // Map the `mode` API onto the existing wire flags (one mode per tool).
+        val resolved = when (opts.mode) {
+            "dynamic" -> opts
+            "pinned" -> opts.copy(alwaysInclude = true)
+            "autorun" -> opts.copy(
+                proactiveContext = true,
+                proactiveContextArgs = opts.contextArgs ?: opts.proactiveContextArgs,
+                proactiveContextDescription = opts.contextLabel ?: opts.proactiveContextDescription,
+            )
+            else -> throw IllegalArgumentException(
+                "mode must be 'dynamic', 'pinned', or 'autorun'; got '${opts.mode}'"
+            )
+        }
+        val schema = buildToolSchema(resolved)
+        tools[resolved.name] = RegisteredTool(schema, resolved.handler, resolved.requireConfirmation)
     }
 
     fun runInBackground() {

@@ -45,6 +45,12 @@ struct FYumiRegisterOptions
     FYumiToolHandler Handler;
     int32 Timeout = 0;
     bool bRequireConfirmation = false;
+    // Exposure mode (preferred): "dynamic" (default), "pinned", or "autorun".
+    // Mapped onto the low-level wire flags below before the schema is built.
+    FString Mode = TEXT("dynamic");
+    TSharedPtr<FJsonObject> ContextArgs;   // fixed args for an "autorun" tool
+    FString ContextLabel;                  // label for an injected "autorun" result
+    // Deprecated low-level flags (prefer Mode); still honored for back-compat.
     bool bAlwaysInclude = false;
     bool bAllowProactive = false;
     bool bProactiveContext = false;

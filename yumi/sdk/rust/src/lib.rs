@@ -19,8 +19,12 @@
 //!     }],
 //!     require_confirmation: false,
 //!     timeout: None,
-//!     always_include: false,
+//!     // Exposure mode: "dynamic" (default), "pinned", or "autorun".
+//!     mode: "dynamic".into(),
+//!     context_args: None,
+//!     context_label: None,
 //!     allow_proactive: false,
+//!     always_include: false,
 //!     proactive_context: false,
 //!     proactive_context_args: None,
 //!     proactive_context_description: None,

@@ -45,12 +45,12 @@ def init_yumi():
     # agent.register(delete_all, "Delete all data", require_confirmation=True)
     #
     # Exposure mode (pick one per tool):
-    #   "retrieval" (default) — dynamic: model sees it when relevant
-    #   "always"   — schema exposed to the model every turn
-    #   "context"  — run before each reply, result injected as context the agent
-    #                always sees (model gets the result, not the tool)
-    # agent.register(get_status, "Read current app status", mode="always")
-    # agent.register(get_user_context, "User's recent mood and plans", mode="context")
+    #   "dynamic" (default) — model sees it when relevant (dynamic retrieval)
+    #   "pinned"  — schema exposed to the model every turn
+    #   "autorun" — run before each reply, result injected as context the agent
+    #               always sees (model gets the result, not the tool)
+    # agent.register(get_status, "Read current app status", mode="pinned")
+    # agent.register(get_user_context, "User's recent mood and plans", mode="autorun")
     #
     # Tool confirmation choices (Tools page / chat "always allow") are saved next to your
     # .env as .yumi_tool_confirmation.json (override with YUMI_TOOL_CONFIRMATION_PATH).

@@ -34,6 +34,12 @@ data class RegisterOptions(
     val parameters: List<ToolParameter> = emptyList(),
     val timeout: Int? = null,
     val requireConfirmation: Boolean = false,
+    /** Exposure mode — "dynamic" (default), "pinned", or "autorun". Input sugar mapped onto the flags below. */
+    val mode: String = "dynamic",
+    /** Fixed arguments for an "autorun" tool. */
+    val contextArgs: JsonObject? = null,
+    /** Label shown when an "autorun" result is injected. */
+    val contextLabel: String? = null,
     val alwaysInclude: Boolean = false,
     val allowProactive: Boolean = false,
     val proactiveContext: Boolean = false,

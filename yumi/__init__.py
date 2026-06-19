@@ -39,7 +39,7 @@ def register(
     returns: str | None = None,
     timeout: int | None = None,
     require_confirmation: bool = False,
-    mode: str = "retrieval",
+    mode: str = "dynamic",
     context_args: dict | None = None,
     context_label: str | None = None,
     allow_proactive: bool = False,

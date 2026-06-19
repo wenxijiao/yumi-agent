@@ -107,8 +107,10 @@ public class YumiAgent {
      * Register a tool.
      */
     public void register(RegisterOptions opts) {
-        JsonObject schema = SchemaBuilder.build(opts);
-        tools.put(opts.getName(), new RegisteredTool(schema, opts.getHandler(), opts.isRequireConfirmation()));
+        // Map the `mode` API onto the existing wire flags (one mode per tool).
+        RegisterOptions resolved = opts.resolveMode();
+        JsonObject schema = SchemaBuilder.build(resolved);
+        tools.put(resolved.getName(), new RegisteredTool(schema, resolved.getHandler(), resolved.isRequireConfirmation()));
     }
 
     /**
