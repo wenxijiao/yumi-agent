@@ -12,7 +12,7 @@ requires-python = ">=3.10"
 authors = [{ name = "Yumi contributors" }]
 keywords = ["ai", "agent", "llm", "fastapi", "ollama", "sdk"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 3 - Alpha",
     "Environment :: Console",
     "Framework :: FastAPI",
     "Intended Audience :: Developers",
@@ -77,10 +77,15 @@ stt = ["faster-whisper>=1.0", "huggingface-hub>=0.20"]
 voice = ["sounddevice>=0.4.6", "webrtcvad-wheels>=2.0.14", "pvporcupine>=3.0.0"]
 telegram = ["python-telegram-bot>=21.0"]
 discord = ["discord.py>=2.0"]
+# LINE uses the core httpx webhook client — no extra SDK. Listed so the
+# documented `pip install yumi-agent[...,line,...]` resolves cleanly.
+line = []
 files = ["PyPDF2>=3.0", "python-docx>=1.0"]
 openai = ["openai>=1.0"]
 gemini = ["google-genai>=1.0"]
 claude = ["anthropic>=0.39"]
+# DeepSeek is an OpenAI-compatible endpoint, so it reuses the openai client.
+deepseek = ["openai>=1.0"]
 providers = ["openai>=1.0", "google-genai>=1.0", "anthropic>=0.39"]
 all = [
     "reflex>=0.9",

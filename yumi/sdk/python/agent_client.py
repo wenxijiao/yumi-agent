@@ -406,6 +406,10 @@ class YumiAgent:
         self._in_flight: dict[str, asyncio.Task] = {}
         self._on_error = on_error
         self._connected = False
+        # Bootstrapped relay credentials are cached on the instance (not in
+        # os.environ) so two agents in the same process never see each other's.
+        self._relay_url: str | None = None
+        self._relay_access_token: str | None = None
 
     def _confirmation_policy_path(self) -> str:
         override = (os.getenv("YUMI_TOOL_CONFIRMATION_PATH") or "").strip()
@@ -654,6 +658,15 @@ class YumiAgent:
         self._in_flight.clear()
 
     def _resolve_connection(self) -> _ConnectionConfig:
+        # Cached from a prior bootstrap on THIS instance (no cross-agent leak).
+        if self._relay_url and self._relay_access_token:
+            return _ConnectionConfig(
+                mode="relay",
+                base_url=self._relay_url.rstrip("/"),
+                access_token=self._relay_access_token,
+            )
+
+        # Explicit env config set by the user is still honored.
         relay_url = os.getenv("YUMI_RELAY_URL")
         access_token = os.getenv("YUMI_ACCESS_TOKEN")
         if relay_url and access_token:
@@ -675,8 +688,8 @@ class YumiAgent:
 
         if code.startswith(_TOKEN_PREFIX):
             profile = _bootstrap_profile(code, "edge", device_name=self._edge_name)
-            os.environ["YUMI_RELAY_URL"] = profile["relay_url"]
-            os.environ["YUMI_ACCESS_TOKEN"] = profile["access_token"]
+            self._relay_url = profile["relay_url"]
+            self._relay_access_token = profile["access_token"]
             return _ConnectionConfig(
                 mode="relay",
                 base_url=profile["relay_url"],
