@@ -10,7 +10,6 @@ const TOOL_CONFIRMATION_FILENAME = ".yumi_tool_confirmation.json";
 interface RegisteredTool {
   schema: Record<string, unknown>;
   handler: ToolHandler;
-  requireConfirmation: boolean;
 }
 
 interface ConfirmationPolicy {
@@ -229,7 +228,6 @@ export class YumiAgent {
     this.tools.set(opts.name, {
       schema,
       handler: opts.handler,
-      requireConfirmation: opts.requireConfirmation ?? false,
     });
   }
 
@@ -403,13 +401,9 @@ export class YumiAgent {
         onOpen: (session) => {
           this.wsSession = session;
 
-          const toolSchemas = Array.from(this.tools.values()).map((t) => {
-            const schema = { ...t.schema } as Record<string, unknown>;
-            if (t.requireConfirmation) {
-              schema.require_confirmation = true;
-            }
-            return schema;
-          });
+          // buildToolSchema() already encoded require_confirmation from the
+          // same opts, so the stored schema is the single source of truth.
+          const toolSchemas = Array.from(this.tools.values()).map((t) => ({ ...t.schema }));
 
           const registerPayload: Record<string, unknown> = {
             type: "register",

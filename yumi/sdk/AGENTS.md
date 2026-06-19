@@ -212,6 +212,12 @@ python -m yumi_tools.python.yumi_setup
 The Python SDK can infer JSON schema from type hints. Add type hints and
 docstring `Args:` sections, or pass `params={...}` explicitly.
 
+> **Type-hint inference notes.** `Optional[X]` / `X | None` collapses to the
+> schema for `X` — nullability is expressed by leaving the parameter out of
+> `required`, not by a nullable JSON type. A multi-type union like `int | str`
+> has no single JSON type, so it falls back to `string`; pass an explicit
+> `params={...}` entry if you need a different type for such a parameter.
+
 ### TypeScript / JavaScript
 
 Edit:
