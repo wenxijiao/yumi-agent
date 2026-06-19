@@ -479,8 +479,12 @@ class YumiAgent:
         returns: str | None = None,
         timeout: int | None = None,
         require_confirmation: bool = False,
-        always_include: bool = False,
+        mode: str = "retrieval",
+        context_args: dict[str, Any] | None = None,
+        context_label: str | None = None,
         allow_proactive: bool = False,
+        # Deprecated low-level flags (prefer `mode`); still honored for back-compat.
+        always_include: bool = False,
         proactive_context: bool = False,
         proactive_context_args: dict[str, Any] | None = None,
         proactive_context_description: str | None = None,
@@ -500,9 +504,19 @@ class YumiAgent:
         tools with irreversible side effects. The **server** asks the user
         in the web UI or in ``yumi --chat`` (not on the edge device).
 
-        **Tool routing:** Set ``always_include=True`` for edge tools whose
-        schema must be exposed to the model on every turn, bypassing dynamic
-        edge-tool retrieval for that tool.
+        **Exposure mode** (``mode=``, pick one per tool):
+
+        * ``"retrieval"`` (default) — the tool joins dynamic top-K retrieval; the
+          model sees it only when it's relevant to the turn.
+        * ``"always"`` — the tool's schema is exposed to the model every turn
+          (skips retrieval). For a few high-value tools.
+        * ``"context"`` — the tool is NOT offered to the model; instead it is run
+          automatically before every reply and its result is injected as context
+          for that turn only (never saved to history). Use it for ambient state
+          the agent should always know — e.g. an edge ``get_user_context()``
+          returning the user's recent mood/plans. Pass fixed arguments via
+          ``context_args`` and a label via ``context_label`` (a ``context`` tool
+          must be callable with no other required args).
 
         **Cancellation behaviour:** When the server cancels an in-flight
         tool call (timeout, user disconnect, or reconnect), the running
@@ -526,15 +540,30 @@ class YumiAgent:
             require_confirmation: If True, the user must approve in the
                 Yumi UI or terminal chat before the server invokes this tool
                 on the edge.
-            always_include: If True, this edge tool is included in every
-                model request. Defaults to False.
+            mode: Exposure mode — "retrieval" (default), "always", or "context"
+                (see above).
+            context_args: Fixed arguments for a ``mode="context"`` tool.
+            context_label: Label shown when a ``mode="context"`` result is
+                injected (defaults to the tool name).
             allow_proactive: If True, this read-only tool may be used by
                 proactive messaging. Defaults to False.
-            proactive_context: If True, proactive messaging calls this tool
-                before generation and injects the result as context.
-            proactive_context_args: Fixed arguments for proactive context calls.
-            proactive_context_description: Label used when injecting the result.
+            always_include: Deprecated — use ``mode="always"``.
+            proactive_context: Deprecated — use ``mode="context"``.
+            proactive_context_args: Deprecated — use ``context_args``.
+            proactive_context_description: Deprecated — use ``context_label``.
         """
+        # Map the `mode` API onto the existing wire flags (one mode per tool).
+        if mode == "always":
+            always_include = True
+        elif mode == "context":
+            proactive_context = True
+            if context_args is not None:
+                proactive_context_args = context_args
+            if context_label is not None:
+                proactive_context_description = context_label
+        elif mode != "retrieval":
+            raise ValueError(f"mode must be 'retrieval', 'always', or 'context'; got {mode!r}")
+
         schema = _build_tool_schema(func, name, description, params, returns)
         if timeout is not None:
             schema["timeout"] = timeout

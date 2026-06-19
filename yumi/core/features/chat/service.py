@@ -42,6 +42,7 @@ from yumi.core.platform.plugins import (
     get_session_scope,
 )
 from yumi.core.platform.runtime import RuntimeState, get_default_runtime
+from yumi.core.platform.tools.context_prefetch import context_prefetch_lines
 from yumi.core.platform.tools.routing import select_tool_schemas
 from yumi.logging_config import get_logger
 
@@ -212,6 +213,25 @@ class ChatTurnService:
     ) -> AsyncIterator[dict]:
         current_prompt = ctx.prompt
         routing_query = ctx.prompt
+
+        # Class-1 "context" tools: run them once before generating and inject the
+        # results as an ephemeral note for THIS turn only. It is never persisted
+        # (ephemeral_messages aren't saved), so an edge can expose e.g.
+        # get_user_context() and the agent always sees fresh state (mood, plans,
+        # ...) before replying. Per-tool errors are swallowed inside the helper;
+        # this guard only covers a total failure.
+        try:
+            context_lines = await context_prefetch_lines()
+        except Exception as exc:
+            logger.debug("Context prefetch failed: %s", exc)
+            context_lines = []
+        if context_lines:
+            note = {"role": "system", "content": "[Context]\n" + "\n".join(context_lines)}
+            if ctx.ephemeral_messages is None:
+                ctx.ephemeral_messages = [note]
+            else:
+                ctx.ephemeral_messages.insert(0, note)
+
         while True:
             ctx.loop_count += 1
             if ctx.loop_count > MAX_TOOL_LOOPS:

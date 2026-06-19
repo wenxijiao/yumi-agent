@@ -28,10 +28,11 @@ except ImportError:
 
 
 def init_yumi():
-    agent = YumiAgent(
-        # connection_code="yumi-lan_...",  # or set YUMI_CONNECTION_CODE in .env
-        # edge_name="My Device",              # or set EDGE_NAME in .env
-    )
+    # name + connection code were written to yumi_tools/.env by `yumi --edge`,
+    # and YumiAgent() reads them automatically — leave it empty. Only pass these
+    # to override in code (e.g. one process running several edges):
+    #   YumiAgent(edge_name="weather-pi", connection_code="yumi-lan_...")
+    agent = YumiAgent()
 
     # ── Register tools: func + description ──
     # The description tells the AI when and how to use the tool.
@@ -43,11 +44,13 @@ def init_yumi():
     # Dangerous tools: user confirms in the Yumi web UI or `yumi --chat` (not on device):
     # agent.register(delete_all, "Delete all data", require_confirmation=True)
     #
-    # High-value tools that should bypass dynamic routing every turn:
-    # agent.register(get_status, "Read current app status", always_include=True)
-    #
-    # Read-only tools can opt in to proactive messaging context:
-    # agent.register(get_status, "Read current app status", allow_proactive=True, proactive_context=True)
+    # Exposure mode (pick one per tool):
+    #   "retrieval" (default) — dynamic: model sees it when relevant
+    #   "always"   — schema exposed to the model every turn
+    #   "context"  — run before each reply, result injected as context the agent
+    #                always sees (model gets the result, not the tool)
+    # agent.register(get_status, "Read current app status", mode="always")
+    # agent.register(get_user_context, "User's recent mood and plans", mode="context")
     #
     # Tool confirmation choices (Tools page / chat "always allow") are saved next to your
     # .env as .yumi_tool_confirmation.json (override with YUMI_TOOL_CONFIRMATION_PATH).
