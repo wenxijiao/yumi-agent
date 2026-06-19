@@ -35,25 +35,14 @@ class ServerCommand(Command):
         return bool(args.server)
 
     def run(self, args):
-        from yumi.cli import (
-            run_server,
-            run_server_with_discord,
-            run_server_with_line,
-            run_server_with_telegram,
-            run_server_with_telegram_and_voice,
-            run_server_with_voice,
-        )
+        from yumi.cli import run_server, run_server_with_bridges
 
-        if args.telegram and getattr(args, "voice", False):
-            run_server_with_telegram_and_voice()
-        elif args.telegram:
-            run_server_with_telegram()
-        elif getattr(args, "discord", False):
-            run_server_with_discord()
-        elif args.line:
-            run_server_with_line()
-        elif getattr(args, "voice", False):
-            run_server_with_voice()
+        telegram = bool(args.telegram)
+        discord = bool(getattr(args, "discord", False))
+        line = bool(args.line)
+        voice = bool(getattr(args, "voice", False))
+        if telegram or discord or line or voice:
+            run_server_with_bridges(telegram=telegram, discord=discord, line=line, voice=voice)
         else:
             run_server()
 
@@ -295,9 +284,10 @@ class SetupCommand(Command):
             print(f"Saved: chat={cfg.chat_provider}/{cfg.chat_model}, embedding={emb}")
             return
 
-        from yumi.cli import run_model_setup
+        from yumi.cli import run_model_setup, setup_messaging_tokens
 
         run_model_setup(force=True)
+        setup_messaging_tokens()
 
 
 class ConfigCommand(Command):
@@ -411,8 +401,10 @@ def validate_cross_command_flags(args: argparse.Namespace) -> str | None:
     * ``--tool-routing``-only flags used without ``--tool-routing``.
     """
     bridge_flags = [f for f in ("telegram", "discord", "line") if getattr(args, f, False)]
-    if len(bridge_flags) > 1:
-        return "Use only one of --telegram / --discord / --line, not several."
+    if len(bridge_flags) > 1 and not getattr(args, "server", False):
+        return (
+            "Run multiple bridges together with --server (e.g. --server --telegram --discord); standalone runs one bot."
+        )
 
     if not getattr(args, "tool_routing", False) and (
         getattr(args, "edge_tools_limit", None) is not None

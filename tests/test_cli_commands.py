@@ -50,14 +50,14 @@ def test_mutually_exclusive_primary_flags_rejected_by_argparse():
 # ── cross-command validation ──
 
 
-def test_telegram_and_line_together_is_rejected():
-    err = validate_cross_command_flags(_parse(["--server", "--telegram", "--line"]))
-    assert err and "only one of" in err
+def test_multiple_bridges_with_server_is_valid():
+    assert validate_cross_command_flags(_parse(["--server", "--telegram", "--line"])) is None
+    assert validate_cross_command_flags(_parse(["--server", "--telegram", "--discord"])) is None
 
 
-def test_telegram_and_discord_together_is_rejected():
-    err = validate_cross_command_flags(_parse(["--server", "--telegram", "--discord"]))
-    assert err and "only one of" in err
+def test_multiple_bridges_without_server_is_rejected():
+    err = validate_cross_command_flags(_parse(["--telegram", "--discord"]))
+    assert err and "--server" in err
 
 
 def test_discord_with_server_is_valid():

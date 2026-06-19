@@ -30,6 +30,7 @@ from yumi.cli.runners import (
     run_line_standalone,
     run_model_setup,
     run_server,
+    run_server_with_bridges,
     run_server_with_discord,
     run_server_with_line,
     run_server_with_telegram,
@@ -38,6 +39,7 @@ from yumi.cli.runners import (
     run_telegram_standalone,
     run_tool_routing_config,
     run_ui,
+    setup_messaging_tokens,
 )
 from yumi.logging_config import configure_logging
 
@@ -56,6 +58,7 @@ __all__ = [
     "run_line_standalone",
     "run_model_setup",
     "run_server",
+    "run_server_with_bridges",
     "run_server_with_discord",
     "run_server_with_line",
     "run_server_with_telegram",
@@ -64,6 +67,7 @@ __all__ = [
     "run_telegram_standalone",
     "run_tool_routing_config",
     "run_ui",
+    "setup_messaging_tokens",
 ]
 
 

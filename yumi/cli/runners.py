@@ -25,7 +25,6 @@ from yumi.core.features.config import (
     ensure_provider_available,
     get_discord_bot_token,
     get_lan_secret,
-    get_line_bot_port,
     get_line_channel_access_token,
     get_line_channel_secret,
     get_saved_connection_code,
@@ -178,6 +177,37 @@ def _prompt_line_credentials_if_missing() -> bool:
         return False
     print(f"  Saved to {CONFIG_PATH}\n")
     return True
+
+
+def setup_messaging_tokens() -> None:
+    """Optional, interactive: configure Telegram / Discord bot tokens during
+    ``yumi --setup`` so ``yumi --server --telegram --discord`` won't prompt later."""
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+        return
+    print()
+    print("  Messaging bridges (optional) — chat with Yumi from Telegram / Discord.")
+    print("  Configure now or press Enter to skip. You can run several at once:")
+    print("    yumi --server --telegram --discord")
+    if get_telegram_bot_token():
+        print("  Telegram: already configured.")
+    else:
+        token = input("  Telegram bot token (@BotFather; Enter to skip): ").strip()
+        if token:
+            try:
+                save_telegram_bot_token(token)
+                print(f"  Telegram token saved to {CONFIG_PATH}.")
+            except ValueError as exc:
+                print(f"  {exc}")
+    if get_discord_bot_token():
+        print("  Discord: already configured.")
+    else:
+        token = input("  Discord bot token (Developer Portal — enable Message Content; Enter to skip): ").strip()
+        if token:
+            try:
+                save_discord_bot_token(token)
+                print(f"  Discord token saved to {CONFIG_PATH}.")
+            except ValueError as exc:
+                print(f"  {exc}")
 
 
 # ── connection code prompt ──
@@ -356,118 +386,105 @@ def run_server():
     subprocess.run([sys.executable, "-m", "yumi.core.api"], env=_subprocess_env_ensure_platform_tokens())
 
 
-def run_server_with_telegram() -> None:
-    """Start Yumi API in a subprocess, then run the Telegram bot against localhost."""
-    if not _prompt_telegram_bot_token_if_missing():
+def run_server_with_bridges(
+    *,
+    telegram: bool = False,
+    discord: bool = False,
+    line: bool = False,
+    voice: bool = False,
+) -> None:
+    """Start the Yumi API (subprocess) plus any selected messaging bridges.
+
+    Each messaging bridge (Telegram / Discord / LINE) runs in its OWN subprocess,
+    so several can run at once — e.g. ``yumi --server --telegram --discord``.
+    Voice attaches inside the API process via an env flag (not a separate bot).
+    Ctrl+C stops the server and every bridge.
+    """
+    if telegram and not _prompt_telegram_bot_token_if_missing():
+        sys.exit(1)
+    if discord and not _prompt_discord_bot_token_if_missing():
+        sys.exit(1)
+    if line and not _prompt_line_credentials_if_missing():
         sys.exit(1)
 
     config = _preflight_models()
 
-    rows = _server_banner_rows(config)
-    _print_banner(
-        "Yumi Server + Telegram",
-        rows,
-        ["Mode: local / LAN (single user)", "Telegram bot: will start after server is ready"],
-    )
+    server_env = _subprocess_env_ensure_platform_tokens()
+    notes = ["Mode: local / LAN (single user)"]
+    if voice:
+        owner = (config.voice_owner_id or os.getenv("USER") or os.getenv("USERNAME") or "default").strip() or "default"
+        server_env["YUMI_VOICE_ENABLED"] = "1"
+        server_env["YUMI_VOICE_OWNER_ID"] = owner
+        notes.append(f"Voice: wake-word loop attached (owner={owner}, wake='{config.voice_wake_word}')")
+        if not (config.voice_porcupine_access_key or os.getenv("PV_ACCESS_KEY")):
+            notes.append("WARNING: PV_ACCESS_KEY missing — voice loop will fail to start.")
+
+    bridge_names = [n for n, on in (("Telegram", telegram), ("Discord", discord), ("LINE", line)) if on]
+    for n in bridge_names:
+        notes.append(f"{n} bot: will start after server is ready")
+    suffix = " + ".join(bridge_names) if bridge_names else ("Voice" if voice else "")
+    _print_banner("Yumi Server" + (f" + {suffix}" if suffix else ""), _server_banner_rows(config), notes)
     _print_lan_codes()
 
-    proc = subprocess.Popen(
-        [sys.executable, "-m", "yumi.core.api"],
-        env=_subprocess_env_ensure_platform_tokens(),
-    )
+    server_proc = subprocess.Popen([sys.executable, "-m", "yumi.core.api"], env=server_env)
     local_url = "http://127.0.0.1:8000"
+    bridge_procs: list[subprocess.Popen] = []
     try:
         if not _wait_for_server_health(local_url, timeout=90):
             print("\n  Yumi server did not become healthy in time.\n")
             return
         os.environ["YUMI_SERVER_URL"] = local_url
-        tg = get_telegram_bot_token()
-        if tg and not (os.environ.get("TELEGRAM_BOT_TOKEN") or "").strip():
-            os.environ["TELEGRAM_BOT_TOKEN"] = tg
-        print("  Telegram bot: running (Ctrl+C stops the server and bot)\n")
-        from yumi.telegram.bot import run_telegram_bot_sync
 
-        run_telegram_bot_sync()
+        base_env = _subprocess_env_ensure_platform_tokens()
+        base_env["YUMI_SERVER_URL"] = local_url
+
+        def _spawn_bot(module: str, fn: str, extra_env: dict[str, str]) -> None:
+            env = dict(base_env)
+            env.update({k: v for k, v in extra_env.items() if v})
+            bridge_procs.append(subprocess.Popen([sys.executable, "-c", f"from {module} import {fn}; {fn}()"], env=env))
+
+        if telegram:
+            _spawn_bot(
+                "yumi.telegram.bot", "run_telegram_bot_sync", {"TELEGRAM_BOT_TOKEN": get_telegram_bot_token() or ""}
+            )
+        if discord:
+            _spawn_bot("yumi.discord.bot", "run_discord_bot_sync", {"DISCORD_BOT_TOKEN": get_discord_bot_token() or ""})
+        if line:
+            _spawn_bot(
+                "yumi.line.server",
+                "run_line_bot_sync",
+                {
+                    "LINE_CHANNEL_SECRET": get_line_channel_secret() or "",
+                    "LINE_CHANNEL_ACCESS_TOKEN": get_line_channel_access_token() or "",
+                },
+            )
+
+        if bridge_names:
+            print(f"  {' + '.join(bridge_names)} running (Ctrl+C stops the server and all bridges)\n")
+        server_proc.wait()
     except KeyboardInterrupt:
         print("\n  Shutting down Yumi.\n")
     finally:
-        proc.terminate()
-        try:
-            proc.wait(timeout=15)
-        except subprocess.TimeoutExpired:
-            proc.kill()
+        for p in bridge_procs:
+            p.terminate()
+        server_proc.terminate()
+        for p in [*bridge_procs, server_proc]:
+            try:
+                p.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                p.kill()
+
+
+def run_server_with_telegram() -> None:
+    run_server_with_bridges(telegram=True)
 
 
 def run_server_with_voice() -> None:
-    """Start Yumi API with a microphone wake-word loop attached.
-
-    The lifespan checks ``YUMI_VOICE_ENABLED=1`` to decide whether to spawn
-    the voice task. ``voice_owner_id`` is propagated through the env so the
-    child process names the voice session ``voice_<owner>``.
-    """
-    config = _preflight_models()
-
-    rows = _server_banner_rows(config)
-    owner = (config.voice_owner_id or os.getenv("USER") or os.getenv("USERNAME") or "default").strip() or "default"
-    notes = [
-        "Mode: local / LAN (single user)",
-        f"Voice: wake-word loop attached (owner={owner}, wake='{config.voice_wake_word}')",
-    ]
-    if not (config.voice_porcupine_access_key or os.getenv("PV_ACCESS_KEY")):
-        notes.append("WARNING: PV_ACCESS_KEY missing — voice loop will fail to start.")
-    _print_banner("Yumi Server + Voice", rows, notes)
-    _print_lan_codes()
-
-    env = _subprocess_env_ensure_platform_tokens()
-    env["YUMI_VOICE_ENABLED"] = "1"
-    env["YUMI_VOICE_OWNER_ID"] = owner
-    subprocess.run([sys.executable, "-m", "yumi.core.api"], env=env)
+    run_server_with_bridges(voice=True)
 
 
 def run_server_with_telegram_and_voice() -> None:
-    """Run server + Telegram bridge + microphone voice loop in the same process tree."""
-    if not _prompt_telegram_bot_token_if_missing():
-        sys.exit(1)
-
-    config = _preflight_models()
-
-    rows = _server_banner_rows(config)
-    owner = (config.voice_owner_id or os.getenv("USER") or os.getenv("USERNAME") or "default").strip() or "default"
-    notes = [
-        "Mode: local / LAN (single user)",
-        "Telegram bot: will start after server is ready",
-        f"Voice: wake-word loop attached (owner={owner}, wake='{config.voice_wake_word}')",
-    ]
-    if not (config.voice_porcupine_access_key or os.getenv("PV_ACCESS_KEY")):
-        notes.append("WARNING: PV_ACCESS_KEY missing — voice loop will fail to start.")
-    _print_banner("Yumi Server + Telegram + Voice", rows, notes)
-    _print_lan_codes()
-
-    env = _subprocess_env_ensure_platform_tokens()
-    env["YUMI_VOICE_ENABLED"] = "1"
-    env["YUMI_VOICE_OWNER_ID"] = owner
-    proc = subprocess.Popen([sys.executable, "-m", "yumi.core.api"], env=env)
-    local_url = "http://127.0.0.1:8000"
-    try:
-        if not _wait_for_server_health(local_url, timeout=90):
-            print("\n  Yumi server did not become healthy in time.\n")
-            return
-        os.environ["YUMI_SERVER_URL"] = local_url
-        tg = get_telegram_bot_token()
-        if tg and not (os.environ.get("TELEGRAM_BOT_TOKEN") or "").strip():
-            os.environ["TELEGRAM_BOT_TOKEN"] = tg
-        print("  Telegram bot + voice loop running (Ctrl+C stops everything)\n")
-        from yumi.telegram.bot import run_telegram_bot_sync
-
-        run_telegram_bot_sync()
-    except KeyboardInterrupt:
-        print("\n  Shutting down Yumi.\n")
-    finally:
-        proc.terminate()
-        try:
-            proc.wait(timeout=15)
-        except subprocess.TimeoutExpired:
-            proc.kill()
+    run_server_with_bridges(telegram=True, voice=True)
 
 
 def run_telegram_standalone() -> None:
@@ -491,45 +508,7 @@ def run_telegram_standalone() -> None:
 
 
 def run_server_with_discord() -> None:
-    """Start Yumi API in a subprocess, then run the Discord bot against localhost."""
-    if not _prompt_discord_bot_token_if_missing():
-        sys.exit(1)
-
-    config = _preflight_models()
-
-    rows = _server_banner_rows(config)
-    _print_banner(
-        "Yumi Server + Discord",
-        rows,
-        ["Mode: local / LAN (single user)", "Discord bot: will start after server is ready"],
-    )
-    _print_lan_codes()
-
-    proc = subprocess.Popen(
-        [sys.executable, "-m", "yumi.core.api"],
-        env=_subprocess_env_ensure_platform_tokens(),
-    )
-    local_url = "http://127.0.0.1:8000"
-    try:
-        if not _wait_for_server_health(local_url, timeout=90):
-            print("\n  Yumi server did not become healthy in time.\n")
-            return
-        os.environ["YUMI_SERVER_URL"] = local_url
-        dc = get_discord_bot_token()
-        if dc and not (os.environ.get("DISCORD_BOT_TOKEN") or "").strip():
-            os.environ["DISCORD_BOT_TOKEN"] = dc
-        print("  Discord bot: running (Ctrl+C stops the server and bot)\n")
-        from yumi.discord.bot import run_discord_bot_sync
-
-        run_discord_bot_sync()
-    except KeyboardInterrupt:
-        print("\n  Shutting down Yumi.\n")
-    finally:
-        proc.terminate()
-        try:
-            proc.wait(timeout=15)
-        except subprocess.TimeoutExpired:
-            proc.kill()
+    run_server_with_bridges(discord=True)
 
 
 def run_discord_standalone() -> None:
@@ -553,49 +532,7 @@ def run_discord_standalone() -> None:
 
 
 def run_server_with_line() -> None:
-    """Start Yumi API in a subprocess, then run the LINE webhook sidecar."""
-    if not _prompt_line_credentials_if_missing():
-        sys.exit(1)
-
-    config = _preflight_models()
-
-    rows = _server_banner_rows(config)
-    port = get_line_bot_port()
-    _print_banner(
-        "Yumi Server + LINE",
-        rows,
-        ["Mode: local / LAN (single user)", f"LINE webhook sidecar: http://0.0.0.0:{port}/line/webhook"],
-    )
-    _print_lan_codes()
-
-    proc = subprocess.Popen(
-        [sys.executable, "-m", "yumi.core.api"],
-        env=_subprocess_env_ensure_platform_tokens(),
-    )
-    local_url = "http://127.0.0.1:8000"
-    try:
-        if not _wait_for_server_health(local_url, timeout=90):
-            print("\n  Yumi server did not become healthy in time.\n")
-            return
-        os.environ["YUMI_SERVER_URL"] = local_url
-        ls = get_line_channel_secret()
-        lt = get_line_channel_access_token()
-        if ls and not (os.environ.get("LINE_CHANNEL_SECRET") or "").strip():
-            os.environ["LINE_CHANNEL_SECRET"] = ls
-        if lt and not (os.environ.get("LINE_CHANNEL_ACCESS_TOKEN") or "").strip():
-            os.environ["LINE_CHANNEL_ACCESS_TOKEN"] = lt
-        print(f"  LINE webhook: listening on port {port} (Ctrl+C stops server + LINE)\n")
-        from yumi.line.server import run_line_bot_sync
-
-        run_line_bot_sync()
-    except KeyboardInterrupt:
-        print("\n  Shutting down Yumi.\n")
-    finally:
-        proc.terminate()
-        try:
-            proc.wait(timeout=15)
-        except subprocess.TimeoutExpired:
-            proc.kill()
+    run_server_with_bridges(line=True)
 
 
 def run_line_standalone() -> None:
