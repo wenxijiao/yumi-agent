@@ -45,7 +45,9 @@ def _chat_url(connection: ConnectionConfig) -> str:
 
 
 def _session_id_for_user(discord_user_id: int) -> str:
-    return f"dc_{discord_user_id}"
+    from yumi.core.platform.plugins import get_bridge_scope
+
+    return get_bridge_scope().session_id("discord", str(discord_user_id))
 
 
 def _split_discord_text(text: str) -> list[str]:
@@ -352,6 +354,16 @@ def build_client():
     @bot.command(name="help")
     async def help_cmd(ctx) -> None:
         await start_cmd(ctx)
+
+    @bot.command(name="link")
+    async def link_cmd(ctx, code: str | None = None) -> None:
+        # !link binds this Discord account to a Yumi account in multi-user
+        # deployments (BridgeScope plugin). The single-user default just says no
+        # binding is needed.
+        from yumi.core.platform.plugins import get_bridge_scope
+
+        reply = get_bridge_scope().link("discord", str(ctx.author.id), (code or "").strip())
+        await ctx.send(reply)
 
     @bot.command(name="clear")
     async def clear_cmd(ctx) -> None:

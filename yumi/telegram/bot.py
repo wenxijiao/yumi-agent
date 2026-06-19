@@ -52,7 +52,9 @@ def _chat_url(connection: ConnectionConfig) -> str:
 
 
 def _session_id_for_user(telegram_user_id: int) -> str:
-    return f"tg_{telegram_user_id}"
+    from yumi.core.platform.plugins import get_bridge_scope
+
+    return get_bridge_scope().session_id("telegram", str(telegram_user_id))
 
 
 def _split_telegram_text(text: str) -> list[str]:
@@ -348,6 +350,17 @@ def build_application():
 
     async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await start_cmd(update, context)
+
+    async def link_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        # /link binds this Telegram account to a Yumi account in multi-user
+        # deployments (BridgeScope plugin). The single-user default just replies
+        # that no binding is needed. Allowed even when not yet authorized.
+        from yumi.core.platform.plugins import get_bridge_scope
+
+        user = update.effective_user
+        code = " ".join(context.args).strip() if context.args else ""
+        reply = get_bridge_scope().link("telegram", str(user.id) if user else "", code)
+        await update.message.reply_text(reply)
 
     async def clear_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if not _authorized(update.effective_user.id if update.effective_user else None):
@@ -705,6 +718,7 @@ def build_application():
     app.add_error_handler(on_error)
     app.add_handler(CommandHandler("start", start_cmd))
     app.add_handler(CommandHandler("help", help_cmd))
+    app.add_handler(CommandHandler("link", link_cmd))
     app.add_handler(CommandHandler("clear", clear_cmd))
     app.add_handler(CommandHandler("start_log", start_log_cmd))
     app.add_handler(CommandHandler("end_log", end_log_cmd))
