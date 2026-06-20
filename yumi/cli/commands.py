@@ -41,6 +41,13 @@ class ServerCommand(Command):
         discord = bool(getattr(args, "discord", False))
         line = bool(args.line)
         voice = bool(getattr(args, "voice", False))
+        if voice:
+            # Voice = mic wake-word (pvporcupine) + Whisper transcription, both
+            # optional extras. Offer to install before launching the server.
+            from yumi.core.features.config.feature_install import ensure_feature_installed
+
+            if not (ensure_feature_installed("voice") and ensure_feature_installed("stt")):
+                return
         if telegram or discord or line or voice:
             run_server_with_bridges(telegram=telegram, discord=discord, line=line, voice=voice)
         else:
@@ -127,7 +134,7 @@ class VoiceModifierCommand(Command):
             action="store_true",
             help=(
                 "With --server: open a microphone wake-word session (say 'hi yumi'). "
-                "Requires pip install yumi-agent[voice,stt] and a Picovoice access key."
+                "Offers to install the voice/stt extras on first use; needs a Picovoice access key."
             ),
         )
 
@@ -151,6 +158,10 @@ class UICommand(Command):
         return bool(args.ui)
 
     def run(self, args):
+        from yumi.core.features.config.feature_install import ensure_feature_installed
+
+        if not ensure_feature_installed("ui"):
+            return
         from yumi.cli import run_ui
 
         run_ui()

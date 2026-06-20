@@ -226,6 +226,13 @@ def _prompt_stt_config(config: ModelConfig) -> None:
     config.stt_model = model
     config.stt_model_dir = model_dir or None
     config.stt_language = "auto"
+
+    from yumi.core.features.config.feature_install import ensure_feature_installed
+
+    if not ensure_feature_installed("stt"):
+        print("  STT settings saved, but the package isn't installed yet — skipping model download.")
+        print("  Re-run `yumi --setup` after installing to cache the weights.")
+        return
     try:
         from yumi.core.features.stt.whisper_provider import ensure_whisper_weights_cached
 
