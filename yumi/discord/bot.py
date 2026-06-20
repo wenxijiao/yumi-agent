@@ -323,7 +323,7 @@ def build_client():
         import discord
     except ImportError as exc:
         raise RuntimeError(
-            "Failed to import discord.py. Install the Discord extra: pip install 'yumi-agent[discord]'"
+            "Failed to import discord.py (ships with yumi-agent). Reinstall: pip install --force-reinstall yumi-agent"
         ) from exc
 
     token = get_discord_bot_token()

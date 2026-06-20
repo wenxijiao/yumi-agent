@@ -116,7 +116,7 @@ def _read_docx(path: Path) -> str:
     try:
         import docx
     except ImportError:
-        return "Error: python-docx is not installed. Install it with: pip install 'yumi-agent[files]'"
+        return "Error: python-docx is missing (it ships with yumi-agent). Reinstall: pip install --force-reinstall yumi-agent"
 
     document = docx.Document(str(path))
     parts: list[str] = []
@@ -138,7 +138,7 @@ def _read_pdf(path: Path) -> str:
     try:
         from PyPDF2 import PdfReader
     except ImportError:
-        return "Error: PyPDF2 is not installed. Install it with: pip install 'yumi-agent[files]'"
+        return "Error: PyPDF2 is missing (it ships with yumi-agent). Reinstall: pip install --force-reinstall yumi-agent"
 
     reader = PdfReader(str(path))
     pages: list[str] = []

@@ -297,7 +297,7 @@ When a timer fires for a Telegram session (`tg_<user_id>`), the **API process** 
 
 ## Discord
 
-Discord requires the optional extra: `pip install yumi-agent[discord]` (pulls in `discord.py`). The bot keeps an outbound gateway connection — no public webhook or URL is needed, the same self-hosted spirit as Telegram polling. Sessions are keyed by `dc_<user_id>`, and chat flows through the same `POST /chat` NDJSON stream as Telegram.
+Discord works out of the box — `discord.py` ships with `yumi-agent` (no extra needed). The bot keeps an outbound gateway connection — no public webhook or URL is needed, the same self-hosted spirit as Telegram polling. Sessions are keyed by `dc_<user_id>`, and chat flows through the same `POST /chat` NDJSON stream as Telegram.
 
 ### Setup
 
