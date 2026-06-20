@@ -56,6 +56,11 @@ Telegram fields:
 - `telegram_bot_token`: Telegram Bot API token from BotFather. Environment variable: `TELEGRAM_BOT_TOKEN`.
 - `telegram_allowed_user_ids`: Optional numeric Telegram user allowlist. Empty means no allowlist.
 
+Discord fields:
+
+- `discord_bot_token`: Discord bot token from the Developer Portal. Environment variable: `DISCORD_BOT_TOKEN`.
+- `discord_allowed_user_ids`: Optional numeric Discord user allowlist. Empty means no allowlist.
+
 LINE fields:
 
 - `line_channel_secret`: LINE Messaging API channel secret.
@@ -244,6 +249,13 @@ yumi --tool-routing --enable-edge-tool-routing --edge-tools-limit 20
 | `TELEGRAM_BOT_TOKEN` | Bot token from [@BotFather](https://t.me/BotFather) (optional Telegram bridge) |
 | `TELEGRAM_ALLOWED_USER_IDS` | Comma-separated Telegram user IDs allowed to use the bot; empty = no restriction |
 
+### Discord
+
+| Variable | Description |
+|---|---|
+| `DISCORD_BOT_TOKEN` | Bot token from the [Discord Developer Portal](https://discord.com/developers/applications) (optional Discord bridge) |
+| `DISCORD_ALLOWED_USER_IDS` | Comma-separated Discord user IDs allowed to use the bot; empty = no restriction |
+
 ### Voice
 
 | Variable | Description |
@@ -282,6 +294,32 @@ When a timer fires for a Telegram session (`tg_<user_id>`), the **API process** 
 - **Restart** the API after changing the token if it was already running.
 - If messages fail, check server logs -- Telegram often returns HTTP 200 with `ok: false` (e.g. user blocked the bot, wrong chat_id). Run with `YUMI_LOG_LEVEL=DEBUG` for details.
 - **Delayed actions** ("in 1 minute do X") only work if the model actually calls the `set_timer` / `schedule_task` tool. Plain text promises do nothing. Check with `YUMI_LOG_LEVEL=INFO` -- you should see `Tool call: set_timer session_id=...` in the logs. If not, try rephrasing or using a model with stronger tool-use support.
+
+## Discord
+
+Discord requires the optional extra: `pip install yumi-agent[discord]` (pulls in `discord.py`). The bot keeps an outbound gateway connection — no public webhook or URL is needed, the same self-hosted spirit as Telegram polling. Sessions are keyed by `dc_<user_id>`, and chat flows through the same `POST /chat` NDJSON stream as Telegram.
+
+### Setup
+
+1. Create an application + bot in the [Discord Developer Portal](https://discord.com/developers/applications) and copy the bot token.
+2. Under the bot settings, enable the **Message Content** privileged intent (Yumi reads message text to forward it to `/chat`).
+3. Configure the token (any one of the following):
+   - Set environment variable `DISCORD_BOT_TOKEN`
+   - Add `"discord_bot_token": "..."` to `~/.yumi/config.json`
+   - Run `yumi --server --discord` or `yumi --discord` without a token set -- Yumi will prompt you to paste it and saves it to `~/.yumi/config.json`
+4. Optionally restrict access: set `DISCORD_ALLOWED_USER_IDS` or add `"discord_allowed_user_ids"` in config.
+5. Invite the bot to a server (or DM it directly) so it can receive your messages.
+
+### Running
+
+- **`yumi --server --discord`** (recommended) -- starts the API and the Discord bot together on one machine.
+- **`yumi --discord`** -- runs only the Discord bot, connecting to the API like `yumi --chat` (LAN code / server URL).
+
+### Behaviour notes
+
+- Commands use the `!` prefix: `!clear`, `!model`, `!system`, `!timers`, `!cancel_timer <id>`, `!start_log`, `!end_log`, `!help`.
+- Tool confirmations are presented as Discord buttons (Deny / Allow / Always allow) via `discord.ui.View`.
+- Like Telegram, timer pushes (`dc_<user_id>` sessions) require the bot token to be present on the machine running `yumi --server`; the API process delivers them over Discord's REST API.
 
 ## LINE
 

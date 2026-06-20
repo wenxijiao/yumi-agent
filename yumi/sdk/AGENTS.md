@@ -140,12 +140,20 @@ for actions that are irreversible, expensive, external, or sensitive: deleting
 data, sending messages, placing orders, moving money, unlocking doors, changing
 security settings, or destructive game and editor actions.
 
-Use `always_include` or `alwaysInclude` sparingly. It bypasses dynamic
-edge-tool routing and exposes the tool schema every turn. Reserve it for tiny,
-high-value tools that must always be visible.
+**Exposure mode** (`mode`, one per tool) controls how a tool reaches the model:
 
-Use proactive flags only for safe read-only tools. Proactive messaging is
-unattended. Do not mark side-effect tools as proactive.
+- `"dynamic"` (default) — the tool joins dynamic edge-tool retrieval; the model
+  sees it only when relevant. Use this for almost everything.
+- `"pinned"` — the tool's schema is exposed to the model every turn (bypasses
+  retrieval). Reserve for a few tiny, high-value tools that must always be visible.
+- `"autorun"` — the tool is NOT offered to the model; instead it is run before
+  every reply and its result is injected as context for that turn only (never
+  saved to history). Use for ambient, read-only state the agent should always
+  know — e.g. a `get_user_context()` returning recent mood/plans. Pass fixed
+  arguments via `contextArgs` and a label via `contextLabel`.
+
+`allow_proactive` is separate: it permits a safe read-only tool to be used by
+unattended proactive messaging. Never mark a side-effect tool proactive or autorun.
 
 ## Dynamic Edge Tool Routing
 
@@ -159,7 +167,7 @@ Implications for edge projects:
 - Choose meaningful `EDGE_NAME` values such as `Bedroom`, `Game NPC`, or
   `Calendar App`.
 - Make tool and parameter descriptions specific enough for retrieval.
-- Use `always_include` only when retrieval would be harmful or confusing.
+- Use `mode="pinned"` only when retrieval would be harmful or confusing.
 - If a tool was just added and the server is connected, the next chat turn can
   use the updated registry.
 
@@ -203,6 +211,12 @@ python -m yumi_tools.python.yumi_setup
 
 The Python SDK can infer JSON schema from type hints. Add type hints and
 docstring `Args:` sections, or pass `params={...}` explicitly.
+
+> **Type-hint inference notes.** `Optional[X]` / `X | None` collapses to the
+> schema for `X` — nullability is expressed by leaving the parameter out of
+> `required`, not by a nullable JSON type. A multi-type union like `int | str`
+> has no single JSON type, so it falls back to `string`; pass an explicit
+> `params={...}` entry if you need a different type for such a parameter.
 
 ### TypeScript / JavaScript
 
@@ -425,9 +439,11 @@ Field names vary slightly by language, but the contract is the same.
 | Handler | `handler`, `Handler` | Code called when Yumi invokes the tool |
 | Timeout | `timeout`, `Timeout` | Per-tool execution timeout in seconds |
 | Confirmation | `require_confirmation`, `requireConfirmation`, `RequireConfirmation` | Ask user before invocation |
-| Always include | `always_include`, `alwaysInclude`, `AlwaysInclude` | Always expose schema to model |
+| **Exposure mode** | `mode` (`"dynamic"` \| `"pinned"` \| `"autorun"`) | How the tool is exposed (see Tool Design Rules). Default `"dynamic"`. |
+| Context args / label | `contextArgs`, `contextLabel` | Fixed args + label for a `mode="autorun"` tool |
 | Proactive use | `allow_proactive`, `allowProactive`, `AllowProactive` | Permit unattended proactive calls |
-| Proactive context | `proactive_context`, `proactiveContext`, `ProactiveContext` | Call read-only tool before proactive generation |
+| Always include *(deprecated)* | `always_include`, `alwaysInclude` | Prefer `mode="pinned"` |
+| Proactive context *(deprecated)* | `proactive_context`, `proactiveContext` | Prefer `mode="autorun"` |
 
 Supported primitive parameter types are generally:
 

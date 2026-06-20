@@ -74,12 +74,44 @@ pub struct RegisterOptions {
     pub parameters: Vec<ToolParameter>,
     pub timeout: Option<u32>,
     pub require_confirmation: bool,
-    pub always_include: bool,
+    /// Exposure mode — `"dynamic"` (default), `"pinned"`, or `"autorun"`.
+    /// Mapped onto the low-level flags below before the wire schema is built:
+    /// `"pinned"` -> `always_include`; `"autorun"` -> `proactive_context`
+    /// (+ `context_args` / `context_label`).
+    pub mode: String,
+    /// Fixed arguments for an `"autorun"` tool. Maps to `proactive_context_args`.
+    pub context_args: Option<Value>,
+    /// Label shown when an `"autorun"` result is injected. Maps to
+    /// `proactive_context_description`.
+    pub context_label: Option<String>,
     pub allow_proactive: bool,
+    // Low-level wire flags (prefer `mode`); still honored for back-compat.
+    pub always_include: bool,
     pub proactive_context: bool,
     pub proactive_context_args: Option<Value>,
     pub proactive_context_description: Option<String>,
     pub handler: ToolHandler,
+}
+
+impl Default for RegisterOptions {
+    fn default() -> Self {
+        Self {
+            name: String::new(),
+            description: String::new(),
+            parameters: Vec::new(),
+            timeout: None,
+            require_confirmation: false,
+            mode: "dynamic".to_string(),
+            context_args: None,
+            context_label: None,
+            allow_proactive: false,
+            always_include: false,
+            proactive_context: false,
+            proactive_context_args: None,
+            proactive_context_description: None,
+            handler: Arc::new(|_| String::new()),
+        }
+    }
 }
 
 /// Options for [`crate::YumiAgent::new`].

@@ -215,6 +215,31 @@ TSharedPtr<FJsonObject> FYumiAgent::BuildToolSchema(const FYumiRegisterOptions& 
 
 void FYumiAgent::RegisterTool(FYumiRegisterOptions Opts)
 {
+    // Map the Mode API onto the existing wire flags (one mode per tool).
+    if (Opts.Mode == TEXT("pinned"))
+    {
+        Opts.bAlwaysInclude = true;
+    }
+    else if (Opts.Mode == TEXT("autorun"))
+    {
+        Opts.bProactiveContext = true;
+        if (Opts.ContextArgs.IsValid())
+        {
+            Opts.ProactiveContextArgs = Opts.ContextArgs;
+        }
+        if (!Opts.ContextLabel.IsEmpty())
+        {
+            Opts.ProactiveContextDescription = Opts.ContextLabel;
+        }
+    }
+    else if (Opts.Mode != TEXT("dynamic"))
+    {
+        UE_LOG(LogTemp, Error,
+            TEXT("%s RegisterTool('%s'): invalid mode '%s' (expected 'dynamic', 'pinned', or 'autorun'); tool not registered."),
+            *LogPrefix, *Opts.Name, *Opts.Mode);
+        return;
+    }
+
     TSharedPtr<FJsonObject> Schema = BuildToolSchema(Opts);
     FRegisteredTool Tool;
     Tool.Schema = Schema;

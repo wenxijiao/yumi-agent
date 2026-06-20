@@ -5,19 +5,14 @@ Import your own functions and register them with a description.
 Parameter types are auto-extracted from type hints, and parameter
 descriptions from the docstring Args section.
 
-Usage — embed in your app::
+Two ways to run::
 
-    from yumi_tools.python.yumi_setup import init_yumi
-
-    init_yumi()
-    # Your program continues to run as usual
-
-Quick test — run this file only (no separate main.py)::
-
-    python -m yumi_tools.python.yumi_setup
-
-    # or from ``yumi_tools/python/``:
+    # Standalone — this script IS the edge (blocks until Ctrl+C):
     python yumi_setup.py
+
+    # Embedded — start it from your own program and keep going:
+    from yumi_tools.python.yumi_setup import init_yumi
+    init_yumi().run_in_background()   # returns immediately
 
 Requires: pip install websockets
 """
@@ -33,10 +28,11 @@ except ImportError:
 
 
 def init_yumi():
-    agent = YumiAgent(
-        # connection_code="yumi-lan_...",  # or set YUMI_CONNECTION_CODE in .env
-        # edge_name="My Device",              # or set EDGE_NAME in .env
-    )
+    # name + connection code were written to yumi_tools/.env by `yumi --edge`,
+    # and YumiAgent() reads them automatically — leave it empty. Only pass these
+    # to override in code (e.g. one process running several edges):
+    #   YumiAgent(edge_name="weather-pi", connection_code="yumi-lan_...")
+    agent = YumiAgent()
 
     # ── Register tools: func + description ──
     # The description tells the AI when and how to use the tool.
@@ -48,26 +44,25 @@ def init_yumi():
     # Dangerous tools: user confirms in the Yumi web UI or `yumi --chat` (not on device):
     # agent.register(delete_all, "Delete all data", require_confirmation=True)
     #
-    # High-value tools that should bypass dynamic routing every turn:
-    # agent.register(get_status, "Read current app status", always_include=True)
-    #
-    # Read-only tools can opt in to proactive messaging context:
-    # agent.register(get_status, "Read current app status", allow_proactive=True, proactive_context=True)
+    # Exposure mode (pick one per tool):
+    #   "dynamic" (default) — model sees it when relevant (dynamic retrieval)
+    #   "pinned"  — schema exposed to the model every turn
+    #   "autorun" — run before each reply, result injected as context the agent
+    #               always sees (model gets the result, not the tool)
+    # agent.register(get_status, "Read current app status", mode="pinned")
+    # agent.register(get_user_context, "User's recent mood and plans", mode="autorun")
     #
     # Tool confirmation choices (Tools page / chat "always allow") are saved next to your
     # .env as .yumi_tool_confirmation.json (override with YUMI_TOOL_CONFIRMATION_PATH).
 
-    agent.run_in_background()
+    # Tools are registered; the caller decides how to run:
+    #   standalone script:  init_yumi().run()                (blocks until Ctrl+C)
+    #   embedded in an app:  init_yumi().run_in_background()  (returns at once)
     return agent
 
 
 if __name__ == "__main__":
     import sys
-    import threading
 
-    init_yumi()
-    print("Yumi edge running (setup as __main__). Press Ctrl+C to stop.", file=sys.stderr)
-    try:
-        threading.Event().wait()
-    except KeyboardInterrupt:
-        pass
+    print("Yumi edge running (standalone). Press Ctrl+C to stop.", file=sys.stderr)
+    init_yumi().run()

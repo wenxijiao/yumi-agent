@@ -1,5 +1,20 @@
 import Foundation
 
+// MARK: - Errors
+
+/// Errors thrown by the Yumi SDK's public API.
+public enum YumiError: Error, CustomStringConvertible {
+    /// An unknown tool-exposure ``mode`` was passed to ``YumiAgent/register``.
+    case invalidMode(String)
+
+    public var description: String {
+        switch self {
+        case .invalidMode(let mode):
+            return "mode must be 'dynamic', 'pinned', or 'autorun'; got '\(mode)'"
+        }
+    }
+}
+
 // MARK: - Parameter type descriptor
 
 /// Describes a single parameter that a tool accepts.

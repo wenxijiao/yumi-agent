@@ -72,7 +72,34 @@ impl YumiAgent {
         }
     }
 
-    pub fn register(&self, opts: RegisterOptions) {
+    /// Register a tool.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `opts.mode` is not one of `"dynamic"`, `"pinned"`, or
+    /// `"autorun"` — a programming error that should surface loudly at
+    /// startup (consistent with the SDK's use of `.expect()` elsewhere).
+    pub fn register(&self, mut opts: RegisterOptions) {
+        // Map the `mode` API onto the existing wire flags (one mode per tool).
+        match opts.mode.as_str() {
+            "pinned" => {
+                opts.always_include = true;
+            }
+            "autorun" => {
+                opts.proactive_context = true;
+                if opts.context_args.is_some() {
+                    opts.proactive_context_args = opts.context_args.clone();
+                }
+                if opts.context_label.is_some() {
+                    opts.proactive_context_description = opts.context_label.clone();
+                }
+            }
+            "dynamic" => {}
+            other => panic!(
+                "mode must be 'dynamic', 'pinned', or 'autorun'; got {other:?}"
+            ),
+        }
+
         let schema = build_tool_schema(&opts);
         let name = opts.name;
         let mut g = self.inner.tools.lock().expect("tools mutex");

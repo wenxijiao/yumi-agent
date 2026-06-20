@@ -98,6 +98,26 @@ class PassThroughSessionScope:
         return None
 
 
+_CHANNEL_SESSION_PREFIX = {"telegram": "tg", "discord": "dc", "line": "line"}
+
+
+class SingleUserBridgeScope:
+    """OSS bridge scope: the channel user is the only user. Sessions are
+    ``<channel>_<id>`` over the shared chat connection; ``/link`` is a no-op."""
+
+    def session_id(self, channel: str, channel_user_id: str) -> str:
+        prefix = _CHANNEL_SESSION_PREFIX.get(channel, channel)
+        return f"{prefix}_{channel_user_id}"
+
+    def connection(self, channel: str, channel_user_id: str):  # noqa: ARG002
+        from yumi.core.platform.security.connection import resolve_connection_config
+
+        return resolve_connection_config("chat")
+
+    def link(self, channel: str, channel_user_id: str, code: str) -> str:  # noqa: ARG002
+        return "Single-user mode — no account binding needed; just send a message."
+
+
 class SharedBotPool:
     """Always returns the singleton bot from :mod:`yumi.core.platform.runtime.accessors`."""
 

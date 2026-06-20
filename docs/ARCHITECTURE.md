@@ -72,7 +72,8 @@ chat lives in `features/chat/` (`router.py` → `pipeline.py` → `service.py`,
 plus `context.py`, `debug_trace.py`, `trace_sink.py`).
 
 > **Note on legacy import paths.** Modules were relocated here from a flatter
-> `yumi/core/` layout; deprecated re-export shims remain at the old paths.
+> `yumi/core/` layout. The old paths were **removed** — there are no
+> compatibility shims, so importing an old path now raises `ModuleNotFoundError`.
 > See [`MIGRATION_PLATFORM_FEATURES.md`](MIGRATION_PLATFORM_FEATURES.md) for the
 > full old→new map.
 
@@ -91,20 +92,20 @@ artifact. `yumi/ui/` is otherwise frozen pending that migration.
 
 * Process lifespan (`init_yumi`, model-config preflight, bot warm-up, signal handlers, proactive-message service).
 * CORS, docs-access middleware, and any middleware contributed by the [`MiddlewareExtender`](#plugin-ports) plugin port.
-* Mounting every resource router under `yumi/core/api/routers/`. Each router file owns one resource group:
+* Mounting every resource router. Each feature owns its router at `yumi/core/features/<feature>/router.py`:
 
   | Router | Resource |
   |---|---|
-  | `chat.py` | `POST /chat` (NDJSON streaming), `POST /clear`, `PUT/GET /config/chat-debug` |
-  | `config.py` | `GET/PUT /config/{model,system-prompt,session-prompt,ui}` |
-  | `edge.py` | `WS /ws/edge` |
-  | `health.py` | `GET /health` |
-  | `memory.py` | sessions and messages CRUD |
-  | `monitor.py` | `GET /monitor/{topology,traces}` |
-  | `stt.py` | `POST /stt/transcribe` |
-  | `timers.py` | `GET /timer-events` (NDJSON) |
-  | `tools.py` | tool listing and confirmation policy |
-  | `uploads.py` | `POST /uploads` |
+  | `features/chat/router.py` | `POST /chat` (NDJSON streaming), `POST /clear`, `PUT/GET /config/chat-debug` |
+  | `features/config/router.py` | `GET/PUT /config/{model,system-prompt,session-prompt,ui}` |
+  | `features/edge/router.py` | `WS /ws/edge` |
+  | `features/health/router.py` | `GET /health` |
+  | `features/memory/router.py` | sessions and messages CRUD |
+  | `features/monitor/router.py` | `GET /monitor/{topology,traces}` |
+  | `features/stt/router.py` | `POST /stt/transcribe` |
+  | `features/proactive/router.py` | `GET /timer-events` (NDJSON) |
+  | `features/tools/router.py` | tool listing and confirmation policy |
+  | `features/uploads/router.py` | `POST /uploads` |
 
 There are no compatibility shims or `sys.modules` indirection; adding a new endpoint is a one-router edit.
 

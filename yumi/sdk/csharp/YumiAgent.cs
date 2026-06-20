@@ -77,6 +77,9 @@ public sealed class YumiAgent : IDisposable
     /// <summary>Register a tool.</summary>
     public void Register(RegisterOptions opts)
     {
+        // Map the `Mode` sugar onto the low-level wire flags before building
+        // the schema. Throws ArgumentException for an invalid mode.
+        opts.ApplyMode();
         var schema = SchemaBuilder.Build(opts);
         _tools[opts.Name!] = new RegisteredTool(schema, opts.Handler!, opts.RequireConfirmation);
     }

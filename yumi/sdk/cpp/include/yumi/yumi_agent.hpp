@@ -191,6 +191,12 @@ struct RegisterOptions {
     ToolHandler handler;
     int timeout = 0;
     bool requireConfirmation = false;
+    // Exposure mode (preferred): "dynamic" (default), "pinned", or "autorun".
+    // Mapped onto the low-level wire flags below before the schema is built.
+    std::string mode = "dynamic";
+    nlohmann::json contextArgs = nullptr;   // fixed args for an "autorun" tool
+    std::string contextLabel;               // label for an injected "autorun" result
+    // Deprecated low-level flags (prefer `mode`); still honored for back-compat.
     bool alwaysInclude = false;
     bool allowProactive = false;
     bool proactiveContext = false;
@@ -830,6 +836,22 @@ public:
     YumiAgent& operator=(const YumiAgent&) = delete;
 
     void registerTool(RegisterOptions opts) {
+        // Map the `mode` API onto the existing wire flags (one mode per tool).
+        if (opts.mode == "pinned") {
+            opts.alwaysInclude = true;
+        } else if (opts.mode == "autorun") {
+            opts.proactiveContext = true;
+            if (!opts.contextArgs.is_null()) {
+                opts.proactiveContextArgs = opts.contextArgs;
+            }
+            if (!opts.contextLabel.empty()) {
+                opts.proactiveContextDescription = opts.contextLabel;
+            }
+        } else if (opts.mode != "dynamic") {
+            throw std::invalid_argument(
+                "mode must be 'dynamic', 'pinned', or 'autorun'; got '" + opts.mode + "'");
+        }
+
         auto schema = buildToolSchema(
             opts.name, opts.description, opts.parameters,
             opts.requireConfirmation, opts.timeout, opts.alwaysInclude,

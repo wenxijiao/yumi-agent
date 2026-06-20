@@ -71,3 +71,43 @@ def test_edge_websocket_register_and_disconnect():
             break
         time.sleep(0.05)
     assert "test-device" not in ACTIVE_CONNECTIONS
+
+
+def test_edge_duplicate_name_is_rejected():
+    """A second edge claiming an already-active name is refused; the first stays.
+
+    This is the safeguard that stops two different edges from fighting over one
+    name (which used to make them ping-pong-kick each other).
+    """
+    client = TestClient(app)
+
+    def _register(name: str) -> dict:
+        return {
+            "type": "register",
+            "edge_name": name,
+            "tools": [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "ping",
+                        "description": "Returns pong",
+                        "parameters": {"type": "object", "properties": {}, "required": []},
+                    },
+                }
+            ],
+        }
+
+    with client.websocket_connect("/ws/edge") as ws1:
+        ws1.send_json(_register("dup-device"))
+        assert _wait_for_edge("dup-device"), "First edge did not register."
+        first_peer = ACTIVE_CONNECTIONS.get("dup-device")
+
+        # A second edge with the same name must be rejected, not swap in.
+        with client.websocket_connect("/ws/edge") as ws2:
+            ws2.send_json(_register("dup-device"))
+            msg = ws2.receive_json()
+            assert msg["type"] == "register_rejected"
+            assert "dup-device" in msg["reason"]
+
+        # The original edge is untouched and still the active connection.
+        assert ACTIVE_CONNECTIONS.get("dup-device") is first_peer

@@ -28,7 +28,7 @@ private struct RegisteredTool {
 ///
 /// let agent = YumiAgent(connectionCode: "yumi-lan_...", edgeName: "My iPhone")
 ///
-/// agent.register(
+/// try agent.register(
 ///     name: "set_light",
 ///     description: "Control room lights",
 ///     parameters: [
@@ -254,6 +254,10 @@ public final class YumiAgent: @unchecked Sendable {
     ///   - timeout: Per-tool execution timeout in seconds.
     ///   - requireConfirmation: If true, the user must approve before the
     ///     server invokes this tool.
+    ///   - mode: Exposure mode — `"dynamic"` (default), `"pinned"`, or `"autorun"`.
+    ///     This is input sugar mapped onto the wire flags below; pick one per tool.
+    ///   - contextArgs: Fixed arguments for an `"autorun"` tool.
+    ///   - contextLabel: Label shown when an `"autorun"` result is injected.
     ///   - alwaysInclude: If true, this edge tool is exposed to the model on every turn.
     ///   - allowProactive: If true, proactive messaging may use this read-only tool.
     ///   - proactiveContext: If true, proactive messaging calls this tool before generation.
@@ -261,30 +265,53 @@ public final class YumiAgent: @unchecked Sendable {
     ///   - proactiveContextDescription: Label used when injecting proactive context.
     ///   - handler: The closure to execute. Receives ``ToolArguments`` and
     ///     returns a string result. May be async and throw.
+    /// - Throws: ``YumiError/invalidMode(_:)`` if `mode` is not one of
+    ///   `"dynamic"`, `"pinned"`, or `"autorun"`.
     public func register(
         name: String,
         description: String,
         parameters: [ToolParameter] = [],
         timeout: Int? = nil,
         requireConfirmation: Bool = false,
+        mode: String = "dynamic",
+        contextArgs: [String: Any]? = nil,
+        contextLabel: String? = nil,
         alwaysInclude: Bool = false,
         allowProactive: Bool = false,
         proactiveContext: Bool = false,
         proactiveContextArgs: [String: Any]? = nil,
         proactiveContextDescription: String? = nil,
         handler: @escaping @Sendable (ToolArguments) async throws -> String
-    ) {
+    ) throws {
+        // Map the `mode` API onto the existing wire flags (one mode per tool).
+        var resolvedAlwaysInclude = alwaysInclude
+        var resolvedProactiveContext = proactiveContext
+        var resolvedProactiveContextArgs = proactiveContextArgs
+        var resolvedProactiveContextDescription = proactiveContextDescription
+        switch mode {
+        case "dynamic":
+            break
+        case "pinned":
+            resolvedAlwaysInclude = true
+        case "autorun":
+            resolvedProactiveContext = true
+            if let contextArgs { resolvedProactiveContextArgs = contextArgs }
+            if let contextLabel { resolvedProactiveContextDescription = contextLabel }
+        default:
+            throw YumiError.invalidMode(mode)
+        }
+
         let schema = buildToolSchema(
             name: name,
             description: description,
             parameters: parameters,
             timeout: timeout,
             requireConfirmation: requireConfirmation,
-            alwaysInclude: alwaysInclude,
+            alwaysInclude: resolvedAlwaysInclude,
             allowProactive: allowProactive,
-            proactiveContext: proactiveContext,
-            proactiveContextArgs: proactiveContextArgs,
-            proactiveContextDescription: proactiveContextDescription
+            proactiveContext: resolvedProactiveContext,
+            proactiveContextArgs: resolvedProactiveContextArgs,
+            proactiveContextDescription: resolvedProactiveContextDescription
         )
         tools[name] = RegisteredTool(
             schema: schema,

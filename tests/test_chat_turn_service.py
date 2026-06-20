@@ -152,3 +152,39 @@ def test_owner_mismatch_yields_forbidden(runtime, install_fakes, monkeypatch):
     events = asyncio.run(_drain(service.stream_chat_turn("hi", "s4")))
     forbid = [e for e in events if getattr(e, "type", None) == "error" and getattr(e, "code", None) == "FORBIDDEN"]
     assert forbid, f"expected FORBIDDEN error, got {events!r}"
+
+
+def test_class1_context_tool_prefetched_and_injected(runtime, install_fakes):
+    """A class-1 (proactive_context) tool runs before generation, and its result
+    is injected as an ephemeral context note passed to the model that turn."""
+    from yumi.core.platform.tools.tool import TOOL_REGISTRY, register_tool
+
+    calls = {"n": 0}
+
+    def get_user_context() -> str:
+        calls["n"] += 1
+        return "mood=great; plan=ship v1"
+
+    register_tool(get_user_context, "Current user context", proactive_context=True)
+
+    captured: dict = {}
+
+    class _CapBot(_FakeBot):
+        async def chat_stream(self, **kwargs):
+            captured["ephemeral"] = kwargs.get("ephemeral_messages")
+            async for c in super().chat_stream(**kwargs):
+                yield c
+
+    try:
+        bot = _CapBot(scripted_chunks=[[{"type": "text", "content": "hi"}]])
+        install_fakes(bot)
+
+        svc = ChatTurnService(runtime)
+        asyncio.run(_drain(svc.stream_chat_turn("hello", "s_ctx")))
+
+        assert calls["n"] == 1, "context tool should be prefetched once per turn"
+        eph = captured.get("ephemeral") or []
+        joined = "\n".join(m.get("content", "") for m in eph if isinstance(m, dict))
+        assert "mood=great; plan=ship v1" in joined, f"context not injected: {eph!r}"
+    finally:
+        TOOL_REGISTRY.pop("get_user_context", None)

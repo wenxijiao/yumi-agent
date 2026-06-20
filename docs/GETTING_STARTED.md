@@ -112,7 +112,7 @@ Useful commands:
 
 ## Voice (microphone wake-word)
 
-`yumi --server --voice` attaches a microphone wake-word loop to the running API. Say "hi yumi" and the next sentence you speak is transcribed with Whisper and dispatched as a chat turn, in parallel with Telegram, `--chat`, and `--ui`.
+`yumi --server --voice` attaches a microphone wake-word loop to the running API. Say "hi yumi" and the next sentence you speak is transcribed with Whisper and dispatched as a chat turn, in parallel with Telegram, Discord, `--chat`, and `--ui`.
 
 ```bash
 pip install -e ".[voice,stt]"     # sounddevice, webrtcvad, pvporcupine, faster-whisper

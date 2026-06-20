@@ -29,3 +29,10 @@ yumi/sdk/java/target/
 yumi/sdk/java/.idea/
 yumi/sdk/csharp/bin/
 yumi/sdk/csharp/obj/
+
+# Build / test artifacts
+.coverage
+dist/
+build/
+*.sln
+.vscode/

@@ -57,14 +57,30 @@ export type ToolHandler = (
   args: ToolArguments
 ) => Promise<string> | string;
 
+/** Tool exposure mode (input sugar mapped onto the low-level wire flags). */
+export type ToolMode = "dynamic" | "pinned" | "autorun";
+
 export interface RegisterOptions {
   name: string;
   description: string;
   parameters?: ToolParameter[];
   timeout?: number;
   requireConfirmation?: boolean;
-  alwaysInclude?: boolean;
+  /**
+   * Exposure mode (pick one per tool):
+   * - "dynamic" (default): joins dynamic top-K retrieval.
+   * - "pinned": schema exposed to the model every turn (→ alwaysInclude).
+   * - "autorun": run automatically before every reply, result injected as
+   *   context (→ proactiveContext); use contextArgs / contextLabel.
+   */
+  mode?: ToolMode;
+  /** Fixed arguments for an "autorun" tool (→ proactiveContextArgs). */
+  contextArgs?: Record<string, unknown>;
+  /** Label shown when an "autorun" result is injected (→ proactiveContextDescription). */
+  contextLabel?: string;
   allowProactive?: boolean;
+  // Deprecated low-level flags (prefer `mode`); still honored for back-compat.
+  alwaysInclude?: boolean;
   proactiveContext?: boolean;
   proactiveContextArgs?: Record<string, unknown>;
   proactiveContextDescription?: string;

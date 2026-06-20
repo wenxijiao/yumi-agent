@@ -13,6 +13,7 @@ from yumi.core.platform.plugins.ports import (
     AuditSink,
     BillingHook,
     BotPool,
+    BridgeScope,
     EdgeScope,
     IdentityProvider,
     MemoryFactory,
@@ -33,6 +34,7 @@ from yumi.core.platform.plugins.single_user import (
     PassThroughSessionScope,
     SharedBotPool,
     SharedMemoryFactory,
+    SingleUserBridgeScope,
     SingleUserIdentityProvider,
     ZeroBillingHook,
 )
@@ -43,6 +45,7 @@ _identity_provider: IdentityProvider = SingleUserIdentityProvider()
 _quota_policy: QuotaPolicy = NoOpQuotaPolicy()
 _billing_hook: BillingHook = ZeroBillingHook()
 _session_scope: SessionScope = PassThroughSessionScope()
+_bridge_scope: BridgeScope = SingleUserBridgeScope()
 _bot_pool: BotPool = SharedBotPool()
 _memory_factory: MemoryFactory = SharedMemoryFactory()
 _edge_scope: EdgeScope = FlatEdgeScope()
@@ -59,6 +62,7 @@ def register_plugin(
     quota_policy: QuotaPolicy | None = None,
     billing_hook: BillingHook | None = None,
     session_scope: SessionScope | None = None,
+    bridge_scope: BridgeScope | None = None,
     bot_pool: BotPool | None = None,
     memory_factory: MemoryFactory | None = None,
     edge_scope: EdgeScope | None = None,
@@ -74,7 +78,7 @@ def register_plugin(
     registrations win on a per-port basis.
     """
     global _identity_provider, _quota_policy, _billing_hook, _session_scope
-    global _bot_pool, _memory_factory, _edge_scope, _audit_sink
+    global _bridge_scope, _bot_pool, _memory_factory, _edge_scope, _audit_sink
     global _route_extender, _middleware_extender, _admin_cli
     global _system_prompt_extender
 
@@ -87,6 +91,8 @@ def register_plugin(
             _billing_hook = billing_hook
         if session_scope is not None:
             _session_scope = session_scope
+        if bridge_scope is not None:
+            _bridge_scope = bridge_scope
         if bot_pool is not None:
             _bot_pool = bot_pool
         if memory_factory is not None:
@@ -119,6 +125,10 @@ def get_billing_hook() -> BillingHook:
 
 def get_session_scope() -> SessionScope:
     return _session_scope
+
+
+def get_bridge_scope() -> BridgeScope:
+    return _bridge_scope
 
 
 def get_bot_pool() -> BotPool:

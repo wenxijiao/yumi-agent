@@ -82,6 +82,32 @@ class SessionScope(Protocol):
 
 
 @runtime_checkable
+class BridgeScope(Protocol):
+    """Resolve a messaging-bridge user (Telegram / Discord / …) to a Yumi session
+    + server connection, and handle ``/link`` account binding.
+
+    This is the single multi-user insertion point messaging bridges need. The
+    single-user default treats the channel user as the only user: the session is
+    ``<channel>_<id>`` over the shared connection and ``/link`` is a no-op. A
+    multi-user plugin maps the channel user to a user account via a stored
+    binding plus one-time link codes, so each user only drives their own edges
+    and memory.
+    """
+
+    def session_id(self, channel: str, channel_user_id: str) -> str:
+        """Yumi session id for a bridge user (default ``<channel>_<id>``)."""
+        ...
+
+    def connection(self, channel: str, channel_user_id: str) -> Any:
+        """The ``ConnectionConfig`` the bridge uses to reach the API for this user."""
+        ...
+
+    def link(self, channel: str, channel_user_id: str, code: str) -> str:
+        """Handle ``/link <code>`` and return a user-facing reply."""
+        ...
+
+
+@runtime_checkable
 class BotPool(Protocol):
     """Per-user :class:`YumiBot` resolution (returns the shared singleton in OSS)."""
 

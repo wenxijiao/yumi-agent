@@ -110,17 +110,30 @@ type ToolHandler func(args ToolArguments) string
 
 // RegisterOptions describes a tool to register with the agent.
 type RegisterOptions struct {
-	Name                string
-	Description         string
-	Parameters          []ToolParameter
-	Timeout             *int // per-tool timeout override (seconds)
+	Name        string
+	Description string
+	Parameters  []ToolParameter
+	Timeout     *int // per-tool timeout override (seconds)
 	RequireConfirmation bool
-	AlwaysInclude       bool // include this edge tool in every model request
-	AllowProactive      bool // allow this tool in proactive messaging
-	ProactiveContext    bool // call before proactive generation and inject result
-	ProactiveContextArgs map[string]interface{}
+
+	// Mode is the exposure mode (input sugar mapped onto the low-level wire
+	// flags below). One of "dynamic" (default/empty), "pinned", or "autorun":
+	//   - "pinned":  schema exposed to the model every turn (→ AlwaysInclude).
+	//   - "autorun": run automatically before every reply, result injected as
+	//     context (→ ProactiveContext); use ContextArgs / ContextLabel.
+	Mode         string
+	ContextArgs  map[string]interface{} // fixed args for an "autorun" tool (→ ProactiveContextArgs)
+	ContextLabel string                 // label for an "autorun" result (→ ProactiveContextDescription)
+
+	AllowProactive bool // allow this tool in proactive messaging
+
+	// Deprecated low-level flags (prefer Mode); still honored for back-compat.
+	AlwaysInclude               bool // include this edge tool in every model request
+	ProactiveContext            bool // call before proactive generation and inject result
+	ProactiveContextArgs        map[string]interface{}
 	ProactiveContextDescription string
-	Handler             ToolHandler
+
+	Handler ToolHandler
 }
 
 // AgentOptions configures YumiAgent construction.

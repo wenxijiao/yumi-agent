@@ -55,8 +55,24 @@ class RegisterOptions {
   final List<ToolParameter> parameters;
   final int? timeout;
   final bool requireConfirmation;
-  final bool alwaysInclude;
+
+  /// Exposure mode (input sugar mapped onto the low-level wire flags).
+  /// One of "dynamic" (default), "pinned", or "autorun":
+  ///  - "pinned":  schema exposed to the model every turn (→ alwaysInclude).
+  ///  - "autorun": run automatically before every reply, result injected as
+  ///    context (→ proactiveContext); use [contextArgs] / [contextLabel].
+  final String mode;
+
+  /// Fixed arguments for an "autorun" tool (→ proactiveContextArgs).
+  final Map<String, dynamic>? contextArgs;
+
+  /// Label shown when an "autorun" result is injected (→ proactiveContextDescription).
+  final String? contextLabel;
+
   final bool allowProactive;
+
+  // Deprecated low-level flags (prefer `mode`); still honored for back-compat.
+  final bool alwaysInclude;
   final bool proactiveContext;
   final Map<String, dynamic>? proactiveContextArgs;
   final String? proactiveContextDescription;
@@ -68,8 +84,11 @@ class RegisterOptions {
     this.parameters = const [],
     this.timeout,
     this.requireConfirmation = false,
-    this.alwaysInclude = false,
+    this.mode = 'dynamic',
+    this.contextArgs,
+    this.contextLabel,
     this.allowProactive = false,
+    this.alwaysInclude = false,
     this.proactiveContext = false,
     this.proactiveContextArgs,
     this.proactiveContextDescription,

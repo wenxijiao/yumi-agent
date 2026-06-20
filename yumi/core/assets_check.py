@@ -22,7 +22,7 @@ def assets_check(interactive: bool = False) -> bool:
     try:
         if not is_model_available(config.embedding_provider, config.embedding_model):
             if interactive:
-                from yumi.core.features.config import _get_provider
+                from yumi.core.features.config.credentials import _get_provider
 
                 provider = _get_provider("ollama")
                 provider.pull_model(config.embedding_model)

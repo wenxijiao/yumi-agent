@@ -64,8 +64,10 @@ from .yumi_sdk import YumiAgent
 def init_yumi():
     agent = YumiAgent(edge_name="My Server")
     agent.register(analyze_data, "Analyze CSV at path and return a short summary")
-    agent.run_in_background()
     return agent
+
+# Standalone script:  init_yumi().run()              (blocks until Ctrl+C)
+# Embedded in an app: init_yumi().run_in_background() (returns immediately)
 ```
 
 ```python
@@ -132,6 +134,8 @@ Your app connects to the Yumi server over WebSocket and registers functions as t
 | `yumi --server` | Start the backend API server |
 | `yumi --server --telegram` | Start the API and a Telegram bot together (same machine) |
 | `yumi --telegram` | Run only the Telegram bot; connects to the API like `yumi --chat` |
+| `yumi --server --discord` | Start the API and a Discord bot together (same machine) |
+| `yumi --discord` | Run only the Discord bot; connects to the API like `yumi --chat` |
 | `yumi --server --line` | Start the API and a LINE webhook sidecar (default port 8788) |
 | `yumi --line` | Run only the LINE webhook server; core API must already be reachable |
 | `yumi --server --voice` | Start the API with a microphone wake-word loop (say "hi yumi" to talk) |
@@ -147,6 +151,7 @@ Your app connects to the Yumi server over WebSocket and registers functions as t
 ## Optional Integrations
 
 - **Telegram** — chat with Yumi from a Telegram bot. Get a token from [@BotFather](https://t.me/BotFather), then run `yumi --server --telegram` (single machine) or `yumi --telegram` (bot only). Token, allowlist, and timer-push details: [Configuration → Telegram](docs/CONFIGURATION.md#telegram).
+- **Discord** — chat with Yumi from a Discord bot. Create an application + bot in the [Discord Developer Portal](https://discord.com/developers/applications), enable the Message Content intent, then run `yumi --server --discord` (single machine) or `yumi --discord` (bot only). Token, allowlist, and timer-push details: [Configuration → Discord](docs/CONFIGURATION.md#discord).
 - **LINE** — chat from LINE via the Messaging API webhook. Run `yumi --server --line` (single machine, default port 8788) or `yumi --line` (webhook sidecar only). Credentials and webhook setup: [Configuration → LINE](docs/CONFIGURATION.md#line).
 - **Voice** — talk to Yumi through your microphone. Say the wake word ("hi yumi") and Yumi transcribes the rest of your sentence with Whisper and runs it as a chat turn. Coexists with Telegram / `--chat` / `--ui` so the same Yumi instance can listen and type at once, and recent voice/Telegram/CLI turns are merged into each prompt. Requires `pip install yumi-agent[voice,stt]` plus a Picovoice access key. Setup: [Configuration → Voice](docs/CONFIGURATION.md#voice).
 
@@ -185,7 +190,7 @@ You can mix providers — for example OpenAI for chat and Ollama for embeddings.
 | [Getting Started](docs/GETTING_STARTED.md) | Installation, first run, providers, UI, terminal chat |
 | [Edge Tools Guide](docs/EDGE_TOOLS.md) | Connect your app, device, or game as an edge tool host |
 | [Tool Registration](docs/TOOL_REGISTRATION.md) | All tool registration parameters, confirmation, proactive options |
-| [Configuration](docs/CONFIGURATION.md) | `~/.yumi/config.json`, environment variables, Telegram, LINE, Docker |
+| [Configuration](docs/CONFIGURATION.md) | `~/.yumi/config.json`, environment variables, Telegram, Discord, LINE, Docker |
 | [Architecture](docs/ARCHITECTURE.md) | System design, plugin ports, API stability |
 | [HTTP API](docs/HTTP_API.md) | Chat NDJSON stream, all routes, curl examples |
 | [Memory](docs/MEMORY.md) | Session history and LanceDB embeddings |
@@ -197,9 +202,9 @@ Yumi is **not** another Python-only LLM chaining library. It ships a runnable se
 
 ## Core Scope
 
-This package (`yumi-agent`) is the **open-source single-user / LAN core**. It runs locally or on your home network, has no Bearer auth, no account scoping, and no quotas. Everything you need to chat with an agent and register tools across languages is here.
+This package (`yumi-agent`) is the **open-source, self-hosted core** — run your own server at home. You chat with it remotely through **Telegram, LINE, or Discord** bridges, while edge devices register tools on the **same machine or your LAN**. No account scoping, no quotas — a complete single-user agent on your own hardware.
 
-Advanced deployments can add identity, storage, policy, or routing behavior through the plugin port abstractions under `yumi.core.platform.plugins`. Those higher layers live outside this L1 repository; the core only depends on the abstractions.
+Hosted deployments, connecting edges across separate networks, and multi-user setups are offered as a separate commercial edition — see [COMMERCIAL.md](COMMERCIAL.md) and [docs/UPGRADING_TO_ENTERPRISE.md](docs/UPGRADING_TO_ENTERPRISE.md). The core consumes those higher layers only through the plugin-port abstractions under `yumi.core.platform.plugins`, which live outside this L1 repository.
 
 ## License
 
