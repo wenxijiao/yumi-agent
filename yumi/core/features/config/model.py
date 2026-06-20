@@ -99,6 +99,16 @@ class ModelConfig(BaseModel):
     voice_silence_ms: int = Field(default=800, ge=100, le=10000)
     voice_max_utterance_ms: int = Field(default=15000, ge=1000, le=60000)
     voice_owner_id: str | None = None
+    # Text-to-speech (optional): spoken replies. "disabled" by default so
+    # text-only installs stay lightweight. Provider is one of:
+    #   system    — OS speech command (macOS `say` / Linux `espeak`), zero deps
+    #   dashscope — Qwen3-TTS via the Alibaba Cloud DashScope API (needs a key)
+    #   qwen      — Qwen3-TTS run locally (heavy `tts` extra; realistically a GPU)
+    tts_provider: str = "disabled"
+    tts_voice: str | None = None
+    tts_model: str | None = None
+    tts_api_key: str | None = None
+    tts_language: str = "auto"
 
     @field_validator("proactive_mode")
     @classmethod
