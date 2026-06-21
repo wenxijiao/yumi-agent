@@ -401,9 +401,9 @@ Yumi can speak its replies. In voice mode (`--server --voice`) replies are spoke
 |---|---|---|
 | `system` | OS speech command (macOS `say`, Linux `espeak`/`espeak-ng`) | nothing (zero-dependency default) |
 | `dashscope` | Qwen3-TTS via the Alibaba Cloud DashScope API | `DASHSCOPE_API_KEY`; `pip install yumi-agent[tts]` |
-| `qwen` | Qwen3-TTS run locally | an NVIDIA GPU; `pip install yumi-agent[tts-local]` |
+| `qwen` | Qwen3-TTS run locally | a GPU + PyTorch (see note); `pip install yumi-agent[tts-local]` |
 
-`yumi --setup` installs the extra for the chosen backend on demand.
+For `system` and `dashscope`, `yumi --setup` installs anything needed on demand — `pip install yumi-agent` "just works" with no GPU. **Local `qwen` is the one exception**: it runs on PyTorch, and the CUDA build is multi-GB and version-specific, so it cannot be auto-installed (this is true of every local-GPU model, not a Yumi limitation). Install PyTorch for your GPU from <https://pytorch.org/get-started/locally/> **first**; then `yumi --setup` will install `qwen-tts` on top. The provider auto-detects the device (CUDA → Apple MPS → CPU), and the first synthesis downloads the model weights (~GBs, with a progress bar).
 
 ### Config keys
 

@@ -54,8 +54,21 @@ class QwenTtsProvider(TextToSpeechProvider):
         self._model_name = model or DEFAULT_MODEL
         self._voice = voice or DEFAULT_SPEAKER
         self._language = language
-        self._device = device or "cuda:0"
+        self._device = device  # None -> auto-detect at load time
         self._model: Any = None  # lazily loaded
+
+    @staticmethod
+    def _auto_device(torch: Any) -> str:
+        """Pick the best available device: CUDA, then Apple MPS, then CPU."""
+        try:
+            if torch.cuda.is_available():
+                return "cuda:0"
+            mps = getattr(torch.backends, "mps", None)
+            if mps is not None and mps.is_available():
+                return "mps"
+        except Exception:
+            pass
+        return "cpu"
 
     def _load_model(self) -> Any:
         if self._model is not None:
@@ -65,12 +78,14 @@ class QwenTtsProvider(TextToSpeechProvider):
             from qwen_tts import Qwen3TTSModel
         except ImportError as exc:
             raise TtsError(
-                "qwen-tts is required for the local Qwen3-TTS provider. Install it with: "
-                "pip install 'yumi-agent[tts-local]' (realistically needs a CUDA GPU)."
+                "qwen-tts (and PyTorch) are required for the local Qwen3-TTS provider. "
+                "Install PyTorch for your GPU from https://pytorch.org/get-started/locally/ , "
+                "then: pip install 'yumi-agent[tts-local]'."
             ) from exc
+        device = self._device or self._auto_device(torch)
         self._model = Qwen3TTSModel.from_pretrained(
             self._model_name,
-            device_map=self._device,
+            device_map=device,
             dtype=torch.bfloat16,
         )
         return self._model

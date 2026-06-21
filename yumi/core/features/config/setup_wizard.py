@@ -308,11 +308,24 @@ def _prompt_tts_config(config: ModelConfig) -> None:
             print("  The dashscope package isn't installed yet; spoken replies start once it is.")
             return
     elif choice == "4":
+        import importlib.util
+
+        # Local Qwen3-TTS runs on PyTorch. We deliberately do NOT auto-install it:
+        # the CUDA build is multi-GB and version-specific, so only the user can
+        # pick the right one. Bail with guidance rather than pulling a CPU-only
+        # torch that would then fail on a GPU device.
+        if importlib.util.find_spec("torch") is None:
+            print("  Local Qwen3-TTS needs PyTorch, which can't be auto-installed here")
+            print("  (the CUDA build is multi-GB and version-specific). Install it for your")
+            print("  GPU from https://pytorch.org/get-started/locally/ , then re-run `yumi --setup`.")
+            print("  No-setup alternatives: option 2 (System voice) or option 3 (DashScope cloud).")
+            config.tts_provider = "disabled"
+            return
         config.tts_provider = "qwen"
         config.tts_model = _QWEN_DEFAULT_MODEL
         config.tts_voice = _prompt_tts_voice("Qwen", _TTS_QWEN_SPEAKERS, "Ryan")
         if not ensure_feature_installed("tts-local"):
-            print("  qwen-tts isn't installed yet; local spoken replies start once it is (needs a CUDA GPU).")
+            print("  qwen-tts isn't installed yet; local spoken replies start once it is.")
             return
 
     _maybe_test_tts(config)

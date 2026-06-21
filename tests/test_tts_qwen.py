@@ -43,6 +43,20 @@ def test_factory_builds_qwen():
     assert isinstance(provider, QwenTtsProvider)
 
 
+def test_auto_device_prefers_cuda_then_mps_then_cpu():
+    import types
+
+    def fake_torch(cuda: bool, mps: bool):
+        return types.SimpleNamespace(
+            cuda=types.SimpleNamespace(is_available=lambda: cuda),
+            backends=types.SimpleNamespace(mps=types.SimpleNamespace(is_available=lambda: mps)),
+        )
+
+    assert QwenTtsProvider._auto_device(fake_torch(True, True)) == "cuda:0"
+    assert QwenTtsProvider._auto_device(fake_torch(False, True)) == "mps"
+    assert QwenTtsProvider._auto_device(fake_torch(False, False)) == "cpu"
+
+
 def test_synthesize_wraps_model_output(monkeypatch):
     provider = QwenTtsProvider(voice="Ryan")
     captured = {}
