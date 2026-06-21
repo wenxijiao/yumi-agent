@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (features → platform, never the reverse) enforced by tests. The old import
   paths were retired — no compatibility shims remain, so only the new paths are
   importable. See `docs/MIGRATION_PLATFORM_FEATURES.md` for the full old→new map.
+- **Batteries-included base install.** `pip install yumi-agent` now bundles the
+  LLM providers (OpenAI / Gemini / Claude, incl. DeepSeek), the Telegram +
+  Discord bridges, and file ingestion, so they work out of the box. Only heavy /
+  system-dependent features remain as extras (`[ui]`, `[stt]`, `[voice]`,
+  `[tts]`, `[tts-local]`), and `yumi --setup` offers to install those on demand
+  when you enable the feature. The now-redundant
+  `[openai]`/`[gemini]`/`[claude]`/`[deepseek]`/`[providers]`/`[telegram]`/
+  `[discord]`/`[line]`/`[files]` extras were removed (folded into the base).
 
 ### Security
 
@@ -38,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Discord bridge**: chat with Yumi from a Discord bot — `yumi --server --discord`
   or `yumi --discord` (gateway connection, no public URL needed). Tool confirmations
   are Allow / Deny / Always-allow buttons; allowlist via `DISCORD_ALLOWED_USER_IDS`.
-  New optional extra `[discord]`. Joins the existing Telegram and LINE bridges.
+  Ships in the base install. Joins the existing Telegram and LINE bridges.
 - **SDK robustness (`YumiAgent`)**: logs via the `yumi.sdk` logger instead of
   `print`; exposes `is_connected` and an optional `on_error` callback; resolves the
   connection inside the reconnect loop so a transient connection-bootstrap failure
@@ -53,6 +61,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `voice_porcupine_sensitivity`, `voice_input_device`, `voice_silence_ms`,
   `voice_max_utterance_ms`, `voice_vad_aggressiveness`, `voice_wake_word`.
   Environment: `YUMI_VOICE_ENABLED`, `YUMI_VOICE_OWNER_ID`, `PV_ACCESS_KEY`.
+- **Spoken replies (text-to-speech)**: Yumi can talk back. Three backends behind
+  one provider choice — `system` (macOS `say` / Linux `espeak`, zero-dependency
+  default), `dashscope` (Qwen3-TTS via the Alibaba Cloud DashScope API), and
+  `qwen` (Qwen3-TTS run locally on a GPU). `yumi --setup` configures it (with an
+  immediate test line); `yumi --speak "..."` is a smoke test; `--server --voice`
+  speaks replies automatically; Telegram `/voice on|off` and Discord
+  `!voice on|off` switch a chat between text and audio replies. New config keys
+  `tts_provider`, `tts_voice`, `tts_model`, `tts_api_key`, `tts_language`; new
+  extras `[tts]` (DashScope) and `[tts-local]` (local qwen). Environment:
+  `DASHSCOPE_API_KEY`, `DASHSCOPE_BASE_URL`.
 - **Proactive messaging modes**: `proactive_mode` (`off` | `smart` | `scheduled`) with `proactive_schedule_times`, `proactive_schedule_interval_minutes`, and `proactive_schedule_require_idle`. Legacy JSON without `proactive_mode` derives mode from `proactive_enabled`; `proactive_enabled` is still saved and synced from mode on load. Environment: `YUMI_PROACTIVE_MODE`, `YUMI_PROACTIVE_SCHEDULE_TIMES`, `YUMI_PROACTIVE_SCHEDULE_INTERVAL_MINUTES`, `YUMI_PROACTIVE_SCHEDULE_REQUIRE_IDLE`.
 - **`local_timezone`** in `config.json`: IANA zone for user-facing wall time (chat clock, proactive context, proactive quiet hours, proactive daily limit calendar). Legacy JSON key `proactive_quiet_hours_timezone` is still read on load; prefer **`YUMI_LOCAL_TIMEZONE`** over `YUMI_PROACTIVE_QUIET_HOURS_TIMEZONE` at runtime.
 - Proactive messaging: `proactive_check_interval_jitter_ratio`, `proactive_unreplied_escalation_jitter_ratio`, and `proactive_check_in_probability` for less rigid scheduling; matching `YUMI_PROACTIVE_*` environment variables.

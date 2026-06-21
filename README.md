@@ -139,6 +139,7 @@ Your app connects to the Yumi server over WebSocket and registers functions as t
 | `yumi --server --line` | Start the API and a LINE webhook sidecar (default port 8788) |
 | `yumi --line` | Run only the LINE webhook server; core API must already be reachable |
 | `yumi --server --voice` | Start the API with a microphone wake-word loop (say "hi yumi" to talk) |
+| `yumi --speak "..."` | Synthesize text with the configured TTS and play it (smoke test) |
 | `yumi --ui` | Start the web UI (chat, tools, settings) |
 | `yumi --chat` | Start terminal chat |
 | `yumi --edge` | Scaffold an edge workspace in the current directory |
@@ -154,6 +155,7 @@ Your app connects to the Yumi server over WebSocket and registers functions as t
 - **Discord** — chat with Yumi from a Discord bot. Create an application + bot in the [Discord Developer Portal](https://discord.com/developers/applications), enable the Message Content intent, then run `yumi --server --discord` (single machine) or `yumi --discord` (bot only). Token, allowlist, and timer-push details: [Configuration → Discord](docs/CONFIGURATION.md#discord).
 - **LINE** — chat from LINE via the Messaging API webhook. Run `yumi --server --line` (single machine, default port 8788) or `yumi --line` (webhook sidecar only). Credentials and webhook setup: [Configuration → LINE](docs/CONFIGURATION.md#line).
 - **Voice** — talk to Yumi through your microphone. Say the wake word ("hi yumi") and Yumi transcribes the rest of your sentence with Whisper and runs it as a chat turn. Coexists with Telegram / `--chat` / `--ui` so the same Yumi instance can listen and type at once, and recent voice/Telegram/CLI turns are merged into each prompt. Requires `pip install yumi-agent[voice,stt]` plus a Picovoice access key. Setup: [Configuration → Voice](docs/CONFIGURATION.md#voice).
+- **Spoken replies (TTS)** — Yumi can talk back. Pick a backend in `yumi --setup`: `system` (macOS `say` / Linux `espeak`, zero-dependency default), `dashscope` (Qwen3-TTS via the DashScope API), or `qwen` (Qwen3-TTS run locally on a GPU). In voice mode replies are spoken automatically; on Telegram / Discord, `/voice on` (`!voice on`) switches a chat to audio replies. Test any time with `yumi --speak "hello"`.
 
 ## Supported Providers
 
