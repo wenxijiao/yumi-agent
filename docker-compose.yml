@@ -6,8 +6,14 @@ services:
   yumi:
     build: .
     ports:
-      - "8000:8000"
+      # Host side bound to loopback only — the OSS API has no auth (that's L2's
+      # job), so don't expose it on all host interfaces by default. Change to
+      # "8000:8000" (or your_lan_ip:8000:8000) to deliberately expose it.
+      - "127.0.0.1:8000:8000"
     environment:
+      # The container must bind all interfaces so the port mapping can reach it;
+      # the host-side binding above is what limits exposure to loopback.
+      YUMI_HOST: "0.0.0.0"
       YUMI_LOG_LEVEL: INFO
       # Example overrides (uncomment as needed):
       # YUMI_CHAT_PROVIDER: ollama

@@ -30,12 +30,33 @@ class ServerCommand(Command):
 
     def register(self, parser, mutex_group):
         mutex_group.add_argument("--server", action="store_true", help="Run the Yumi backend server")
+        parser.add_argument(
+            "--host",
+            default=None,
+            metavar="ADDR",
+            help="Bind address for --server (default 127.0.0.1, loopback only). Use 0.0.0.0 to expose on your LAN.",
+        )
+        parser.add_argument(
+            "--port",
+            default=None,
+            type=int,
+            metavar="PORT",
+            help="Port for --server (default 8000).",
+        )
 
     def matches(self, args):
         return bool(args.server)
 
     def run(self, args):
+        import os
+
         from yumi.cli import run_server, run_server_with_bridges
+
+        # Surface the bind address to the API subprocess (it reads YUMI_HOST/PORT).
+        if getattr(args, "host", None):
+            os.environ["YUMI_HOST"] = args.host
+        if getattr(args, "port", None):
+            os.environ["YUMI_PORT"] = str(args.port)
 
         telegram = bool(args.telegram)
         discord = bool(getattr(args, "discord", False))

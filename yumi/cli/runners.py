@@ -410,7 +410,12 @@ def run_server_with_bridges(
     config = _preflight_models()
 
     server_env = _subprocess_env_ensure_platform_tokens()
-    notes = ["Mode: local / LAN (single user)"]
+    bind_host = (server_env.get("YUMI_HOST") or "127.0.0.1").strip() or "127.0.0.1"
+    bind_port = (server_env.get("YUMI_PORT") or "8000").strip() or "8000"
+    if bind_host in ("0.0.0.0", "::"):
+        notes = [f"Mode: LAN-exposed on {bind_host}:{bind_port} (single user, NO auth in L1 — trust your network)"]
+    else:
+        notes = [f"Mode: loopback only ({bind_host}:{bind_port}); use --host 0.0.0.0 to expose on your LAN"]
     if voice:
         owner = (config.voice_owner_id or os.getenv("USER") or os.getenv("USERNAME") or "default").strip() or "default"
         server_env["YUMI_VOICE_ENABLED"] = "1"

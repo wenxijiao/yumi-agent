@@ -229,5 +229,21 @@ def create_app() -> FastAPI:
     return app
 
 
+def _server_host_port() -> tuple[str, int]:
+    """Resolve the bind address. Defaults to loopback so an out-of-the-box
+    `yumi --server` (which ships no auth — that's L2's job) is not reachable
+    from the network. Opt into LAN/all-interfaces with YUMI_HOST=0.0.0.0
+    (e.g. `yumi --server --host 0.0.0.0`, or inside Docker)."""
+    import os
+
+    host = (os.getenv("YUMI_HOST") or "127.0.0.1").strip() or "127.0.0.1"
+    try:
+        port = int(os.getenv("YUMI_PORT") or 8000)
+    except ValueError:
+        port = 8000
+    return host, port
+
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000, access_log=False)
+    _host, _port = _server_host_port()
+    uvicorn.run(app, host=_host, port=_port, access_log=False)
