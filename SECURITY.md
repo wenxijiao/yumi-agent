@@ -27,6 +27,8 @@ We aim to acknowledge reports within a few business days and coordinate disclosu
 
 Identity, authorization, and quotas are resolved through the plugin ports under `yumi.core.platform.plugins`, so the same routes can carry per-user authorization in other deployment models without changing route code — but none of that is required to run yumi-agent for yourself. Relay mode and browser CORS have additional considerations; see [docs/HTTP_API.md](docs/HTTP_API.md) and [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
+Request bodies are read into memory before handling. Uploads (`POST /uploads`, `POST /stt/transcribe`) reject oversized content (base64 length is checked before decoding), but the JSON body itself still enters the app layer first. For a single-user, trusted-network deployment that's fine; if you expose the API more broadly, cap request body size at a reverse proxy or an ASGI middleware (the same layer where you'd add authentication and rate limiting).
+
 By default, browser CORS is limited to localhost-style origins and credentialed browser requests are disabled. If you need browser access beyond local development, set explicit origins with `YUMI_CORS_ORIGINS` or `YUMI_RELAY_CORS_ORIGINS` and keep TLS termination in front of any public Relay deployment.
 
 For operational guidance, see the “Security and deployment” sections in [docs/HTTP_API.md](docs/HTTP_API.md).
