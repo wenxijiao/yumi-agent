@@ -31,8 +31,7 @@ def ensure_embedding_provider_supported(provider_name: str, *, allow_disabled: b
     choices = ", ".join((*EMBEDDING_CAPABLE_PROVIDERS, "disabled" if allow_disabled else ""))
     choices = choices.rstrip(", ")
     raise ValueError(
-        f"embedding_provider must be one of: {choices}. "
-        f"{name!r} does not expose a supported embedding API."
+        f"embedding_provider must be one of: {choices}. {name!r} does not expose a supported embedding API."
     )
 
 
