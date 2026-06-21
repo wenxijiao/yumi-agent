@@ -243,6 +243,15 @@ Connection resolution is the same across all SDKs:
 | WebSocket URL | `ws://192.168.1.10:8000/ws/edge` |
 | HTTP URL | `http://192.168.1.10:8000` |
 
+> **A LAN code is a connection string, not a credential.** It just encodes the
+> server host/port (so the SDK knows where to connect). The OSS server has no
+> auth, so reaching the host/port is what grants access — anyone on the network
+> who can connect, can register tools. The optional `lan_secret` HMAC only
+> detects tampering, and only when both ends share the secret; it does not
+> authenticate the client. Don't expose the server on an untrusted network
+> (the default bind is loopback-only — see [Configuration](CONFIGURATION.md));
+> per-user identity/auth is a higher-layer (L2) concern.
+
 ## Tool Confirmation
 
 Set `require_confirmation=True` (Python) or the equivalent flag in other SDKs for tools with irreversible side effects. The user must approve in the Yumi UI or terminal chat before the tool is invoked.

@@ -39,6 +39,16 @@ def _lan_hmac(data_bytes: bytes, secret: str) -> str:
 
 
 def encode_lan_code(code: YumiLanCode, secret: str | None = None) -> str:
+    """Encode a LAN *connection string* — NOT an auth credential.
+
+    The token carries the server host/port (+ optional expiry) so a client knows
+    where to connect. When *secret* (``lan_secret``) is given, an HMAC ``s`` field
+    is added; that only provides tamper-detection, and only when the decoding side
+    also holds the same secret (see :func:`decode_lan_code`). Possession of the
+    code does not by itself grant access — the OSS server has no auth, so anyone
+    who can reach the host/port can connect. Treat the code as a convenience URL,
+    not a secret.
+    """
     payload_dict = {
         "v": code.version,
         "h": code.host,
@@ -65,6 +75,13 @@ def encode_lan_code(code: YumiLanCode, secret: str | None = None) -> str:
 
 
 def decode_lan_code(token: str, secret: str | None = None) -> YumiLanCode:
+    """Decode a LAN connection string into host/port.
+
+    Signature verification is best-effort: it only happens when BOTH *secret* is
+    supplied AND the token carries an ``s`` field. With no shared secret the
+    signature is not checked — so the HMAC is an integrity aid, not an
+    authentication mechanism. See :func:`encode_lan_code`.
+    """
     if token.startswith(LAN_TOKEN_PREFIX):
         encoded = token[len(LAN_TOKEN_PREFIX) :]
     else:
