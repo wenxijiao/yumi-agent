@@ -244,6 +244,16 @@ def _server_host_port() -> tuple[str, int]:
     return host, port
 
 
+def run_app_from_env() -> None:
+    """Start the API with uvicorn, binding per YUMI_HOST/YUMI_PORT.
+
+    This is the single server entry point — both ``python -m yumi.core.api``
+    (see ``yumi/core/api/__main__.py``) and direct execution of this module go
+    through it, so the loopback-by-default policy can't be bypassed.
+    """
+    host, port = _server_host_port()
+    uvicorn.run(app, host=host, port=port, access_log=False, log_level="warning")
+
+
 if __name__ == "__main__":
-    _host, _port = _server_host_port()
-    uvicorn.run(app, host=_host, port=_port, access_log=False)
+    run_app_from_env()
