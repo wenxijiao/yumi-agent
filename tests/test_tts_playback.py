@@ -19,6 +19,19 @@ def test_play_audio_without_player_raises(monkeypatch):
         play_audio(SpeechAudio(data=b"x", format="wav"))
 
 
+def test_play_audio_on_windows_uses_winsound(monkeypatch):
+    monkeypatch.setattr(playback.sys, "platform", "win32")
+    seen = {}
+
+    def fake_win(path):
+        with open(path, "rb") as fh:
+            seen["data"] = fh.read()
+
+    monkeypatch.setattr(playback, "_play_windows", fake_win)
+    play_audio(SpeechAudio(data=b"WINWAV", format="wav"))
+    assert seen["data"] == b"WINWAV"
+
+
 def test_play_audio_writes_temp_and_invokes_player(monkeypatch):
     monkeypatch.setattr(playback, "resolve_player", lambda: ["afplay"])
     seen = {}

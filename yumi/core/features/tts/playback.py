@@ -35,19 +35,33 @@ def resolve_player() -> list[str] | None:
     return None
 
 
+def _play_windows(path: str) -> None:
+    """Play a WAV file via the Windows-native winsound module (no external player)."""
+    import winsound
+
+    winsound.PlaySound(path, winsound.SND_FILENAME)
+
+
 def play_audio(audio: SpeechAudio) -> None:
-    player = resolve_player()
-    if not player:
-        raise PlaybackError(
-            "No audio player found. Install one (Linux: `sudo apt install pulseaudio-utils` "
-            "for paplay, or alsa-utils for aplay)."
-        )
+    # Windows ships no afplay/aplay/ffplay; use the built-in winsound (WAV only,
+    # which is what every TTS provider here emits).
+    player = None
+    if sys.platform != "win32":
+        player = resolve_player()
+        if not player:
+            raise PlaybackError(
+                "No audio player found. Install one (Linux: `sudo apt install pulseaudio-utils` "
+                "for paplay, or alsa-utils for aplay; or install ffmpeg for ffplay)."
+            )
     with tempfile.NamedTemporaryFile(suffix=f".{audio.format or 'wav'}", delete=False) as tmp:
         tmp.write(audio.data)
         path = tmp.name
     try:
-        subprocess.run([*player, path], check=True, capture_output=True)
-    except (subprocess.CalledProcessError, OSError) as exc:
+        if sys.platform == "win32":
+            _play_windows(path)
+        else:
+            subprocess.run([*player, path], check=True, capture_output=True)
+    except (subprocess.CalledProcessError, OSError, RuntimeError) as exc:
         raise PlaybackError(f"Audio playback failed: {exc}") from exc
     finally:
         try:
