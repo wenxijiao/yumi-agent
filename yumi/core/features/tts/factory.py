@@ -17,5 +17,14 @@ def create_tts_provider(config: ModelConfig | None = None) -> TextToSpeechProvid
         raise TtsNotConfiguredError("TTS is not enabled. Run `yumi --setup` to enable spoken replies.")
     if provider == "system":
         return SystemTtsProvider(voice=cfg.tts_voice)
-    # dashscope / qwen providers are added in later phases.
+    if provider == "dashscope":
+        from yumi.core.features.tts.dashscope_provider import DashScopeTtsProvider
+
+        return DashScopeTtsProvider(
+            api_key=cfg.tts_api_key,
+            model=cfg.tts_model,
+            voice=cfg.tts_voice,
+            language=cfg.tts_language,
+        )
+    # The local `qwen` provider is added in a later phase.
     raise TtsError(f"Unsupported TTS provider: {cfg.tts_provider!r}")

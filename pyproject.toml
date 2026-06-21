@@ -78,16 +78,18 @@ dev = [
     "ruff>=0.8.0",
     "pyright>=1.1",
 ]
-# Heavy / system-dependent features kept OUT of the base install. `yumi --setup`
-# offers to install these on demand when you turn the feature on; or install
-# manually:
+# Heavy / system-dependent / cloud features kept OUT of the base install.
+# `yumi --setup` offers to install these on demand when you turn the feature on;
+# or install manually:
 #   pip install yumi-agent[ui]     # Reflex web UI (large; pulls a Node toolchain)
 #   pip install yumi-agent[stt]    # speech-to-text (downloads Whisper models)
 #   pip install yumi-agent[voice]  # mic wake-word (needs PortAudio + a Picovoice key)
+#   pip install yumi-agent[tts]    # Qwen3-TTS spoken replies via the DashScope API
 #   pip install yumi-agent[all]    # all of the above
 ui = ["reflex>=0.9"]
 stt = ["faster-whisper>=1.0", "huggingface-hub>=0.20"]
 voice = ["sounddevice>=0.4.6", "webrtcvad-wheels>=2.0.14", "pvporcupine>=3.0.0"]
+tts = ["dashscope>=1.20.0"]
 all = [
     "reflex>=0.9",
     "faster-whisper>=1.0",
@@ -95,6 +97,7 @@ all = [
     "sounddevice>=0.4.6",
     "webrtcvad-wheels>=2.0.14",
     "pvporcupine>=3.0.0",
+    "dashscope>=1.20.0",
 ]
 
 [tool.ruff]

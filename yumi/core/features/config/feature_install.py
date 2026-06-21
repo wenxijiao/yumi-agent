@@ -29,6 +29,7 @@ _FEATURES: dict[str, tuple[str, str, str]] = {
     "ui": ("ui", "reflex", "the Reflex web UI"),
     "stt": ("stt", "faster_whisper", "Whisper speech-to-text"),
     "voice": ("voice", "sounddevice", "microphone wake-word voice"),
+    "tts": ("tts", "dashscope", "Qwen3-TTS spoken replies (DashScope API)"),
 }
 
 
