@@ -13,6 +13,16 @@ import re
 
 from yumi.core.platform.runtime.edge_registry import EdgeRegistry
 
+# Provider function names cap at 64 chars. An edge tool's provider-facing name is
+# ``edge_<segment>_<hash>__<tool>``, so we budget the pieces up front to GUARANTEE
+# a normal tool name still fits (instead of silently dropping it server-side):
+#   64 = "edge_"(5) + segment + "_"(1) + hash + "__"(2) + tool_name
+_PROVIDER_NAME_LIMIT = 64
+_EDGE_HASH_LEN = 8  # hex digits; disambiguates names that sanitize the same
+_TOOL_NAME_BUDGET = 32  # chars reserved for the tool's own name
+_PREFIX_FIXED = len("edge_") + len("_") + _EDGE_HASH_LEN + len("__")  # 16
+_EDGE_SEGMENT_CAP = _PROVIDER_NAME_LIMIT - _TOOL_NAME_BUDGET - _PREFIX_FIXED  # 16
+
 
 def gemini_safe_edge_segment(edge_name: str) -> str:
     """Make an edge-name substring safe for EVERY provider's function name.
@@ -21,8 +31,9 @@ def gemini_safe_edge_segment(edge_name: str) -> str:
     and ``-`` only — so the prefixed tool name validates regardless of which
     provider is configured. Gemini also tolerates ``.``/``:`` but OpenAI /
     Anthropic reject them (and the server's tool-name validation would then drop
-    the tool), so we normalize those to ``_``. Capped well under the 64-char
-    provider limit to leave room for the ``edge_<seg>__`` prefix + tool name.
+    the tool), so we normalize those to ``_``. Capped at ``_EDGE_SEGMENT_CAP`` so
+    the full ``edge_<seg>_<hash>__<tool>`` name still leaves ~32 chars for the
+    tool's own name within the 64-char provider limit.
     """
     s = (edge_name or "").strip()
     if not s:
@@ -33,7 +44,7 @@ def gemini_safe_edge_segment(edge_name: str) -> str:
         return "edge"
     if t[0] in "0123456789-":
         t = "e" + t
-    return t[:32]
+    return t[:_EDGE_SEGMENT_CAP]
 
 
 def edge_tool_key_prefix(edge_name: str) -> str:
@@ -43,9 +54,10 @@ def edge_tool_key_prefix(edge_name: str) -> str:
     same segment (e.g. ``my.device`` vs ``my device`` both -> ``my_device``), so
     distinct edges getting the same provider-facing prefix is vanishingly
     unlikely (8 hex digits; not a hard guarantee, but far beyond any realistic
-    number of concurrent edges).
+    number of concurrent edges). The prefix is capped at
+    ``64 - _TOOL_NAME_BUDGET`` chars so a normal tool name always fits.
     """
-    digest = hashlib.sha1((edge_name or "").encode("utf-8")).hexdigest()[:8]
+    digest = hashlib.sha1((edge_name or "").encode("utf-8")).hexdigest()[:_EDGE_HASH_LEN]
     return f"edge_{gemini_safe_edge_segment(edge_name)}_{digest}__"
 
 
