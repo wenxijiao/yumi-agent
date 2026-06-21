@@ -30,6 +30,7 @@ _FEATURES: dict[str, tuple[str, str, str]] = {
     "stt": ("stt", "faster_whisper", "Whisper speech-to-text"),
     "voice": ("voice", "sounddevice", "microphone wake-word voice"),
     "tts": ("tts", "dashscope", "Qwen3-TTS spoken replies (DashScope API)"),
+    "tts-local": ("tts-local", "qwen_tts", "Qwen3-TTS running locally (GPU)"),
 }
 
 

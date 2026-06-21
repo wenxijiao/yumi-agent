@@ -242,6 +242,94 @@ def _prompt_stt_config(config: ModelConfig) -> None:
         print("  Voice transcription will retry the download on first use.")
 
 
+# ── text-to-speech (spoken replies) ─────────────────────────────────────────
+
+# Curated voice shortlists (both backends accept more — type a name to override).
+_TTS_DASHSCOPE_VOICES = ("Cherry", "Serena", "Ethan", "Chelsie", "Dylan", "Eric", "Ryan", "Jada", "Sunny")
+_TTS_QWEN_SPEAKERS = ("Ryan", "Vivian", "Serena", "Dylan", "Eric", "Aiden", "Uncle_Fu", "Ono_Anna", "Sohee")
+_QWEN_DEFAULT_MODEL = "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice"
+
+
+def _prompt_tts_voice(label: str, voices: tuple[str, ...], default: str) -> str:
+    print(f"  Choose a {label} voice (Enter for {default}, or type any voice name):")
+    for i, name in enumerate(voices, 1):
+        tag = " (default)" if name == default else ""
+        print(f"    {i}. {name}{tag}")
+    raw = input("  > ").strip()
+    if not raw:
+        return default
+    try:
+        idx = int(raw)
+    except ValueError:
+        return raw  # free-form voice name
+    if 1 <= idx <= len(voices):
+        return voices[idx - 1]
+    return default
+
+
+def _prompt_tts_config(config: ModelConfig) -> None:
+    """Ask for optional spoken-reply (TTS) settings and mutate *config*."""
+    print()
+    print("Enable spoken replies (text-to-speech)?")
+    print("  1. Skip / disable")
+    print("  2. System voice — macOS `say` / Linux `espeak` (offline, no key, instant)")
+    print("  3. Qwen3-TTS · cloud — via DashScope API (best quality, needs a key)")
+    print("  4. Qwen3-TTS · local — runs on your own NVIDIA GPU (heavy download)")
+    print("  5. Keep current TTS settings")
+
+    while True:
+        choice = input("> ").strip()
+        if choice == "1":
+            config.tts_provider = "disabled"
+            print("  Spoken replies off. Enable later with `yumi --setup`.")
+            return
+        if choice == "5":
+            print(f"  Keeping TTS: {config.tts_provider}")
+            return
+        if choice in ("2", "3", "4"):
+            break
+        print("Please choose one of the listed options.")
+
+    from yumi.core.features.config.feature_install import ensure_feature_installed
+
+    if choice == "2":
+        config.tts_provider = "system"
+        config.tts_voice = None
+    elif choice == "3":
+        config.tts_provider = "dashscope"
+        config.tts_model = None
+        config.tts_voice = _prompt_tts_voice("DashScope", _TTS_DASHSCOPE_VOICES, "Cherry")
+        if not (config.tts_api_key or os.getenv("DASHSCOPE_API_KEY")):
+            key = input("  DashScope API key (or set DASHSCOPE_API_KEY): ").strip()
+            if key:
+                config.tts_api_key = key
+                os.environ["DASHSCOPE_API_KEY"] = key
+        if not ensure_feature_installed("tts"):
+            print("  The dashscope package isn't installed yet; spoken replies start once it is.")
+            return
+    elif choice == "4":
+        config.tts_provider = "qwen"
+        config.tts_model = _QWEN_DEFAULT_MODEL
+        config.tts_voice = _prompt_tts_voice("Qwen", _TTS_QWEN_SPEAKERS, "Ryan")
+        if not ensure_feature_installed("tts-local"):
+            print("  qwen-tts isn't installed yet; local spoken replies start once it is (needs a CUDA GPU).")
+            return
+
+    _maybe_test_tts(config)
+
+
+def _maybe_test_tts(config: ModelConfig) -> None:
+    """Offer to synthesize + play a short line so the user hears the result now."""
+    if (input("  Test it now — play a short line? (Y/n): ").strip().lower()) in ("n", "no"):
+        return
+    try:
+        from yumi.core.features.tts.playback import speak
+
+        speak("Hi, I'm Yumi. Spoken replies are on.", config=config)
+    except Exception as exc:
+        print(f"  TTS test skipped: {exc}")
+
+
 # ── top-level run-mode + cloud pickers ──────────────────────────────────────
 
 _CLOUD_PROVIDERS: tuple[tuple[str, str], ...] = (
@@ -463,6 +551,7 @@ def run_model_setup(force: bool = False) -> ModelConfig:
 
     _setup_embeddings(config, chat_provider)
     _prompt_stt_config(config)
+    _prompt_tts_config(config)
     save_model_config(config)
 
     print()
@@ -471,4 +560,8 @@ def run_model_setup(force: bool = False) -> ModelConfig:
     emb = f"{config.embedding_provider} / {config.embedding_model}" if config.embedding_model else "off"
     print(f"Embedding: {emb}")
     print(f"STT: {config.stt_provider} / {config.stt_model or 'disabled'}")
+    tts = config.tts_provider if config.tts_provider not in ("", "disabled") else "off"
+    if config.tts_voice and tts != "off":
+        tts = f"{tts} / {config.tts_voice}"
+    print(f"TTS: {tts}")
     return config

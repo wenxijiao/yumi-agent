@@ -26,5 +26,8 @@ def create_tts_provider(config: ModelConfig | None = None) -> TextToSpeechProvid
             voice=cfg.tts_voice,
             language=cfg.tts_language,
         )
-    # The local `qwen` provider is added in a later phase.
+    if provider == "qwen":
+        from yumi.core.features.tts.qwen_provider import QwenTtsProvider
+
+        return QwenTtsProvider(model=cfg.tts_model, voice=cfg.tts_voice, language=cfg.tts_language)
     raise TtsError(f"Unsupported TTS provider: {cfg.tts_provider!r}")

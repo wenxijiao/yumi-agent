@@ -84,12 +84,14 @@ dev = [
 #   pip install yumi-agent[ui]     # Reflex web UI (large; pulls a Node toolchain)
 #   pip install yumi-agent[stt]    # speech-to-text (downloads Whisper models)
 #   pip install yumi-agent[voice]  # mic wake-word (needs PortAudio + a Picovoice key)
-#   pip install yumi-agent[tts]    # Qwen3-TTS spoken replies via the DashScope API
-#   pip install yumi-agent[all]    # all of the above
+#   pip install yumi-agent[tts]       # Qwen3-TTS spoken replies via the DashScope API
+#   pip install yumi-agent[tts-local] # Qwen3-TTS run locally (heavy; needs a CUDA GPU)
+#   pip install yumi-agent[all]       # all of the above
 ui = ["reflex>=0.9"]
 stt = ["faster-whisper>=1.0", "huggingface-hub>=0.20"]
 voice = ["sounddevice>=0.4.6", "webrtcvad-wheels>=2.0.14", "pvporcupine>=3.0.0"]
 tts = ["dashscope>=1.20.0"]
+tts-local = ["qwen-tts"]
 all = [
     "reflex>=0.9",
     "faster-whisper>=1.0",

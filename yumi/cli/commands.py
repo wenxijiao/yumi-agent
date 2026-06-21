@@ -167,6 +167,34 @@ class UICommand(Command):
         run_ui()
 
 
+class SpeakCommand(Command):
+    name = "speak"
+
+    def register(self, parser, mutex_group):
+        mutex_group.add_argument(
+            "--speak",
+            metavar="TEXT",
+            help="Synthesize TEXT with the configured TTS provider and play it (a quick smoke test).",
+        )
+
+    def matches(self, args):
+        return getattr(args, "speak", None) is not None
+
+    def run(self, args):
+        from yumi.core.features.tts.base import TtsNotConfiguredError
+        from yumi.core.features.tts.playback import speak
+
+        try:
+            speak(args.speak)
+        except TtsNotConfiguredError:
+            print("TTS is not enabled. Run `yumi --setup` and choose a spoken-reply option.")
+            return 1
+        except Exception as exc:  # provider / playback errors
+            print(f"Could not speak: {exc}")
+            return 1
+        return None
+
+
 class ChatCommand(Command):
     name = "chat"
 
@@ -393,7 +421,18 @@ class CleanupMemoryCommand(Command):
 # ── cross-command flag validation ──────────────────────────────────────────
 
 
-_NON_SERVER_BASE_FLAGS = ("ui", "chat", "edge", "demo", "setup", "config", "cleanup", "cleanup_memory", "tool_routing")
+_NON_SERVER_BASE_FLAGS = (
+    "ui",
+    "speak",
+    "chat",
+    "edge",
+    "demo",
+    "setup",
+    "config",
+    "cleanup",
+    "cleanup_memory",
+    "tool_routing",
+)
 
 
 def _format_non_server_flag_list() -> str:
@@ -456,6 +495,7 @@ def build_default_registry() -> CommandRegistry:
     # mutex commands first so their primary flags appear together in --help
     registry.add(ServerCommand())
     registry.add(UICommand())
+    registry.add(SpeakCommand())
     registry.add(ChatCommand())
     registry.add(EdgeCommand())
     registry.add(DemoCommand())
