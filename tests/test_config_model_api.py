@@ -167,6 +167,30 @@ def test_put_config_model_rejects_claude_embedding_provider(monkeypatch, tmp_pat
     assert exc.status_code == 400
 
 
+def test_put_config_model_accepts_fastembed_embedding_provider(monkeypatch, tmp_path: Path) -> None:
+    p = _patch_config_path(monkeypatch, tmp_path)
+    p.write_text(
+        json.dumps(
+            {"chat_provider": "ollama", "chat_model": "m", "embedding_provider": "ollama", "embedding_model": "m"}
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("yumi.core.features.config.router.ensure_provider_available", lambda provider: None)
+
+    async def _run():
+        return await update_model_config_endpoint(
+            ModelConfigUpdateRequest(
+                embedding_provider="fastembed",
+                embedding_model="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+            )
+        )
+
+    response = asyncio.run(_run())
+    saved = json.loads(p.read_text(encoding="utf-8"))
+    assert response["embedding_provider"] == "fastembed"
+    assert saved["embedding_provider"] == "fastembed"
+
+
 def test_put_config_model_updates_edge_tool_routing_settings(monkeypatch, tmp_path: Path) -> None:
     p = _patch_config_path(monkeypatch, tmp_path)
     p.write_text(

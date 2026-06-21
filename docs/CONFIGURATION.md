@@ -18,7 +18,7 @@ Model and provider fields:
 
 - `chat_provider`: Chat model provider. Common values: `ollama`, `openai`, `gemini`, `claude`, `deepseek`. Default: `ollama`.
 - `chat_model`: Chat model name. `null` means Yumi will use provider defaults/setup.
-- `embedding_provider`: Embedding provider. Default: `ollama`. Only `ollama`, `openai`, and `gemini` can embed (`claude` / `deepseek` have no embedding API); choose one of those for cross-session memory vectors.
+- `embedding_provider`: Embedding provider. Default: `ollama`. `openai`, `gemini`, `fastembed`, and `ollama` can embed (`claude` / `deepseek` have no embedding API); choose one of those for cross-session memory vectors. `fastembed` is the setup wizard's no-Ollama local option and is installed/downloaded from the CLI when selected.
 - `embedding_model`: Embedding model name. `null` means provider default/setup.
 - `embedding_dim`: Optional embedding vector dimension override. Usually leave `null`.
 - `openai_api_key`, `openai_base_url`, `gemini_api_key`, `claude_api_key`, `deepseek_api_key`, `deepseek_base_url`: Saved provider credentials/base URL. Environment variables override these.
@@ -426,7 +426,7 @@ On Telegram / Discord, audio replies are sent as a normal audio file (WAV) with 
 | `~/.yumi/config.json` | Model config, prompt config, saved connection code |
 | `~/.yumi/memory/` | Session history and embeddings |
 
-`config.json` can hold **multiple provider API keys at once** (`openai_api_key`, `gemini_api_key`, `claude_api_key`, `deepseek_api_key`, and optional `openai_base_url`, `deepseek_base_url`). You can also use **`openai` + `openai_base_url`** pointed at DeepSeek’s OpenAI-compatible endpoint instead of `chat_provider: "deepseek"`. Environment variables still win when set. `yumi --setup` only asks for what the chosen chat/embedding providers need; you can add other keys later via the web UI **Model Configuration** dialog or by editing `config.json`, so switching providers does not require re-entering keys once they are saved.
+`config.json` can hold **multiple provider API keys at once** (`openai_api_key`, `gemini_api_key`, `claude_api_key`, `deepseek_api_key`, and optional `openai_base_url`, `deepseek_base_url`). You can also use **`openai` + `openai_base_url`** pointed at DeepSeek’s OpenAI-compatible endpoint instead of `chat_provider: "deepseek"`. Environment variables still win when set. `yumi --setup` only asks for what the chosen chat/embedding providers need; for local embeddings it can install FastEmbed and download a multilingual model directly from the CLI. You can add other keys later via the web UI **Model Configuration** dialog or by editing `config.json`, so switching providers does not require re-entering keys once they are saved.
 
 To clear only memory and embeddings (keeping config):
 

@@ -35,6 +35,7 @@ from yumi.core.features.config.model import (
     RECOMMENDED_CHAT_MODELS,
     RECOMMENDED_EMBEDDING_MODEL,
     RECOMMENDED_EMBEDDING_MODELS,
+    RECOMMENDED_FASTEMBED_MODEL,
     ModelConfig,
     embeddings_enabled,
 )
@@ -86,6 +87,7 @@ __all__ = [
     "RECOMMENDED_CHAT_MODELS",
     "RECOMMENDED_EMBEDDING_MODEL",
     "RECOMMENDED_EMBEDDING_MODELS",
+    "RECOMMENDED_FASTEMBED_MODEL",
     "ModelConfig",
     "embeddings_enabled",
     "cleanup_memory_data",

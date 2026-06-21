@@ -1,0 +1,47 @@
+from __future__ import annotations
+
+from typing import Any
+
+from yumi.core.platform.providers.base import BaseLLMProvider
+
+
+class FastEmbedProvider(BaseLLMProvider):
+    """Embedding-only provider backed by Qdrant FastEmbed."""
+
+    def __init__(self) -> None:
+        self._models: dict[str, Any] = {}
+
+    def _model(self, model_name: str) -> Any:
+        if not model_name:
+            raise ValueError("FastEmbed model name cannot be empty.")
+        if model_name not in self._models:
+            try:
+                from fastembed import TextEmbedding
+            except ImportError as exc:
+                raise RuntimeError(
+                    "FastEmbed is not installed. Run `yumi --setup` and choose Local embeddings, "
+                    "or install it with `pip install 'yumi-agent[embed]'`."
+                ) from exc
+            self._models[model_name] = TextEmbedding(model_name=model_name)
+        return self._models[model_name]
+
+    def embed(self, model: str, text: str) -> list[float]:
+        vectors = list(self._model(model).embed([text]))
+        if not vectors:
+            raise RuntimeError("FastEmbed returned no vectors.")
+        return [float(v) for v in vectors[0]]
+
+    def pull_model(self, model_name: str) -> None:
+        # FastEmbed downloads lazily. Run one tiny embedding during setup so the
+        # user sees download/install progress there, not during the first chat.
+        self.embed(model_name, "Yumi embedding setup")
+
+    def list_models(self) -> list[str]:
+        try:
+            from fastembed import TextEmbedding
+        except ImportError:
+            return []
+        try:
+            return [str(m.get("model")) for m in TextEmbedding.list_supported_models() if m.get("model")]
+        except Exception:
+            return []

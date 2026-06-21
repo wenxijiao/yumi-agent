@@ -197,6 +197,7 @@ class ModelConfig(BaseModel):
 
 RECOMMENDED_CHAT_MODEL = "qwen3.5:9b"
 RECOMMENDED_EMBEDDING_MODEL = "qwen3-embedding:0.6b"
+RECOMMENDED_FASTEMBED_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 RECOMMENDED_STT_MODEL = "base"
 
 DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com"
@@ -214,12 +215,13 @@ RECOMMENDED_CHAT_MODELS: dict[str, list[str]] = {
 
 # Providers that expose a text-embedding endpoint. Claude and DeepSeek do not,
 # so memory/tool-routing embeddings must use one of these (or be disabled).
-EMBEDDING_CAPABLE_PROVIDERS: tuple[str, ...] = ("ollama", "openai", "gemini")
+EMBEDDING_CAPABLE_PROVIDERS: tuple[str, ...] = ("ollama", "openai", "gemini", "fastembed")
 
 RECOMMENDED_EMBEDDING_MODELS: dict[str, str] = {
     "openai": "text-embedding-3-small",
     "gemini": "text-embedding-004",
     "ollama": RECOMMENDED_EMBEDDING_MODEL,
+    "fastembed": RECOMMENDED_FASTEMBED_MODEL,
 }
 
 

@@ -3,6 +3,8 @@ from __future__ import annotations
 from yumi.core.platform.providers.base import BaseLLMProvider
 
 SUPPORTED_PROVIDERS = ("ollama", "openai", "gemini", "claude", "deepseek")
+EMBEDDING_ONLY_PROVIDERS = ("fastembed",)
+ALL_PROVIDER_NAMES = (*SUPPORTED_PROVIDERS, *EMBEDDING_ONLY_PROVIDERS)
 
 
 def create_provider(
@@ -48,7 +50,18 @@ def create_provider(
         base = creds["deepseek_base_url"] or DEFAULT_DEEPSEEK_BASE_URL
         return OpenAIProvider(api_key=creds["deepseek_api_key"], base_url=base)
 
-    raise ValueError(f"Unknown provider: '{provider_name}'. Supported providers: {', '.join(SUPPORTED_PROVIDERS)}")
+    if provider_name == "fastembed":
+        from yumi.core.platform.providers.fastembed_provider import FastEmbedProvider
+
+        return FastEmbedProvider()
+
+    raise ValueError(f"Unknown provider: '{provider_name}'. Supported providers: {', '.join(ALL_PROVIDER_NAMES)}")
 
 
-__all__ = ["BaseLLMProvider", "create_provider", "SUPPORTED_PROVIDERS"]
+__all__ = [
+    "ALL_PROVIDER_NAMES",
+    "BaseLLMProvider",
+    "EMBEDDING_ONLY_PROVIDERS",
+    "SUPPORTED_PROVIDERS",
+    "create_provider",
+]

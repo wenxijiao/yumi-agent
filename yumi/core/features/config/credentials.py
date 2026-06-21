@@ -1,5 +1,6 @@
 """API keys, provider readiness, model availability."""
 
+import importlib.util
 import os
 import sys
 
@@ -88,13 +89,20 @@ def ensure_provider_available(provider_name: str) -> None:
                 "DeepSeek API key is required for the DeepSeek provider.",
                 hint="Set DEEPSEEK_API_KEY or save deepseek_api_key in ~/.yumi/config.json or the web UI model settings.",
             )
+    elif provider_name == "fastembed":
+        if importlib.util.find_spec("fastembed") is None:
+            raise ProviderNotReadyError(
+                "YUMI_MISSING_FASTEMBED",
+                "FastEmbed is required for local embeddings.",
+                hint="Run `yumi --setup` and choose Local embeddings, or install `pip install 'yumi-agent[embed]'`.",
+            )
     else:
-        from yumi.core.platform.providers import SUPPORTED_PROVIDERS
+        from yumi.core.platform.providers import ALL_PROVIDER_NAMES
 
         raise ProviderNotReadyError(
             "YUMI_UNKNOWN_PROVIDER",
             f"Unknown provider: {provider_name!r}.",
-            hint=f"Supported: {', '.join(SUPPORTED_PROVIDERS)}",
+            hint=f"Supported: {', '.join(ALL_PROVIDER_NAMES)}",
         )
 
 

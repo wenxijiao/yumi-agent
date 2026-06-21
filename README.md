@@ -164,8 +164,9 @@ Your app connects to the Yumi server over WebSocket and registers functions as t
 | Ollama | Yes | Yes | Local models, no API key needed |
 | OpenAI | Yes | Yes | Also works with OpenAI-compatible endpoints (point `openai_base_url` at DeepSeek, etc.) |
 | Gemini | Yes | Yes | Google Gemini |
+| FastEmbed | No | Yes | Local multilingual embeddings installed/downloaded by `yumi --setup`; no Ollama needed |
 | Claude | Yes | No | Anthropic Claude (use another provider for embeddings) |
-| DeepSeek | Yes | No | OpenAI-compatible chat API; use Ollama, OpenAI, or Gemini for embeddings |
+| DeepSeek | Yes | No | OpenAI-compatible chat API; use FastEmbed, Ollama, OpenAI, or Gemini for embeddings |
 
 You can mix providers — for example OpenAI for chat and Ollama for embeddings.
 

@@ -2779,7 +2779,7 @@ def _model_dialog() -> rx.Component:
                 rx.vstack(
                     rx.text("Embedding Provider", size="2", weight="medium", color="var(--text-2)"),
                     rx.select(
-                        ["ollama", "openai", "gemini", "claude"],
+                        ["openai", "gemini", "fastembed", "ollama", "disabled"],
                         value=State.model_edit_embed_provider,
                         on_change=State.set_model_edit_embed_provider,
                         width="100%",
@@ -2793,7 +2793,7 @@ def _model_dialog() -> rx.Component:
                     rx.el.input(
                         id="edit-embed-model",
                         on_change=State.set_model_edit_embed_model,
-                        placeholder="e.g. text-embedding-3-small, nomic-embed-text",
+                        placeholder="e.g. text-embedding-3-small, text-embedding-004, multilingual MiniLM",
                         style={
                             "width": "100%",
                             "padding": "6px 10px",

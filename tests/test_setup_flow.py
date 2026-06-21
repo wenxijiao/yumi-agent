@@ -9,7 +9,7 @@ import json
 import os
 
 import pytest
-from yumi.core.features.config import configure_models_noninteractive, credentials
+from yumi.core.features.config import configure_models_noninteractive, credentials, setup_wizard
 from yumi.core.features.config.model import ModelConfig, embeddings_enabled
 
 
@@ -101,6 +101,12 @@ def test_noninteractive_with_embeddings_fills_default_model(isolated_config):
     assert cfg.embedding_model  # recommended default filled in
 
 
+def test_noninteractive_fastembed_fills_default_model(isolated_config):
+    cfg = configure_models_noninteractive(provider="claude", embedding_provider="fastembed")
+    assert cfg.embedding_provider == "fastembed"
+    assert cfg.embedding_model == "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+
+
 def test_noninteractive_no_embeddings_flag(isolated_config):
     cfg = configure_models_noninteractive(provider="claude", no_embeddings=True)
     assert cfg.chat_model == "claude-sonnet-4-6"
@@ -120,3 +126,136 @@ def test_noninteractive_rejects_providers_without_embedding_api(isolated_config,
 def test_noninteractive_unknown_provider_without_model_raises(isolated_config):
     with pytest.raises(ValueError):
         configure_models_noninteractive(provider="madeup")
+
+
+def test_noninteractive_unknown_provider_with_model_raises(isolated_config):
+    with pytest.raises(ValueError, match="Unknown chat provider"):
+        configure_models_noninteractive(provider="madeup", model="some-model")
+
+
+def test_choose_run_mode_does_not_offer_skip(monkeypatch):
+    answers = iter(["3", "1"])
+    monkeypatch.setattr("builtins.input", lambda _prompt="": next(answers))
+
+    assert setup_wizard._choose_run_mode() == "cloud"
+
+
+def test_configure_chat_model_cloud_uses_curated_default(isolated_config, monkeypatch):
+    answers = iter(["1", "1", "sk-test", ""])
+    monkeypatch.setattr("builtins.input", lambda _prompt="": next(answers))
+    monkeypatch.setattr(setup_wizard, "ensure_provider_available", lambda provider: None)
+
+    provider, model = setup_wizard._configure_chat_model()
+
+    assert (provider, model) == ("openai", "gpt-4o")
+    assert os.environ["OPENAI_API_KEY"] == "sk-test"
+
+
+def test_chat_action_requires_config_when_missing():
+    assert setup_wizard._choose_chat_action(ModelConfig()) == "reconfigure"
+
+
+def test_chat_action_can_keep_available_current(monkeypatch):
+    cfg = ModelConfig(chat_provider="openai", chat_model="gpt-4o")
+    monkeypatch.setattr(setup_wizard, "ensure_provider_available", lambda provider: None)
+    monkeypatch.setattr("builtins.input", lambda _prompt="": "")
+
+    assert setup_wizard._choose_chat_action(cfg) == "keep"
+
+
+def test_chat_action_reconfigures_unavailable_current(monkeypatch):
+    cfg = ModelConfig(chat_provider="openai", chat_model="gpt-4o")
+
+    def _fail(_provider: str) -> None:
+        raise RuntimeError("missing key")
+
+    monkeypatch.setattr(setup_wizard, "ensure_provider_available", _fail)
+
+    assert setup_wizard._choose_chat_action(cfg) == "reconfigure"
+
+
+def test_setup_embeddings_cloud_reuses_existing_key(isolated_config, monkeypatch):
+    isolated_config.write_text(json.dumps({"openai_api_key": "sk-existing-key"}), encoding="utf-8")
+    cfg = ModelConfig(chat_provider="claude", chat_model="m")
+    answers = iter(["1", "1", ""])
+    monkeypatch.setattr("builtins.input", lambda _prompt="": next(answers))
+
+    setup_wizard._setup_embeddings(cfg, "claude")
+
+    assert cfg.embedding_provider == "openai"
+    assert cfg.embedding_model == "text-embedding-3-small"
+    assert os.environ["OPENAI_API_KEY"] == "sk-existing-key"
+
+
+def test_setup_embeddings_keep_available_current(monkeypatch):
+    cfg = ModelConfig(
+        chat_provider="claude",
+        chat_model="m",
+        embedding_provider="fastembed",
+        embedding_model="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    )
+    monkeypatch.setattr(setup_wizard, "ensure_provider_available", lambda provider: None)
+    monkeypatch.setattr("builtins.input", lambda _prompt="": "")
+
+    setup_wizard._setup_embeddings(cfg, "claude")
+
+    assert cfg.embedding_provider == "fastembed"
+    assert cfg.embedding_model == "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+
+
+def test_setup_embeddings_unavailable_current_can_skip(monkeypatch):
+    cfg = ModelConfig(
+        chat_provider="claude",
+        chat_model="m",
+        embedding_provider="fastembed",
+        embedding_model="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    )
+
+    def _fail(_provider: str) -> None:
+        raise RuntimeError("missing fastembed")
+
+    monkeypatch.setattr(setup_wizard, "ensure_provider_available", _fail)
+    monkeypatch.setattr("builtins.input", lambda _prompt="": "4")
+
+    setup_wizard._setup_embeddings(cfg, "claude")
+
+    assert cfg.embedding_provider == "disabled"
+    assert cfg.embedding_model is None
+
+
+def test_setup_embeddings_local_prepares_fastembed(isolated_config, monkeypatch):
+    cfg = ModelConfig(chat_provider="claude", chat_model="m")
+    answers = iter(["2", "1"])
+    pulled: list[str] = []
+
+    class FakeFastEmbedProvider:
+        def pull_model(self, model: str) -> None:
+            pulled.append(model)
+
+    monkeypatch.setattr("builtins.input", lambda _prompt="": next(answers))
+    monkeypatch.setattr("yumi.core.features.config.feature_install.ensure_feature_installed", lambda *a, **k: True)
+    monkeypatch.setattr(setup_wizard, "_get_provider", lambda provider: FakeFastEmbedProvider())
+
+    setup_wizard._setup_embeddings(cfg, "claude")
+
+    assert cfg.embedding_provider == "fastembed"
+    assert cfg.embedding_model == "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    assert pulled == [cfg.embedding_model]
+
+
+def test_setup_embeddings_ollama_uses_installed_model(isolated_config, monkeypatch):
+    cfg = ModelConfig(chat_provider="openai", chat_model="m")
+    answers = iter(["3", "1", "2"])
+
+    class FakeOllamaProvider:
+        def list_models(self) -> list[str]:
+            return ["chat-model", "my-embed-model"]
+
+    monkeypatch.setattr("builtins.input", lambda _prompt="": next(answers))
+    monkeypatch.setattr(setup_wizard, "ensure_provider_available", lambda provider: None)
+    monkeypatch.setattr(setup_wizard, "_get_provider", lambda provider: FakeOllamaProvider())
+
+    setup_wizard._setup_embeddings(cfg, "openai")
+
+    assert cfg.embedding_provider == "ollama"
+    assert cfg.embedding_model == "my-embed-model"

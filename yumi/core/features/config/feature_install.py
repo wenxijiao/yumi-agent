@@ -5,6 +5,7 @@ messaging bridges, and file ingestion. Only the genuinely heavy / system-
 dependent features stay out of the base install:
 
 * ``ui``    — the Reflex web UI (large; pulls a Node toolchain)
+* ``embed`` — local multilingual embeddings (FastEmbed)
 * ``stt``   — Whisper speech-to-text (downloads model weights)
 * ``voice`` — microphone wake-word (needs the PortAudio system lib + a key)
 
@@ -26,6 +27,7 @@ _DIST = "yumi-agent"
 
 # feature -> (extra name, module to probe for "already installed?", label)
 _FEATURES: dict[str, tuple[str, str, str]] = {
+    "embed": ("embed", "fastembed", "local multilingual embeddings"),
     "ui": ("ui", "reflex", "the Reflex web UI"),
     "stt": ("stt", "faster_whisper", "Whisper speech-to-text"),
     "voice": ("voice", "sounddevice", "microphone wake-word voice"),

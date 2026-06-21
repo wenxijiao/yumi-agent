@@ -5,9 +5,11 @@ import json
 import pytest
 from yumi.core.features.config.credentials import (
     ensure_embedding_provider_supported,
+    ensure_provider_available,
     get_api_credentials,
 )
-from yumi.core.platform.providers import SUPPORTED_PROVIDERS, create_provider
+from yumi.core.platform.exceptions import ProviderNotReadyError
+from yumi.core.platform.providers import EMBEDDING_ONLY_PROVIDERS, SUPPORTED_PROVIDERS, create_provider
 
 
 @pytest.fixture
@@ -35,6 +37,12 @@ def test_create_provider_unknown_raises():
 def test_supported_providers_listed():
     assert "ollama" in SUPPORTED_PROVIDERS
     assert "openai" in SUPPORTED_PROVIDERS
+    assert "fastembed" in EMBEDDING_ONLY_PROVIDERS
+
+
+def test_create_provider_fastembed_is_embedding_only():
+    provider = create_provider("fastembed")
+    assert type(provider).__name__ == "FastEmbedProvider"
 
 
 # ── credentials ──
@@ -59,7 +67,7 @@ def test_embedding_provider_without_embedding_api_is_rejected(name):
         ensure_embedding_provider_supported(name)
 
 
-@pytest.mark.parametrize("name", ["ollama", "openai", "gemini", "disabled"])
+@pytest.mark.parametrize("name", ["ollama", "openai", "gemini", "fastembed", "disabled"])
 def test_embedding_provider_supported_names_allowed(name):
     ensure_embedding_provider_supported(name)  # must not raise
 
@@ -67,3 +75,9 @@ def test_embedding_provider_supported_names_allowed(name):
 def test_embedding_provider_disabled_not_allowed_when_embeddings_enabled():
     with pytest.raises(ValueError, match="disabled"):
         ensure_embedding_provider_supported("disabled", allow_disabled=False)
+
+
+def test_fastembed_readiness_reports_missing_package(monkeypatch):
+    monkeypatch.setattr("importlib.util.find_spec", lambda name: None if name == "fastembed" else object())
+    with pytest.raises(ProviderNotReadyError, match="FastEmbed"):
+        ensure_provider_available("fastembed")

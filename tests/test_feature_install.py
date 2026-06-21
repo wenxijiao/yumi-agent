@@ -15,6 +15,10 @@ def test_extra_requirements_reads_installed_metadata():
     assert fi._extra_requirements("nope") == []
 
 
+def test_embed_feature_is_registered():
+    assert fi._FEATURES["embed"] == ("embed", "fastembed", "local multilingual embeddings")
+
+
 def test_already_installed_is_a_noop(monkeypatch):
     monkeypatch.setattr(fi, "is_feature_installed", lambda f: True)
     calls = []

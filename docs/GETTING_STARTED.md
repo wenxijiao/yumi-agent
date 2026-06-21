@@ -3,7 +3,7 @@
 ## Requirements
 
 - Python 3.10+
-- [Ollama](https://ollama.com/) if you use the default local provider
+- [Ollama](https://ollama.com/) only if you choose Ollama chat or Ollama embeddings
 - API keys for cloud providers such as OpenAI or Gemini
 
 ## Install
@@ -55,7 +55,7 @@ Keep this running in its own terminal. Open a second terminal for `yumi --chat`,
 2. On first run, Yumi guides you through:
    - Chat provider selection
    - Chat model selection
-   - Embedding provider selection
+   - Embedding provider selection (cloud, local FastEmbed, Ollama, or skip)
    - Embedding model selection
    - Required API keys
 
@@ -72,6 +72,7 @@ yumi --setup
 | `ollama` | Yes | Yes | Local models, no API key needed |
 | `openai` | Yes | Yes | Also works with OpenAI-compatible endpoints (including DeepSeek via `openai_base_url`) |
 | `gemini` | Yes | Yes | Google Gemini |
+| `fastembed` | No | Yes | Local multilingual embeddings installed/downloaded from the CLI |
 | `claude` | Yes | No | Anthropic Claude (use another provider for embeddings) |
 | `deepseek` | Yes | No | DeepSeek chat API; use another provider for embeddings |
 
