@@ -1,7 +1,11 @@
 cmake_minimum_required(VERSION 3.14)
 project(YumiSDK VERSION 0.1.0 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+if(NOT DEFINED CMAKE_CXX_STANDARD)
+    set(CMAKE_CXX_STANDARD 17)
+elseif(CMAKE_CXX_STANDARD LESS 17)
+    message(FATAL_ERROR "YumiSDK requires C++17 or later.")
+endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(YUMI_BUILD_EXAMPLES "Build example programs" OFF)

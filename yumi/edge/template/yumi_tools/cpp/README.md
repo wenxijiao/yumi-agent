@@ -14,7 +14,8 @@ The C++ SDK is now **header-only** at the core, with a pluggable transport inter
 ## Requirements
 
 - CMake 3.14+
-- C++17 compiler
+- C++17 compiler or newer. The SDK defaults to C++17, and you can configure
+  with `-DCMAKE_CXX_STANDARD=20` for C++20 projects.
 - Internet access on the first CMake configure, because dependencies are fetched automatically
 
 Fetched dependencies:
