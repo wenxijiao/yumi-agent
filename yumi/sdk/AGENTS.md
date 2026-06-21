@@ -469,6 +469,22 @@ Reconnects are automatic in the SDKs. On reconnect, the SDK sends the current
 tool registry again. If you add conditional registration, make sure all expected
 tools are registered before the connection starts or before reconnect happens.
 
+### Server → SDK messages
+
+Every SDK's receive loop should handle these inbound message `type`s (the
+single-message wire contract every official SDK implements):
+
+| `type` | Meaning | SDK should |
+|---|---|---|
+| `tool_call` | The model wants to run a tool | dispatch to the handler, send a `tool_result` |
+| `cancel` | A pending tool call was cancelled | cancel the in-flight handler if possible |
+| `persist_tool_confirmation_policy` | Server pushes the confirmation policy | save it locally |
+| `register_warning` | Some tools weren't mounted (e.g. a provider-invalid name) | log the count / names so they aren't lost silently |
+| `register_rejected` | The `edge_name` is already in use | log the reason and **stop reconnecting** (a retry is rejected again) |
+
+Unknown `type`s must be ignored, not error. Handling `register_rejected` is the
+important one — without it the client reconnects forever on a duplicate name.
+
 Handler cancellation differs by runtime. Async handlers can often be cancelled
 at await points. Synchronous handlers may continue running even if the server
 times out. Keep dangerous operations short, cancellable where possible, and

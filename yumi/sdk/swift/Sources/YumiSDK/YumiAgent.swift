@@ -481,6 +481,16 @@ public final class YumiAgent: @unchecked Sendable {
             case "persist_tool_confirmation_policy":
                 saveConfirmationPolicy(json)
 
+            case "register_warning":
+                let dropped = (json["skipped_tools"] as? [Any])?.count ?? 0
+                print("\(logPrefix) Server did not mount \(dropped) tool(s).")
+
+            case "register_rejected":
+                // Refused (edge_name in use). Stop — don't reconnect to be rejected again.
+                let reason = json["reason"] as? String ?? "edge_name already in use"
+                print("\(logPrefix) Edge registration rejected by server: \(reason)")
+                stop()
+
             default:
                 break
             }

@@ -1075,6 +1075,14 @@ private:
                                 {"cancelled", false}
                             };
                             transport_->sendText(response.dump());
+                        } else if (msgType == "register_warning") {
+                            auto dropped = msgJson.value("skipped_tools", nlohmann::json::array());
+                            std::cerr << "[Yumi] Server did not mount " << dropped.size() << " tool(s)." << std::endl;
+                        } else if (msgType == "register_rejected") {
+                            // Refused (edge_name in use). Stop — don't reconnect to be rejected again.
+                            std::string reason = msgJson.value("reason", std::string("edge_name already in use"));
+                            std::cerr << "[Yumi] Edge registration rejected by server: " << reason << std::endl;
+                            stopRequested_.store(true);
                         }
                     } catch (...) {}
                 },

@@ -128,6 +128,19 @@ func (a *YumiAgent) Stop() {
 	a.wg.Wait()
 }
 
+// stopReconnect signals the reconnect loop to exit without waiting on the
+// worker WaitGroup (safe to call from inside a session goroutine).
+func (a *YumiAgent) stopReconnect() {
+	a.mu.Lock()
+	if a.closed {
+		a.mu.Unlock()
+		return
+	}
+	a.closed = true
+	a.mu.Unlock()
+	close(a.done)
+}
+
 func (a *YumiAgent) connectLoop() {
 	conn, err := ResolveConnection(a.connectionCode, a.edgeName)
 	if err != nil {
@@ -256,6 +269,17 @@ func (a *YumiAgent) runSession(wsURL, accessToken string) error {
 			case "cancel":
 				// Go handlers run synchronously in their own goroutine;
 				// there is no generic cancellation mechanism for goroutines.
+			case "register_warning":
+				dropped, _ := msg["skipped_tools"].([]interface{})
+				log.Printf("%s Server did not mount %d tool(s): %v", logPrefix, len(dropped), dropped)
+			case "register_rejected":
+				reason, _ := msg["reason"].(string)
+				if reason == "" {
+					reason = "edge_name already in use"
+				}
+				log.Printf("%s Edge registration rejected by server: %s", logPrefix, reason)
+				a.stopReconnect()
+				return nil
 			}
 		}
 	}

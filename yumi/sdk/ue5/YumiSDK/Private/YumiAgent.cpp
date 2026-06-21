@@ -424,6 +424,19 @@ void FYumiAgent::OnMessage(const FString& Message)
     {
         // Best-effort: UE5 tool handlers run synchronously on receive
     }
+    else if (MsgType == TEXT("register_warning"))
+    {
+        int32 Dropped = Msg->HasField(TEXT("skipped_tools")) ? Msg->GetArrayField(TEXT("skipped_tools")).Num() : 0;
+        UE_LOG(LogTemp, Warning, TEXT("%s Server did not mount %d tool(s)."), *LogPrefix, Dropped);
+    }
+    else if (MsgType == TEXT("register_rejected"))
+    {
+        // Refused (edge_name in use). Stop — don't reconnect to be rejected again.
+        FString Reason = Msg->HasField(TEXT("reason")) ? Msg->GetStringField(TEXT("reason")) : TEXT("edge_name already in use");
+        UE_LOG(LogTemp, Error, TEXT("%s Edge registration rejected by server: %s"), *LogPrefix, *Reason);
+        bStopRequested = true;
+        bRunning = false;
+    }
 }
 
 void FYumiAgent::HandleToolCall(TSharedPtr<FJsonObject> Msg)

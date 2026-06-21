@@ -179,6 +179,16 @@ class YumiAgent(opts: AgentOptions) {
         when (type) {
             "persist_tool_confirmation_policy" -> handlePersistPolicy(msg)
             "tool_call" -> executor.submit { handleToolCall(ws, msg) }
+            "register_warning" -> {
+                val dropped = if (msg.has("skipped_tools")) msg.getAsJsonArray("skipped_tools").size() else 0
+                System.err.println("[Yumi] Server did not mount $dropped tool(s).")
+            }
+            "register_rejected" -> {
+                // Refused (edge_name in use). Stop — don't reconnect to be rejected again.
+                val reason = if (msg.has("reason")) msg.get("reason").asString else "edge_name already in use"
+                System.err.println("[Yumi] Edge registration rejected by server: $reason")
+                stopRequested.set(true)
+            }
             else -> {}
         }
     }

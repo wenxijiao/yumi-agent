@@ -134,6 +134,19 @@ class YumiAgent {
       _persistPolicy(v);
       return;
     }
+    if (msgType == 'register_warning') {
+      final dropped = (v['skipped_tools'] as List?) ?? const [];
+      print('$_logPrefix Server did not mount ${dropped.length} tool(s).');
+      return;
+    }
+    if (msgType == 'register_rejected') {
+      // Refused (edge_name in use). Stop — don't reconnect to be rejected again.
+      final reason = v['reason'] as String? ?? 'edge_name already in use';
+      print('$_logPrefix Edge registration rejected by server: $reason');
+      _stopped = true;
+      await channel.sink.close();
+      return;
+    }
     if (msgType != 'tool_call') return;
 
     final name = v['name'] as String? ?? '';

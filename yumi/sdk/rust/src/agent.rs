@@ -235,6 +235,23 @@ impl Inner {
                         this.handle_tool_call(write, v).await;
                     });
                 }
+                "register_warning" => {
+                    let dropped = v
+                        .get("skipped_tools")
+                        .and_then(|s| s.as_array())
+                        .map(|a| a.len())
+                        .unwrap_or(0);
+                    eprintln!("{LOG_PREFIX} Server did not mount {dropped} tool(s).");
+                }
+                "register_rejected" => {
+                    // Refused (edge_name in use). Stop — don't reconnect to be rejected again.
+                    let reason = v
+                        .get("reason")
+                        .and_then(|r| r.as_str())
+                        .unwrap_or("edge_name already in use");
+                    eprintln!("{LOG_PREFIX} Edge registration rejected by server: {reason}");
+                    this.stopped.store(true, Ordering::SeqCst);
+                }
                 _ => {}
             }
         }

@@ -232,6 +232,20 @@ public sealed class YumiAgent : IDisposable
             case "tool_call":
                 await HandleToolCall(ws, msg, ct);
                 break;
+            case "register_warning":
+                var droppedCount = msg.TryGetProperty("skipped_tools", out var skProp) && skProp.ValueKind == JsonValueKind.Array
+                    ? skProp.GetArrayLength()
+                    : 0;
+                Console.Error.WriteLine($"{LogPrefix} Server did not mount {droppedCount} tool(s).");
+                break;
+            case "register_rejected":
+                // Refused (edge_name in use). Stop — don't reconnect to be rejected again.
+                var reason = msg.TryGetProperty("reason", out var rProp)
+                    ? rProp.GetString() ?? "edge_name already in use"
+                    : "edge_name already in use";
+                Console.Error.WriteLine($"{LogPrefix} Edge registration rejected by server: {reason}");
+                _cts.Cancel();
+                break;
         }
     }
 

@@ -257,6 +257,16 @@ public class YumiAgent {
                 break;
             case "cancel":
                 break;
+            case "register_warning":
+                int dropped = msg.has("skipped_tools") ? msg.getAsJsonArray("skipped_tools").size() : 0;
+                LOG.warning(LOG_PREFIX + " Server did not mount " + dropped + " tool(s).");
+                break;
+            case "register_rejected":
+                // Refused (edge_name in use). Stop — don't reconnect to be rejected again.
+                String reason = msg.has("reason") ? msg.get("reason").getAsString() : "edge_name already in use";
+                LOG.warning(LOG_PREFIX + " Edge registration rejected by server: " + reason);
+                stopRequested.set(true);
+                break;
             default:
                 break;
         }
