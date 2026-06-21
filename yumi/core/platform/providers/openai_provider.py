@@ -198,6 +198,15 @@ class OpenAIProvider(BaseLLMProvider):
             if content:
                 yield {"type": "text", "content": content}
 
+        # Emit usage BEFORE tool_call. The chat consumers stop the stream on the
+        # tool_call signal, so a usage chunk yielded after it would be dropped —
+        # under-counting quota/cost on every tool-call turn.
+        if usage_payload is not None:
+            pt = int(getattr(usage_payload, "prompt_tokens", None) or 0)
+            ct = int(getattr(usage_payload, "completion_tokens", None) or 0)
+            if pt or ct:
+                yield {"type": "usage", "prompt_tokens": pt, "completion_tokens": ct, "model": model}
+
         if collected_tool_calls:
             tool_calls_list = []
             for idx in sorted(collected_tool_calls):
@@ -212,12 +221,6 @@ class OpenAIProvider(BaseLLMProvider):
             tool_calls_list = normalize_tool_calls(tool_calls_list)
             if tool_calls_list:
                 yield {"type": "tool_call", "tool_calls": tool_calls_list}
-
-        if usage_payload is not None:
-            pt = int(getattr(usage_payload, "prompt_tokens", None) or 0)
-            ct = int(getattr(usage_payload, "completion_tokens", None) or 0)
-            if pt or ct:
-                yield {"type": "usage", "prompt_tokens": pt, "completion_tokens": ct, "model": model}
 
     def embed(self, model: str, text: str) -> list[float]:
         response = self._sync_client.embeddings.create(model=model, input=text)

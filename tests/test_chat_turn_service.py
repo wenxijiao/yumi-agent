@@ -118,6 +118,35 @@ def test_max_tool_loops_emits_error(runtime, install_fakes):
     assert bot.call_count == MAX_TOOL_LOOPS
 
 
+def test_usage_recorded_on_tool_call_turns(runtime, install_fakes, monkeypatch):
+    """Regression: usage emitted before the tool_call signal must be recorded.
+
+    Providers yield ``usage`` ahead of ``tool_call`` precisely because the
+    consumer stops on tool_call; if that order regressed, tool-call turns would
+    silently under-count tokens.
+    """
+    import yumi.core.platform.dispatch.usage as usage_mod
+
+    captured: dict = {}
+
+    def fake_record(*, session_id, prompt_tokens, completion_tokens, model):  # noqa: ARG001
+        captured["pt"] = prompt_tokens
+        captured["ct"] = completion_tokens
+
+    monkeypatch.setattr(usage_mod, "record_tool_routing_usage", fake_record)
+
+    per_iter = [
+        {"type": "usage", "prompt_tokens": 10, "completion_tokens": 4, "model": "fake-model"},
+        {"type": "tool_call", "tool_calls": [{"id": "c0", "function": {"name": "nope_tool", "arguments": "{}"}}]},
+    ]
+    bot = _FakeBot(scripted_chunks=[per_iter for _ in range(MAX_TOOL_LOOPS + 2)])
+    install_fakes(bot)
+
+    svc = ChatTurnService(runtime)
+    asyncio.run(_drain(svc.stream_chat_turn("hi", "s_usage")))
+    assert captured.get("pt", 0) > 0  # tokens from tool-call turns were recorded
+
+
 def test_normalize_exhausted_emits_error(runtime, install_fakes):
     """Malformed tool_calls force the normalizer past its retry budget."""
     bad_chunk = [{"type": "tool_call", "tool_calls": [{"garbage": True}]}]

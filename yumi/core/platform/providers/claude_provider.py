@@ -167,9 +167,8 @@ class ClaudeProvider(BaseLLMProvider):
                         )
                         current_tool_use = None
 
-            if collected_tool_calls:
-                yield {"type": "tool_call", "tool_calls": collected_tool_calls}
-
+            # Emit usage BEFORE tool_call — consumers stop on tool_call, so a
+            # trailing usage chunk would be lost (under-counts tool-call turns).
             try:
                 final_msg = await stream.get_final_message()
                 u = getattr(final_msg, "usage", None)
@@ -180,6 +179,9 @@ class ClaudeProvider(BaseLLMProvider):
                         yield {"type": "usage", "prompt_tokens": pt, "completion_tokens": ct, "model": model}
             except Exception:
                 pass
+
+            if collected_tool_calls:
+                yield {"type": "tool_call", "tool_calls": collected_tool_calls}
 
     def embed(self, model: str, text: str) -> list[float]:
         raise NotImplementedError(

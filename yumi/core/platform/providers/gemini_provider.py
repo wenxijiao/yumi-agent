@@ -443,14 +443,16 @@ class GeminiProvider(BaseLLMProvider):
                     elif part.text:
                         yield {"type": "text", "content": part.text}
 
-            if collected_tool_calls:
-                yield {"type": "tool_call", "tool_calls": collected_tool_calls}
-
+            # Emit usage BEFORE tool_call — consumers stop on tool_call, so a
+            # trailing usage chunk would be lost (under-counts tool-call turns).
             if last_usage is not None:
                 pt = int(getattr(last_usage, "prompt_token_count", None) or 0)
                 ct = int(getattr(last_usage, "candidates_token_count", None) or 0)
                 if pt or ct:
                     yield {"type": "usage", "prompt_tokens": pt, "completion_tokens": ct, "model": model}
+
+            if collected_tool_calls:
+                yield {"type": "tool_call", "tool_calls": collected_tool_calls}
         except Exception as exc:
             path = write_provider_failure_diagnostic(
                 exc=exc,

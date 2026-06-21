@@ -82,13 +82,15 @@ class OllamaProvider(BaseLLMProvider):
 
             if "tool_calls" in message and message["tool_calls"]:
                 normalized = normalize_tool_calls(message["tool_calls"])
-                if normalized:
-                    yield {"type": "tool_call", "tool_calls": normalized}
+                # Emit usage BEFORE tool_call — consumers stop on tool_call, so a
+                # trailing usage chunk would be lost (under-counts tool-call turns).
                 if last_chunk:
                     pt = int(last_chunk.get("prompt_eval_count") or 0)
                     ct = int(last_chunk.get("eval_count") or 0)
                     if pt or ct:
                         yield {"type": "usage", "prompt_tokens": pt, "completion_tokens": ct, "model": model}
+                if normalized:
+                    yield {"type": "tool_call", "tool_calls": normalized}
                 return
 
             content = message.get("content", "")
