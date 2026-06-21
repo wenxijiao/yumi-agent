@@ -158,21 +158,6 @@ class SharedMemoryFactory:
         return None
 
 
-def _gemini_safe_segment(value: str) -> str:
-    import re
-
-    s = (value or "").strip()
-    if not s:
-        return "edge"
-    t = re.sub(r"[^a-zA-Z0-9_.:-]+", "_", s)
-    t = re.sub(r"_+", "_", t).strip("_")
-    if not t:
-        return "edge"
-    if t[0] in "0123456789.-:":
-        t = "e" + t
-    return t[:80]
-
-
 class FlatEdgeScope:
     """OSS edge scope: no per-user prefix; all edges share the global namespace."""
 
@@ -180,7 +165,11 @@ class FlatEdgeScope:
         return edge_name
 
     def tool_register_prefix(self, owner_user_id: str | None, edge_name: str) -> str:  # noqa: ARG002
-        return f"edge_{_gemini_safe_segment(edge_name)}__"
+        # Reuse the one canonical provider-safe prefix builder (don't duplicate
+        # the sanitizer — a stale copy here would emit provider-invalid names).
+        from yumi.core.platform.runtime.edge_naming import edge_tool_key_prefix
+
+        return edge_tool_key_prefix(edge_name)
 
     def filter_edge_tool_schemas(
         self,

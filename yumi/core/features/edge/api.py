@@ -21,6 +21,68 @@ from yumi.core.platform.runtime.accessors import (
 from yumi.core.platform.tools.tool import TOOL_REGISTRY
 from yumi.core.platform.tools.validation import is_valid_tool_name
 
+# ── edge tool mounting (shared by register + update_tools) ──
+
+
+def _mount_edge_tools(connection_key: str, tool_prefix: str, tools: list) -> list[str]:
+    """Validate + mount an edge's tools into ``EDGE_TOOLS_REGISTRY[connection_key]``.
+
+    A tool whose prefixed (provider-facing) name isn't provider-safe is skipped
+    rather than poisoning the whole tools array. Returns the original names of
+    any skipped tools so the caller can tell the edge instead of dropping them
+    silently. Used by both the initial register and ``update_tools``.
+    """
+    registry: dict[str, dict] = {}
+    skipped: list[str] = []
+    for tool_schema in tools:
+        original_name = tool_schema["function"]["name"]
+        prefixed_name = f"{tool_prefix}{original_name}"
+        if not is_valid_tool_name(prefixed_name):
+            skipped.append(original_name)
+            logger.warning(
+                "Edge %s: skipping tool with a provider-invalid name %r "
+                "(allowed: letters, digits, '_' or '-'; max 64 chars after the edge prefix).",
+                connection_key,
+                prefixed_name,
+            )
+            continue
+        schema_copy = deepcopy(tool_schema)
+        schema_copy["function"]["name"] = prefixed_name
+        proactive_context_args = schema_copy.pop("proactive_context_args", None)
+        registry[prefixed_name] = {
+            "schema": schema_copy,
+            "timeout": schema_copy.pop("timeout", None),
+            "require_confirmation": bool(schema_copy.pop("require_confirmation", False)),
+            "always_include": bool(schema_copy.pop("always_include", False)),
+            "allow_proactive": bool(schema_copy.pop("allow_proactive", False)),
+            "proactive_context": bool(schema_copy.pop("proactive_context", False)),
+            "proactive_context_args": proactive_context_args if isinstance(proactive_context_args, dict) else None,
+            "proactive_context_description": schema_copy.pop("proactive_context_description", None),
+        }
+    EDGE_TOOLS_REGISTRY[connection_key] = registry
+    return skipped
+
+
+async def _warn_edge_skipped_tools(peer, connection_key: str, skipped: list[str]) -> None:
+    """Best-effort notice to the edge listing tools that weren't mounted."""
+    if not skipped:
+        return
+    try:
+        await peer.send_json(
+            {
+                "type": "register_warning",
+                "reason": "invalid_tool_names",
+                "skipped_tools": skipped,
+                "message": (
+                    "These tools were not mounted: each name (after the edge prefix) must be "
+                    "letters/digits/'_'/'-' and <= 64 chars total."
+                ),
+            }
+        )
+    except Exception as exc:  # the edge may have gone away
+        logger.debug("Edge %s: could not send skipped-tools warning: %s", connection_key, exc)
+
+
 # ── edge tool confirmation helpers ──
 
 
@@ -183,38 +245,8 @@ async def handle_edge_peer(peer):
             return
 
         ACTIVE_CONNECTIONS[connection_key] = peer
-        EDGE_TOOLS_REGISTRY[connection_key] = {}
-
-        for tool_schema in tools:
-            original_name = tool_schema["function"]["name"]
-            prefixed_name = f"{tool_prefix}{original_name}"
-            if not is_valid_tool_name(prefixed_name):
-                logger.warning(
-                    "Edge %s: skipping tool with a provider-invalid name %r "
-                    "(allowed: letters, digits, '_' or '-', max 64 chars).",
-                    connection_key,
-                    prefixed_name,
-                )
-                continue
-            schema_copy = deepcopy(tool_schema)
-            schema_copy["function"]["name"] = prefixed_name
-            tool_timeout = schema_copy.pop("timeout", None)
-            require_confirmation = bool(schema_copy.pop("require_confirmation", False))
-            always_include = bool(schema_copy.pop("always_include", False))
-            allow_proactive = bool(schema_copy.pop("allow_proactive", False))
-            proactive_context = bool(schema_copy.pop("proactive_context", False))
-            proactive_context_args = schema_copy.pop("proactive_context_args", None)
-            proactive_context_description = schema_copy.pop("proactive_context_description", None)
-            EDGE_TOOLS_REGISTRY[connection_key][prefixed_name] = {
-                "schema": schema_copy,
-                "timeout": tool_timeout,
-                "require_confirmation": require_confirmation,
-                "always_include": always_include,
-                "allow_proactive": allow_proactive,
-                "proactive_context": proactive_context,
-                "proactive_context_args": proactive_context_args if isinstance(proactive_context_args, dict) else None,
-                "proactive_context_description": proactive_context_description,
-            }
+        skipped = _mount_edge_tools(connection_key, tool_prefix, tools)
+        await _warn_edge_skipped_tools(peer, connection_key, skipped)
 
         apply_edge_tool_confirmation_policy(
             tool_prefix,
@@ -254,36 +286,13 @@ async def handle_edge_peer(peer):
 
             elif msg_type == "update_tools":
                 tools = data.get("tools", [])
-                EDGE_TOOLS_REGISTRY[connection_key] = {}
-                for tool_schema in tools:
-                    original_name = tool_schema["function"]["name"]
-                    prefixed_name = f"{tool_prefix}{original_name}"
-                    schema_copy = deepcopy(tool_schema)
-                    schema_copy["function"]["name"] = prefixed_name
-                    tool_timeout = schema_copy.pop("timeout", None)
-                    require_confirmation = bool(schema_copy.pop("require_confirmation", False))
-                    always_include = bool(schema_copy.pop("always_include", False))
-                    allow_proactive = bool(schema_copy.pop("allow_proactive", False))
-                    proactive_context = bool(schema_copy.pop("proactive_context", False))
-                    proactive_context_args = schema_copy.pop("proactive_context_args", None)
-                    proactive_context_description = schema_copy.pop("proactive_context_description", None)
-                    EDGE_TOOLS_REGISTRY[connection_key][prefixed_name] = {
-                        "schema": schema_copy,
-                        "timeout": tool_timeout,
-                        "require_confirmation": require_confirmation,
-                        "always_include": always_include,
-                        "allow_proactive": allow_proactive,
-                        "proactive_context": proactive_context,
-                        "proactive_context_args": proactive_context_args
-                        if isinstance(proactive_context_args, dict)
-                        else None,
-                        "proactive_context_description": proactive_context_description,
-                    }
+                skipped = _mount_edge_tools(connection_key, tool_prefix, tools)
+                await _warn_edge_skipped_tools(peer, connection_key, skipped)
                 apply_edge_tool_confirmation_policy(
                     tool_prefix,
                     data.get("tool_confirmation_policy"),
                 )
-                logger.info("Edge updated: device [%s] now has %s tool(s).", edge_name, len(tools))
+                logger.info("Edge updated: device [%s] now has %s tool(s).", edge_name, len(tools) - len(skipped))
 
     except (WebSocketDisconnect, EdgePeerDisconnected):
         logger.info("Edge disconnected: device [%s] went offline.", edge_name)

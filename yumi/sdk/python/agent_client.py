@@ -787,6 +787,16 @@ class YumiAgent:
                                 self._emit_error(RuntimeError(f"Edge registration rejected: {reason}"))
                                 self._stop_event.set()
                                 return
+                            elif msg_type == "register_warning":
+                                # Some tools were not mounted (e.g. provider-invalid
+                                # names). Surface them so they aren't lost silently.
+                                dropped = msg.get("skipped_tools") or []
+                                _LOG.warning(
+                                    "Server did not mount %d tool(s): %s — %s",
+                                    len(dropped),
+                                    ", ".join(str(t) for t in dropped),
+                                    msg.get("message") or "",
+                                )
                     finally:
                         self._connected = False
 

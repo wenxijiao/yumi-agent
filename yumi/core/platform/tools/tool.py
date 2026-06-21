@@ -3,6 +3,8 @@ import types
 import typing
 from typing import Any, Callable, Dict, get_args, get_origin
 
+from yumi.core.platform.tools.validation import is_valid_tool_name
+
 TOOL_REGISTRY: Dict[str, Dict[str, Any]] = {}
 
 _STR_TYPE_MAP: Dict[str, Dict[str, Any]] = {
@@ -175,6 +177,11 @@ def register_tool(
         proactive_context_description=proactive_context_description,
     )
     tool_name = schema["function"]["name"]
+    if not is_valid_tool_name(tool_name):
+        raise ValueError(
+            f"Tool name {tool_name!r} is invalid: use only letters, digits, '_' or '-' "
+            "(max 64 chars). Model providers reject other function names."
+        )
     TOOL_REGISTRY[tool_name] = {
         "schema": schema,
         "callable": func,
