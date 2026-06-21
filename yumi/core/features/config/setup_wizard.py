@@ -4,6 +4,7 @@ import os
 
 from yumi.core.features.config.credentials import (
     _get_provider,
+    ensure_embedding_provider_supported,
     ensure_model_ready,
     ensure_provider_available,
     get_api_credentials,
@@ -519,8 +520,13 @@ def configure_models_noninteractive(
         config.embedding_provider = "disabled"
         config.embedding_model = None
     elif embedding_provider:
+        ensure_embedding_provider_supported(embedding_provider)
         config.embedding_provider = embedding_provider
-        config.embedding_model = embedding_model or RECOMMENDED_EMBEDDING_MODELS.get(embedding_provider)
+        config.embedding_model = (
+            None
+            if embedding_provider == "disabled"
+            else embedding_model or RECOMMENDED_EMBEDDING_MODELS.get(embedding_provider)
+        )
     else:
         config.embedding_provider = "disabled"
         config.embedding_model = None

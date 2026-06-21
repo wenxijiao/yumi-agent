@@ -346,6 +346,9 @@ export class YumiAgent {
   }
 
   private cancelInFlight(): void {
+    for (const controller of this.inFlight.values()) {
+      controller.abort();
+    }
     this.inFlight.clear();
   }
 

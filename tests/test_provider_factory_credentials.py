@@ -4,7 +4,7 @@ import json
 
 import pytest
 from yumi.core.features.config.credentials import (
-    ensure_embedding_provider_not_deepseek,
+    ensure_embedding_provider_supported,
     get_api_credentials,
 )
 from yumi.core.platform.providers import SUPPORTED_PROVIDERS, create_provider
@@ -53,11 +53,17 @@ def test_credentials_fall_back_to_config(isolated_config, monkeypatch):
     assert creds["gemini_api_key"] == "cfg-key"
 
 
-def test_embedding_provider_deepseek_is_rejected():
-    with pytest.raises(ValueError, match="deepseek"):
-        ensure_embedding_provider_not_deepseek("deepseek")
+@pytest.mark.parametrize("name", ["deepseek", "claude", "", "unknown"])
+def test_embedding_provider_without_embedding_api_is_rejected(name):
+    with pytest.raises(ValueError, match=repr(name)):
+        ensure_embedding_provider_supported(name)
 
 
-@pytest.mark.parametrize("name", ["ollama", "openai", "gemini", "claude"])
-def test_embedding_provider_others_allowed(name):
-    ensure_embedding_provider_not_deepseek(name)  # must not raise
+@pytest.mark.parametrize("name", ["ollama", "openai", "gemini", "disabled"])
+def test_embedding_provider_supported_names_allowed(name):
+    ensure_embedding_provider_supported(name)  # must not raise
+
+
+def test_embedding_provider_disabled_not_allowed_when_embeddings_enabled():
+    with pytest.raises(ValueError, match="disabled"):
+        ensure_embedding_provider_supported("disabled", allow_disabled=False)

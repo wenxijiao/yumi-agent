@@ -22,7 +22,7 @@ from yumi.core.features.chat.router import router as chat_router
 from yumi.core.features.config import (
     embeddings_enabled,
     ensure_chat_model_configured,
-    ensure_embedding_provider_not_deepseek,
+    ensure_embedding_provider_supported,
 )
 from yumi.core.features.config.router import router as config_router
 from yumi.core.features.edge.api import apply_local_tool_confirmation_from_saved_config
@@ -76,7 +76,7 @@ async def lifespan(app: FastAPI):
     # instantiated. Only validate/create one when embeddings are actually on.
     if embeddings_enabled(config):
         try:
-            ensure_embedding_provider_not_deepseek(config.embedding_provider)
+            ensure_embedding_provider_supported(config.embedding_provider, allow_disabled=False)
         except ValueError as exc:
             raise RuntimeError(
                 f"{exc} Fix ~/.yumi/config.json (embedding_provider) or set YUMI_EMBEDDING_PROVIDER."

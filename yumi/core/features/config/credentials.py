@@ -3,7 +3,7 @@
 import os
 import sys
 
-from yumi.core.features.config.model import ModelConfig
+from yumi.core.features.config.model import EMBEDDING_CAPABLE_PROVIDERS, ModelConfig
 from yumi.core.features.config.store import load_model_config, load_saved_model_config
 from yumi.core.platform.exceptions import ProviderNotReadyError
 
@@ -21,12 +21,24 @@ def get_api_credentials() -> dict[str, str | None]:
     }
 
 
+def ensure_embedding_provider_supported(provider_name: str, *, allow_disabled: bool = True) -> None:
+    """Verify the configured embedding provider exposes a text-embedding API."""
+    name = (provider_name or "").strip()
+    if allow_disabled and name == "disabled":
+        return
+    if name in EMBEDDING_CAPABLE_PROVIDERS:
+        return
+    choices = ", ".join((*EMBEDDING_CAPABLE_PROVIDERS, "disabled" if allow_disabled else ""))
+    choices = choices.rstrip(", ")
+    raise ValueError(
+        f"embedding_provider must be one of: {choices}. "
+        f"{name!r} does not expose a supported embedding API."
+    )
+
+
 def ensure_embedding_provider_not_deepseek(provider_name: str) -> None:
-    """DeepSeek public API is not compatible with our OpenAI-style embeddings path."""
-    if provider_name == "deepseek":
-        raise ValueError(
-            "embedding_provider cannot be 'deepseek'. Use ollama, openai, or gemini for embeddings."
-        )
+    """Backward-compatible wrapper for older imports."""
+    ensure_embedding_provider_supported(provider_name)
 
 
 def _get_provider(provider_name: str):

@@ -4,6 +4,7 @@ from yumi.core.features.config.connection import get_saved_connection_code, save
 from yumi.core.features.config.credentials import (
     ensure_chat_model_configured,
     ensure_embedding_provider_not_deepseek,
+    ensure_embedding_provider_supported,
     ensure_model_ready,
     ensure_provider_available,
     get_api_credentials,
@@ -96,6 +97,7 @@ __all__ = [
     "ensure_chat_model_configured",
     "ensure_config_dir",
     "ensure_embedding_provider_not_deepseek",
+    "ensure_embedding_provider_supported",
     "ensure_full_model_config_file",
     "ensure_memory_dir",
     "ensure_model_ready",

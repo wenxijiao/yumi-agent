@@ -17,7 +17,7 @@ from yumi.core.features.config import (
     EMBEDDING_CAPABLE_PROVIDERS,
     delete_session_prompt,
     ensure_config_dir,
-    ensure_embedding_provider_not_deepseek,
+    ensure_embedding_provider_supported,
     ensure_provider_available,
     get_api_credentials,
     get_session_prompt,
@@ -201,7 +201,7 @@ async def update_model_config_endpoint(request: ModelConfigUpdateRequest):
         keys_or_base_changed = True
 
     try:
-        ensure_embedding_provider_not_deepseek(config.embedding_provider)
+        ensure_embedding_provider_supported(config.embedding_provider)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -209,6 +209,8 @@ async def update_model_config_endpoint(request: ModelConfigUpdateRequest):
         save_model_config(config)
         seen: set[str] = set()
         for prov in (config.chat_provider, config.embedding_provider):
+            if prov == "disabled":
+                continue
             if prov in seen:
                 continue
             seen.add(prov)

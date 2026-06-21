@@ -29,6 +29,8 @@ def isolated_config(monkeypatch, tmp_path):
         "DEEPSEEK_API_KEY",
         "YUMI_CHAT_PROVIDER",
         "YUMI_CHAT_MODEL",
+        "YUMI_EMBEDDING_PROVIDER",
+        "YUMI_EMBED_MODEL",
     ):
         os.environ.pop(k, None)
     return p
@@ -103,6 +105,16 @@ def test_noninteractive_no_embeddings_flag(isolated_config):
     cfg = configure_models_noninteractive(provider="claude", no_embeddings=True)
     assert cfg.chat_model == "claude-sonnet-4-6"
     assert cfg.embedding_provider == "disabled"
+
+
+@pytest.mark.parametrize("embedding_provider", ["claude", "deepseek"])
+def test_noninteractive_rejects_providers_without_embedding_api(isolated_config, embedding_provider):
+    with pytest.raises(ValueError, match=embedding_provider):
+        configure_models_noninteractive(
+            provider="ollama",
+            model="llama3",
+            embedding_provider=embedding_provider,
+        )
 
 
 def test_noninteractive_unknown_provider_without_model_raises(isolated_config):
