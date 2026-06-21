@@ -339,6 +339,8 @@ target_link_libraries(your_app PRIVATE yumi_sdk)
 
 Use `yumi::YumiAgent` for C++. Use the C ABI in
 `YumiSDK/include/yumi/yumi_agent.h` only when doing C or FFI integration.
+The default CMake build is dependency-light for local `ws://` connections; use
+`-DYUMI_USE_TLS=ON` when the target needs `wss://` support.
 
 ### Unreal Engine 5
 

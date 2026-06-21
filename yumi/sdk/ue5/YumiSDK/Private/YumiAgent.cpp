@@ -10,6 +10,7 @@
 #include "Serialization/JsonWriter.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "HAL/PlatformProcess.h"
 #include "TimerManager.h"
 #include "Engine/World.h"
 
@@ -135,7 +136,7 @@ FYumiAgent::FYumiAgent(
         EdgeName = FPlatformMisc::GetEnvironmentVariable(TEXT("EDGE_NAME"));
         if (EdgeName.IsEmpty())
         {
-            EdgeName = FPlatformMisc::ComputerName();
+            EdgeName = FPlatformProcess::ComputerName();
         }
     }
 }

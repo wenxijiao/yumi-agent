@@ -5,7 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(YUMI_BUILD_EXAMPLES "Build example programs" OFF)
-option(YUMI_USE_TLS "Enable TLS (wss://) support via IXWebSocket" ON)
+option(YUMI_USE_TLS "Enable TLS (wss://) support via IXWebSocket" OFF)
+option(YUMI_USE_ZLIB "Enable zlib compression support via IXWebSocket" OFF)
 
 include(FetchContent)
 
@@ -20,6 +21,7 @@ FetchContent_MakeAvailable(nlohmann_json)
 
 # IXWebSocket — used by DefaultTransport in yumi_agent.hpp (FetchContent exposes headers to consumers)
 set(USE_TLS ${YUMI_USE_TLS} CACHE BOOL "" FORCE)
+set(USE_ZLIB ${YUMI_USE_ZLIB} CACHE BOOL "" FORCE)
 FetchContent_Declare(
     ixwebsocket
     GIT_REPOSITORY https://github.com/machinezone/IXWebSocket.git

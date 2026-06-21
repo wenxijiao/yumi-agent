@@ -12,6 +12,7 @@
 
 #include <yumi/yumi_agent.hpp>
 #include <string>
+#include <utility>
 
 // ── Connection (edit here, or set in .env) ──
 
@@ -23,38 +24,38 @@ yumi::YumiAgent* initYumi() {
 
     // ── Register tools: name + description + parameters + handler ──
 
-    // agent->registerTool({
-    //     .name = "jump",
-    //     .description = "Make the character jump",
-    //     .parameters = {
-    //         {"height", "number", "Jump height in meters"},
-    //     },
-    //     .handler = [](const yumi::ToolArguments& args) -> std::string {
-    //         double h = args.number("height").value_or(1.0);
-    //         return "Jumped " + std::to_string(h) + " meters";
-    //     },
-    // });
+    // yumi::RegisterOptions jump;
+    // jump.name = "jump";
+    // jump.description = "Make the character jump";
+    // jump.parameters = {
+    //     {"height", "number", "Jump height in meters"},
+    // };
+    // jump.handler = [](const yumi::ToolArguments& args) -> std::string {
+    //     double h = args.number("height").value_or(1.0);
+    //     return "Jumped " + std::to_string(h) + " meters";
+    // };
+    // agent->registerTool(std::move(jump));
 
     // Dangerous tools: user confirms in the Yumi web UI or `yumi --chat` (not on device):
-    // agent->registerTool({
-    //     .name = "delete_all",
-    //     .description = "Delete all data",
-    //     .requireConfirmation = true,
-    //     .handler = [](const yumi::ToolArguments&) -> std::string {
-    //         return "Deleted everything";
-    //     },
-    // });
+    // yumi::RegisterOptions deleteAll;
+    // deleteAll.name = "delete_all";
+    // deleteAll.description = "Delete all data";
+    // deleteAll.requireConfirmation = true;
+    // deleteAll.handler = [](const yumi::ToolArguments&) -> std::string {
+    //     return "Deleted everything";
+    // };
+    // agent->registerTool(std::move(deleteAll));
     //
     // Read-only tools can opt in to proactive messaging context:
-    // agent->registerTool({
-    //     .name = "get_status",
-    //     .description = "Read current app status",
-    //     .allowProactive = true,
-    //     .proactiveContext = true,
-    //     .handler = [](const yumi::ToolArguments&) -> std::string {
-    //         return "ok";
-    //     },
-    // });
+    // yumi::RegisterOptions status;
+    // status.name = "get_status";
+    // status.description = "Read current app status";
+    // status.allowProactive = true;
+    // status.proactiveContext = true;
+    // status.handler = [](const yumi::ToolArguments&) -> std::string {
+    //     return "ok";
+    // };
+    // agent->registerTool(std::move(status));
 
     agent->runInBackground();
     return agent;

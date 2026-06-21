@@ -10,6 +10,7 @@ public class YumiSDK : ModuleRules
         {
             "Core",
             "CoreUObject",
+            "Engine",
             "Json",
             "JsonUtilities",
         });

@@ -22,6 +22,11 @@ Fetched dependencies:
 - `nlohmann/json`
 - `IXWebSocket` for the default transport
 
+The default CMake configuration builds without TLS/zlib so a clean local
+toolchain can compile the SDK for `ws://` connections. If your connection code
+resolves to `wss://`, configure CMake with `-DYUMI_USE_TLS=ON` and provide the
+TLS backend required by IXWebSocket.
+
 ## Files In This Folder
 
 ```text
@@ -69,19 +74,19 @@ EDGE_NAME=My Device
 ## Register Tools (C++)
 
 ```cpp
-agent->registerTool({
-    .name = "set_light",
-    .description = "Control room lights",
-    .parameters = {
-        {"room", "string", "Room name"},
-        {"on", "boolean", "Turn on or off"},
-    },
-    .handler = [](const yumi::ToolArguments& args) -> std::string {
-        auto room = args.string("room").value_or("living_room");
-        auto on = args.boolean("on").value_or(false);
-        return setLight(room, on);
-    },
-});
+yumi::RegisterOptions setLightOpts;
+setLightOpts.name = "set_light";
+setLightOpts.description = "Control room lights";
+setLightOpts.parameters = {
+    {"room", "string", "Room name"},
+    {"on", "boolean", "Turn on or off"},
+};
+setLightOpts.handler = [](const yumi::ToolArguments& args) -> std::string {
+    auto room = args.string("room").value_or("living_room");
+    auto on = args.boolean("on").value_or(false);
+    return setLight(room, on);
+};
+agent->registerTool(std::move(setLightOpts));
 ```
 
 Use `requireConfirmation = true` for dangerous tools.

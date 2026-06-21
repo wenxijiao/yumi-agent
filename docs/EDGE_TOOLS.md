@@ -105,13 +105,17 @@ Runtime dependency in Node: `ws`. Browser uses native `WebSocket`.
 
 ```cpp
 #include <yumi/yumi_agent.hpp>
+#include <utility>
 
 yumi::YumiAgent agent("yumi-lan_...", "My Device");
-agent.registerTool({
-    .name = "my_function",
-    .description = "What this function does",
-    .handler = [](auto args) { return myFunction(args); }
-});
+
+yumi::RegisterOptions opts;
+opts.name = "my_function";
+opts.description = "What this function does";
+opts.handler = [](const yumi::ToolArguments& args) {
+    return myFunction(args);
+};
+agent.registerTool(std::move(opts));
 agent.runInBackground();
 ```
 

@@ -52,16 +52,17 @@ void yumi_agent_register(
     ctx->handler = handler;
     ctx->userData = user_data;
 
-    agent->registerTool({
-        .name = name ? name : "",
-        .description = description ? description : "",
-        .parameters = std::move(parameters),
-        .handler = [ctx](const yumi::ToolArguments& args) -> std::string {
-            std::string argsJson = args.rawData().dump();
-            const char* result = ctx->handler(argsJson.c_str(), ctx->userData);
-            return result ? std::string(result) : "";
-        },
-    });
+    yumi::RegisterOptions opts;
+    opts.name = name ? name : "";
+    opts.description = description ? description : "";
+    opts.parameters = std::move(parameters);
+    opts.handler = [ctx](const yumi::ToolArguments& args) -> std::string {
+        std::string argsJson = args.rawData().dump();
+        const char* result = ctx->handler(argsJson.c_str(), ctx->userData);
+        return result ? std::string(result) : "";
+    };
+
+    agent->registerTool(std::move(opts));
 }
 
 void yumi_agent_run_in_background(YumiAgentHandle handle) {

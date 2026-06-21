@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Dom/JsonObject.h"
+#include "TimerManager.h"
 
 /**
  * Tool parameter descriptor.
@@ -116,7 +117,7 @@ private:
     bool bRunning = false;
     bool bStopRequested = false;
 
-    class IWebSocket* WebSocket = nullptr;
+    TSharedPtr<class IWebSocket> WebSocket;
     FTimerHandle ReconnectTimerHandle;
     int32 ReconnectDelay = 3;
 
