@@ -34,10 +34,16 @@ def test_mount_edge_tools_enforces_combined_length_budget():
     edge_api.EDGE_TOOLS_REGISTRY.pop("ck2", None)
 
 
-def test_flat_edge_scope_prefix_is_provider_safe():
-    # '.' is Gemini-legal but OpenAI/Anthropic-illegal; must be normalized like
-    # the canonical helper (no second, looser sanitizer).
-    assert FlatEdgeScope().tool_register_prefix(None, "my.device") == "edge_my_device__"
+def test_flat_edge_scope_prefix_is_provider_safe_and_collision_free():
+    scope = FlatEdgeScope()
+    p1 = scope.tool_register_prefix(None, "my.device")
+    p2 = scope.tool_register_prefix(None, "my device")
+    # provider-safe ('.' normalized like the canonical helper)
+    assert p1.startswith("edge_my_device_") and p1.endswith("__")
+    assert "." not in p1
+    # two names that sanitize the same still get DISTINCT prefixes (hash), so
+    # they can't expose duplicate provider function names
+    assert p1 != p2
 
 
 def test_register_tool_rejects_invalid_local_name():

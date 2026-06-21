@@ -55,7 +55,10 @@ def test_edge_websocket_register_and_disconnect():
             }
         )
         assert _wait_for_edge("test-device"), "Edge device did not register in time."
-        entry = EDGE_TOOLS_REGISTRY.get("test-device", {}).get("edge_test-device__ping")
+        from yumi.core.platform.runtime.edge_naming import edge_tool_key_prefix
+
+        prefixed = f"{edge_tool_key_prefix('test-device')}ping"
+        entry = EDGE_TOOLS_REGISTRY.get("test-device", {}).get(prefixed)
         assert entry is not None
         assert entry["always_include"] is True
         assert entry["allow_proactive"] is True

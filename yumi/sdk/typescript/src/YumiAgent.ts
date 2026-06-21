@@ -451,6 +451,19 @@ export class YumiAgent {
           } else if (msgType === "cancel") {
             const callId = msg.call_id as string;
             if (callId) this.inFlight.delete(callId);
+          } else if (msgType === "register_warning") {
+            const dropped = Array.isArray(msg.skipped_tools) ? msg.skipped_tools : [];
+            console.warn(
+              `${LOG_PREFIX} Server did not mount ${dropped.length} tool(s): ` +
+                `${dropped.join(", ")} — ${msg.message ?? ""}`
+            );
+          } else if (msgType === "register_rejected") {
+            // The server refused this edge_name (already in use). Stop — do NOT
+            // reconnect, or it would just be rejected again.
+            const reason = (msg.reason as string) || "edge_name already in use";
+            console.error(`${LOG_PREFIX} Edge registration rejected by server: ${reason}`);
+            this.stopRequested = true;
+            this.wsSession?.close();
           }
         },
         onClose: () => {

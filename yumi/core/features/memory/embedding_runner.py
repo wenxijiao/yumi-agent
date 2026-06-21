@@ -89,7 +89,7 @@ class EmbeddingProcessor:
 
     def maybe_migrate(self, message_table_name: str) -> None:
         """Detect a vector-dim mismatch and trigger a rebuild + background sweep."""
-        if not self.embedding_available or not self.embed_model:
+        if not self.embedding_available or not self.embed_model or self.embed_provider is None:
             return
         if not self.backend.has_table(message_table_name):
             return
@@ -184,6 +184,8 @@ class EmbeddingProcessor:
         the main pass, an incremental sweep catches messages inserted while
         the rebuild was running. A compaction pass consolidates versions.
         """
+        if self.embed_provider is None or not self.embed_model:
+            return
         try:
             task_start_ts = LanceDBBackend.current_timestamp_num()
 
@@ -199,7 +201,7 @@ class EmbeddingProcessor:
             skipped = 0
             for row in all_rows:
                 vec = row.get("vector")
-                if hasattr(vec, "tolist"):
+                if vec is not None and hasattr(vec, "tolist"):
                     vec = vec.tolist()
                 if vec and any(v != 0.0 for v in vec):
                     skipped += 1

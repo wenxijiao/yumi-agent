@@ -167,8 +167,10 @@ def test_flat_edge_scope_namespacing():
     scope = FlatEdgeScope()
     # no per-user prefix: connection key is the raw edge name
     assert scope.connection_key("ignored-user", "garage") == "garage"
-    # register prefix is gemini-safe (sanitised + leading non-alnum guarded)
-    assert scope.tool_register_prefix(None, "my edge!") == "edge_my_edge__"
+    # register prefix is provider-safe (sanitised + leading non-alnum guarded) and
+    # carries a short hash suffix so different raw names can't collide.
+    p = scope.tool_register_prefix(None, "my edge!")
+    assert p.startswith("edge_my_edge_") and p.endswith("__")
     assert scope.tool_register_prefix(None, "9bot").startswith("edge_e9bot")
 
 
