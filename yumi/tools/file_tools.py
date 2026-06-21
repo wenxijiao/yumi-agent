@@ -138,7 +138,9 @@ def _read_pdf(path: Path) -> str:
     try:
         from PyPDF2 import PdfReader
     except ImportError:
-        return "Error: PyPDF2 is missing (it ships with yumi-agent). Reinstall: pip install --force-reinstall yumi-agent"
+        return (
+            "Error: PyPDF2 is missing (it ships with yumi-agent). Reinstall: pip install --force-reinstall yumi-agent"
+        )
 
     reader = PdfReader(str(path))
     pages: list[str] = []
