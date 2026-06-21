@@ -37,13 +37,15 @@ def gemini_safe_edge_segment(edge_name: str) -> str:
 
 
 def edge_tool_key_prefix(edge_name: str) -> str:
-    """Prefix for tools registered from an edge device, e.g. ``edge_My_Device_a1b2__``.
+    """Prefix for tools registered from an edge device, e.g. ``edge_My_Device_a1b2c3d4__``.
 
     A short hash of the RAW edge name disambiguates names that sanitize to the
     same segment (e.g. ``my.device`` vs ``my device`` both -> ``my_device``), so
-    two distinct edges never collide on the same provider-facing function name.
+    distinct edges getting the same provider-facing prefix is vanishingly
+    unlikely (8 hex digits; not a hard guarantee, but far beyond any realistic
+    number of concurrent edges).
     """
-    digest = hashlib.sha1((edge_name or "").encode("utf-8")).hexdigest()[:4]
+    digest = hashlib.sha1((edge_name or "").encode("utf-8")).hexdigest()[:8]
     return f"edge_{gemini_safe_edge_segment(edge_name)}_{digest}__"
 
 
