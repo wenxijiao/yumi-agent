@@ -449,6 +449,14 @@ When `yumi --server` starts, it prints:
 
 You can use those codes from `--chat`, `--ui`, `--edge`, or from any SDK.
 
+> **A connection code is a connection string, not a credential.** It just
+> encodes the server host/port. The OSS server has no auth, so reaching the
+> host/port is what grants access; the optional `lan_secret` HMAC only detects
+> tampering when both ends share the secret. The server binds to loopback by
+> default — expose it on a LAN only on a trusted network (`yumi --server --host
+> 0.0.0.0`). Per-user identity/auth is a higher-layer (L2) concern. See
+> [Edge Tools → Connection Code Formats](EDGE_TOOLS.md#connection-code-formats).
+
 Yumi saves the last successful connection code in `~/.yumi/config.json` and reuses it automatically.
 
 ## Remote Access
