@@ -1,3 +1,4 @@
+import asyncio
 import inspect
 import types
 import typing
@@ -198,7 +199,12 @@ async def execute_registered_tool(tool_name: str, arguments: Dict[str, Any]):
         raise KeyError(f"Tool '{tool_name}' is not registered.")
 
     func = TOOL_REGISTRY[tool_name]["callable"]
-    result = func(**arguments)
+    if inspect.iscoroutinefunction(func):
+        return await func(**arguments)
+
+    # Sync tools run in a worker thread so a blocking call (e.g. urlopen in
+    # web_search) doesn't freeze the event loop or defeat the dispatch timeout.
+    result = await asyncio.to_thread(func, **arguments)
     if inspect.isawaitable(result):
         result = await result
     return result

@@ -71,6 +71,10 @@ def _safe_session_dir(session_id: str) -> str:
     s = (session_id or "default").strip() or "default"
     if not _SESSION_RE.match(s):
         raise HTTPException(status_code=400, detail="Invalid session_id for upload.")
+    # The regex permits dots, so reject the directory-traversal segments
+    # explicitly — "." / ".." would escape the session's upload dir.
+    if s in (".", ".."):
+        raise HTTPException(status_code=400, detail="Invalid session_id for upload.")
     return s
 
 
@@ -109,10 +113,18 @@ def decode_upload_payload(content_base64: str) -> bytes:
     if "base64," in raw:
         raw = raw.split("base64,", 1)[1]
     raw = re.sub(r"\s+", "", raw)
+    # Reject oversize payloads BEFORE allocating the decoded copy: base64 is ~4/3
+    # the size of its bytes, so an encoded length past this can't fit the limit.
+    if len(raw) > MAX_UPLOAD_BYTES * 4 // 3 + 4:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large (max {MAX_UPLOAD_BYTES // (1024 * 1024)} MB).",
+        )
     try:
-        # Avoid ``standard_b64decode(..., validate=...)``: some Python 3.12 builds reject
-        # the ``validate`` keyword on ``standard_b64decode`` (TypeError).
-        data = base64.b64decode(raw)
+        # validate=True rejects non-alphabet characters instead of silently
+        # dropping them. (Note: it's `b64decode`, not `standard_b64decode`, whose
+        # `validate` keyword some 3.12 builds reject.)
+        data = base64.b64decode(raw, validate=True)
     except binascii.Error as exc:
         raise HTTPException(status_code=400, detail="Invalid base64 content.") from exc
     if len(data) > MAX_UPLOAD_BYTES:
@@ -145,6 +157,11 @@ def save_uploaded_file(
         dest_dir = root / owner_user_id / session_seg
     else:
         dest_dir = root / session_seg
+    # Defense in depth: the resolved destination must stay inside uploads_root.
+    resolved_root = root.resolve()
+    resolved_dest = dest_dir.resolve()
+    if resolved_dest != resolved_root and resolved_root not in resolved_dest.parents:
+        raise HTTPException(status_code=400, detail="Invalid upload destination.")
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest = _unique_path(dest_dir, safe_name)
     dest.write_bytes(data)

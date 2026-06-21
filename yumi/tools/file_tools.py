@@ -89,7 +89,22 @@ _SENSITIVE_FILE_NAMES = {
 _SENSITIVE_DIR_NAMES = {".ssh", ".aws", ".gnupg", ".yumi", ".kube"}
 
 
+def _uploads_root() -> Path:
+    return (Path.home() / ".yumi" / "uploads").resolve()
+
+
 def _is_sensitive_path(path: Path) -> bool:
+    # Uploaded files live under ~/.yumi/uploads and are meant to be read back
+    # (the upload service restricts what extensions can land there), so allow
+    # that subtree even though it sits inside the otherwise-blocked .yumi dir.
+    try:
+        resolved = path.resolve()
+        uploads = _uploads_root()
+        if resolved == uploads or uploads in resolved.parents:
+            return False
+    except (OSError, RuntimeError):
+        pass
+
     parts = {p for p in path.parts}
     if parts & _SENSITIVE_DIR_NAMES:
         return True
