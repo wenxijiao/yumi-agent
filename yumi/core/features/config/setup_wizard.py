@@ -522,10 +522,11 @@ def run_model_setup(force: bool = False) -> ModelConfig:
         return load_model_config()
 
     print("Welcome to Yumi.")
-    print("Let's set up the AI model.\n")
+    print("Let's set you up — 4 quick steps. The last 3 are optional (pick 1 to skip any).\n")
     if current.chat_model:
         print(f"Current: chat={current.chat_provider}/{current.chat_model}\n")
 
+    print("── Step 1/4: AI model ──")
     mode = _choose_run_mode()
     if mode == "skip":
         print("\nSkipped. Configure later with `yumi --setup`, `YUMI_CHAT_MODEL`, or a cloud API key.")
@@ -549,8 +550,11 @@ def run_model_setup(force: bool = False) -> ModelConfig:
     config.chat_model = chat_model
     config.system_prompt = current.system_prompt
 
+    print("\n── Step 2/4: Memory (text embeddings) ──")
     _setup_embeddings(config, chat_provider)
+    print("\n── Step 3/4: Voice input (speech-to-text) ──")
     _prompt_stt_config(config)
+    print("\n── Step 4/4: Spoken replies (text-to-speech) ──")
     _prompt_tts_config(config)
     save_model_config(config)
 

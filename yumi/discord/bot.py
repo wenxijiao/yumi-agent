@@ -291,6 +291,7 @@ def _authorized(user_id: int | None) -> bool:
 _HELP_TEXT = (
     "Yumi Discord bridge.\n\n"
     "Send a message to chat. Commands (prefix `!`):\n"
+    "!voice on|off — reply with audio instead of text\n"
     "!clear — clear this chat's history\n"
     "!model — show server model config\n"
     "!system — view or change this chat's system prompt (not global)\n"

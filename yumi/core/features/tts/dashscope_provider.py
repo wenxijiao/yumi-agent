@@ -101,6 +101,14 @@ class DashScopeTtsProvider(TextToSpeechProvider):
 
     @staticmethod
     def _chunk_audio_b64(chunk: Any) -> str | None:
-        output = getattr(chunk, "output", None)
-        audio = getattr(output, "audio", None) if output is not None else None
-        return getattr(audio, "data", None) if audio is not None else None
+        """Pull ``chunk.output.audio.data`` whether the SDK hands back attribute
+        objects or plain dicts (the streaming response shape varies)."""
+
+        def _get(obj: Any, key: str) -> Any:
+            if obj is None:
+                return None
+            if isinstance(obj, dict):
+                return obj.get(key)
+            return getattr(obj, key, None)
+
+        return _get(_get(_get(chunk, "output"), "audio"), "data")

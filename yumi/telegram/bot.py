@@ -360,6 +360,7 @@ def build_application():
             "Send a message to chat. You can attach photos, files, or voice/audio when STT is enabled.\n"
             "For one message: add a caption to the photo, or send text in a separate message.\n"
             "Commands:\n"
+            "/voice on|off — reply with audio instead of text\n"
             "/clear — clear this chat's history\n"
             "/model — show server model config\n"
             "/system — view or change this chat's system prompt (not global)\n"

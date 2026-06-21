@@ -35,10 +35,18 @@ def test_factory_builds_dashscope_from_config(monkeypatch):
     assert isinstance(provider, DashScopeTtsProvider)
 
 
-def test_chunk_audio_b64_parsing():
+def test_chunk_audio_b64_parsing_object_form():
     assert DashScopeTtsProvider._chunk_audio_b64(_chunk("AAA=")) == "AAA="
     assert DashScopeTtsProvider._chunk_audio_b64(_chunk(None)) is None
     assert DashScopeTtsProvider._chunk_audio_b64(types.SimpleNamespace(output=None)) is None
+
+
+def test_chunk_audio_b64_parsing_dict_form():
+    # The SDK may hand back plain dicts instead of attribute objects.
+    assert DashScopeTtsProvider._chunk_audio_b64({"output": {"audio": {"data": "BBB="}}}) == "BBB="
+    assert DashScopeTtsProvider._chunk_audio_b64({"output": {"audio": {"data": None}}}) is None
+    assert DashScopeTtsProvider._chunk_audio_b64({"output": None}) is None
+    assert DashScopeTtsProvider._chunk_audio_b64({}) is None
 
 
 def test_synthesize_accumulates_pcm_into_wav(monkeypatch):
