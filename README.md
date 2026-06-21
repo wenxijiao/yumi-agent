@@ -165,7 +165,7 @@ Your app connects to the Yumi server over WebSocket and registers functions as t
 | OpenAI | Yes | Yes | Also works with OpenAI-compatible endpoints (point `openai_base_url` at DeepSeek, etc.) |
 | Gemini | Yes | Yes | Google Gemini |
 | Claude | Yes | No | Anthropic Claude (use another provider for embeddings) |
-| DeepSeek | Yes | No | OpenAI-compatible chat API; use Ollama, OpenAI, Gemini, or Claude for embeddings |
+| DeepSeek | Yes | No | OpenAI-compatible chat API; use Ollama, OpenAI, or Gemini for embeddings |
 
 You can mix providers — for example OpenAI for chat and Ollama for embeddings.
 

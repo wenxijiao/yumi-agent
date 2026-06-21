@@ -14,6 +14,7 @@ from fastapi import APIRouter, HTTPException
 from yumi.core.features.config import (
     CONFIG_PATH,
     DEFAULT_SYSTEM_PROMPT,
+    EMBEDDING_CAPABLE_PROVIDERS,
     delete_session_prompt,
     ensure_config_dir,
     ensure_embedding_provider_not_deepseek,
@@ -120,8 +121,12 @@ async def get_model_config_endpoint():
 async def update_model_config_endpoint(request: ModelConfigUpdateRequest):
     if request.chat_provider and request.chat_provider not in SUPPORTED_PROVIDERS:
         raise unknown_provider_http(role="chat", name=request.chat_provider, supported=SUPPORTED_PROVIDERS)
-    if request.embedding_provider and request.embedding_provider not in SUPPORTED_PROVIDERS:
-        raise unknown_provider_http(role="embedding", name=request.embedding_provider, supported=SUPPORTED_PROVIDERS)
+    if request.embedding_provider and request.embedding_provider not in (*EMBEDDING_CAPABLE_PROVIDERS, "disabled"):
+        # Only ollama/openai/gemini can embed; claude/deepseek would pass a bare
+        # provider check but their embed() raises. Validate against the real set.
+        raise unknown_provider_http(
+            role="embedding", name=request.embedding_provider, supported=EMBEDDING_CAPABLE_PROVIDERS
+        )
     if request.stt_provider and request.stt_provider not in ("disabled", "whisper"):
         raise HTTPException(status_code=400, detail="Unsupported STT provider. Use 'disabled' or 'whisper'.")
     if request.stt_backend and request.stt_backend != "faster-whisper":
@@ -134,12 +139,6 @@ async def update_model_config_endpoint(request: ModelConfigUpdateRequest):
                 status_code=400,
                 detail=f"Unsupported Whisper model. Use one of: {', '.join(WHISPER_MULTILINGUAL_MODELS)}.",
             )
-
-    if request.embedding_provider == "deepseek":
-        raise HTTPException(
-            status_code=400,
-            detail="embedding_provider cannot be 'deepseek'. Use ollama, openai, gemini, or claude for embeddings.",
-        )
 
     backup_before = CONFIG_PATH.read_text(encoding="utf-8") if CONFIG_PATH.exists() else None
 

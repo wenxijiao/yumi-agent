@@ -37,7 +37,15 @@ def normalize_tool_calls(tcalls: Any) -> list[dict[str, Any]]:
     return out
 
 
-def _coerce_arguments(raw: Any) -> dict[str, Any]:
+def _coerce_arguments(raw: Any) -> dict[str, Any] | None:
+    """Coerce tool-call arguments to a dict.
+
+    Returns ``None`` ONLY when arguments were supplied but couldn't be parsed at
+    all (json + json-repair both failed) — so the caller can drop the tool call
+    and let the normalizer ask the model to regenerate it, instead of silently
+    running the tool with empty ``{}`` args. Legitimately-empty arguments still
+    return ``{}``.
+    """
     if raw is None:
         return {}
     if isinstance(raw, dict):
@@ -49,10 +57,15 @@ def _coerce_arguments(raw: Any) -> dict[str, Any]:
         try:
             parsed = json.loads(s)
         except (json.JSONDecodeError, TypeError):
+            # Malformed JSON: best-effort repair. If it can't recover a usable
+            # object, return None so the call is dropped (model regenerates).
             try:
-                parsed = repair_json(s, return_objects=True)
+                repaired = repair_json(s, return_objects=True)
             except Exception:
-                return {}
+                return None
+            if not isinstance(repaired, dict) or not repaired:
+                return None
+            return repaired
         return parsed if isinstance(parsed, dict) else {"_value": parsed}
     if hasattr(raw, "model_dump") and callable(raw.model_dump):
         try:
@@ -77,6 +90,10 @@ def _single_tool_call_to_dict(tc: Any) -> dict[str, Any] | None:
         if not str(name).strip():
             return None
         args = _coerce_arguments(fn.get("arguments"))
+        if args is None:
+            # Name is valid but the arguments are unparseable — drop it so the
+            # normalizer asks the model to regenerate (don't run with empty args).
+            return None
         out = {
             "id": str(tc.get("id") or ""),
             "type": str(tc.get("type") or "function"),
@@ -106,6 +123,8 @@ def _single_tool_call_to_dict(tc: Any) -> dict[str, Any] | None:
     if not str(name).strip():
         return None
     args = _coerce_arguments(getattr(fn_obj, "arguments", None))
+    if args is None:
+        return None  # unparseable args -> drop so the model is asked to regenerate
     oid = getattr(tc, "id", None)
     typ = getattr(tc, "type", None) or "function"
     return {

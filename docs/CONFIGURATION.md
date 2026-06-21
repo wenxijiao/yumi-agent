@@ -18,7 +18,7 @@ Model and provider fields:
 
 - `chat_provider`: Chat model provider. Common values: `ollama`, `openai`, `gemini`, `claude`, `deepseek`. Default: `ollama`.
 - `chat_model`: Chat model name. `null` means Yumi will use provider defaults/setup.
-- `embedding_provider`: Embedding provider. Default: `ollama`. **Do not use `deepseek` here** — the DeepSeek API is not used for Yumi’s embedding path; choose `ollama`, `openai`, `gemini`, or `claude` for cross-session memory vectors.
+- `embedding_provider`: Embedding provider. Default: `ollama`. Only `ollama`, `openai`, and `gemini` can embed (`claude` / `deepseek` have no embedding API); choose one of those for cross-session memory vectors.
 - `embedding_model`: Embedding model name. `null` means provider default/setup.
 - `embedding_dim`: Optional embedding vector dimension override. Usually leave `null`.
 - `openai_api_key`, `openai_base_url`, `gemini_api_key`, `claude_api_key`, `deepseek_api_key`, `deepseek_base_url`: Saved provider credentials/base URL. Environment variables override these.

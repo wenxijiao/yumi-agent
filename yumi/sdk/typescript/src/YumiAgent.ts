@@ -207,10 +207,7 @@ export class YumiAgent {
   private wsSession: YumiWsSession | null = null;
   private stopRequested = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private inFlight = new Map<
-    string,
-    { resolve: () => void; reject: (err: Error) => void }
-  >();
+  private inFlight = new Map<string, AbortController>();
 
   constructor(opts: YumiAgentOptions = {}) {
     this.opts = opts;
@@ -450,7 +447,12 @@ export class YumiAgent {
             void this.handleToolCall(msg);
           } else if (msgType === "cancel") {
             const callId = msg.call_id as string;
-            if (callId) this.inFlight.delete(callId);
+            if (callId) {
+              // Signal the running handler (cooperative — it must observe the
+              // AbortSignal; JS can't force-stop an unwilling handler).
+              this.inFlight.get(callId)?.abort();
+              this.inFlight.delete(callId);
+            }
           } else if (msgType === "register_warning") {
             const dropped = Array.isArray(msg.skipped_tools) ? msg.skipped_tools : [];
             console.warn(
@@ -497,25 +499,32 @@ export class YumiAgent {
     }
 
     const args = new ToolArguments(rawArgs);
+    const controller = new AbortController();
+    this.inFlight.set(callId, controller);
 
     let cancelled = false;
     let result: string;
 
     try {
-      const handlerResult = tool.handler(args);
+      const handlerResult = tool.handler(args, controller.signal);
       const raw =
         handlerResult instanceof Promise ? await handlerResult : handlerResult;
       result = String(raw);
+      if (controller.signal.aborted) {
+        cancelled = true;
+        result = `Cancelled: Tool '${toolName}' execution was cancelled by server.`;
+      }
     } catch (err: unknown) {
-      if (err instanceof Error && err.message === "CANCELLED") {
+      if (controller.signal.aborted || (err instanceof Error && err.message === "CANCELLED")) {
         cancelled = true;
         result = `Cancelled: Tool '${toolName}' execution was cancelled by server.`;
       } else {
         result = `Error executing tool '${toolName}': ${err}`;
       }
+    } finally {
+      this.inFlight.delete(callId);
     }
 
-    this.inFlight.delete(callId);
     this.sendResult(ws, callId, result, cancelled);
   }
 

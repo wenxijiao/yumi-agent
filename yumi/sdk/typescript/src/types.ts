@@ -54,7 +54,10 @@ export class ToolArguments {
 }
 
 export type ToolHandler = (
-  args: ToolArguments
+  args: ToolArguments,
+  /** Aborted when the server cancels the call (e.g. on timeout). Optional —
+   * long-running handlers can observe it; existing handlers can ignore it. */
+  signal?: AbortSignal
 ) => Promise<string> | string;
 
 /** Tool exposure mode (input sugar mapped onto the low-level wire flags). */

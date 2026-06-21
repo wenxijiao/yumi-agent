@@ -147,6 +147,26 @@ def test_put_config_model_rejects_deepseek_embedding_provider(monkeypatch, tmp_p
     assert "deepseek" in str(exc.detail).lower()
 
 
+def test_put_config_model_rejects_claude_embedding_provider(monkeypatch, tmp_path: Path) -> None:
+    # claude is a valid chat provider but has no embedding API — must be rejected
+    # for embeddings (previously it slipped past the bare provider check).
+    p = _patch_config_path(monkeypatch, tmp_path)
+    p.write_text(
+        json.dumps(
+            {"chat_provider": "ollama", "chat_model": "m", "embedding_provider": "ollama", "embedding_model": "m"}
+        ),
+        encoding="utf-8",
+    )
+
+    async def _run():
+        with pytest.raises(HTTPException) as ei:
+            await update_model_config_endpoint(ModelConfigUpdateRequest(embedding_provider="claude"))
+        return ei.value
+
+    exc = asyncio.run(_run())
+    assert exc.status_code == 400
+
+
 def test_put_config_model_updates_edge_tool_routing_settings(monkeypatch, tmp_path: Path) -> None:
     p = _patch_config_path(monkeypatch, tmp_path)
     p.write_text(

@@ -19,6 +19,11 @@ def try_register_line_webhook(app: FastAPI) -> None:
         return
     app.state.line_webhook_registered = True
 
+    # Hold strong refs so background chat-turn tasks aren't GC'd mid-flight
+    # (asyncio only keeps a weak reference to tasks). Mirrors the sidecar server.
+    pending_tasks: set[asyncio.Task] = set()
+    app.state.line_pending_tasks = pending_tasks
+
     @app.post("/line/webhook")
     async def line_webhook_incore(request: Request) -> Response:
         body = await request.body()
@@ -38,5 +43,7 @@ def try_register_line_webhook(app: FastAPI) -> None:
         # turn off the request path so we ack within the window.
         if events:
             task = asyncio.create_task(process_line_events(events, line_client, use_http=False))
+            pending_tasks.add(task)
+            task.add_done_callback(pending_tasks.discard)
             log_task_exc_on_done(task, "line_webhook_incore")
         return Response(status_code=200)

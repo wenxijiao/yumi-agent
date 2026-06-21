@@ -215,7 +215,10 @@ class OpenAIProvider(BaseLLMProvider):
                 try:
                     tc["function"]["arguments"] = json.loads(args_str)
                 except (json.JSONDecodeError, TypeError):
-                    tc["function"]["arguments"] = {}
+                    # Keep the raw string instead of swallowing to {}; normalize
+                    # will try json-repair and, if even that fails, drop the call
+                    # so the model regenerates (vs running with empty args).
+                    tc["function"]["arguments"] = args_str
                 tool_calls_list.append(tc)
 
             tool_calls_list = normalize_tool_calls(tool_calls_list)

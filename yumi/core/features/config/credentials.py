@@ -25,7 +25,7 @@ def ensure_embedding_provider_not_deepseek(provider_name: str) -> None:
     """DeepSeek public API is not compatible with our OpenAI-style embeddings path."""
     if provider_name == "deepseek":
         raise ValueError(
-            "embedding_provider cannot be 'deepseek'. Use ollama, openai, gemini, or claude for embeddings."
+            "embedding_provider cannot be 'deepseek'. Use ollama, openai, or gemini for embeddings."
         )
 
 
