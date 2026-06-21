@@ -24,7 +24,9 @@ yumi --chat         # terminal chat against a running server
 yumi --ui           # launch the Reflex web UI (needs the [ui] extra)
 ```
 
-`python -m yumi.core.api` also starts the server (host `0.0.0.0:8000`).
+`python -m yumi.core.api` also starts the server. It binds `127.0.0.1:8000` by
+default (loopback only — the OSS API has no auth); expose it on your LAN with
+`YUMI_HOST=0.0.0.0` (or `yumi --server --host 0.0.0.0`) on a trusted network.
 
 ## Configuration
 
