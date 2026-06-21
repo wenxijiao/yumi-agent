@@ -28,17 +28,10 @@ async def _speak_voice_reply(reply: str) -> None:
     loop keeps listening; any failure is logged, never raised.
     """
     from yumi.core.features.config import load_model_config
-    from yumi.core.features.tts.base import TtsNotConfiguredError
-    from yumi.core.features.tts.factory import create_tts_provider
-    from yumi.core.features.tts.playback import play_audio
-    from yumi.core.features.tts.system_provider import SystemTtsProvider
+    from yumi.core.features.tts.playback import play_audio, synthesize_with_fallback
 
     try:
-        provider = create_tts_provider(load_model_config())
-    except TtsNotConfiguredError:
-        provider = SystemTtsProvider()
-    try:
-        audio = await provider.synthesize(reply)
+        audio = await synthesize_with_fallback(reply, config=load_model_config())
         await asyncio.to_thread(play_audio, audio)
     except Exception as exc:  # provider / playback errors must not kill the loop
         logger.warning("voice: spoken reply failed: %s", exc)

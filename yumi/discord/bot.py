@@ -340,6 +340,22 @@ def build_client():
         # _send_long_text already splits to safe chunk sizes — don't re-truncate.
         await _send_long_text(message.channel.send, text)
 
+    async def _send_voice_reply(channel, text: str) -> bool:
+        """Synthesize *text* and post it as an audio attachment. Returns False on
+        any failure so the caller can fall back to plain text."""
+        import io
+
+        try:
+            from yumi.core.features.tts.playback import synthesize_with_fallback
+
+            audio = await synthesize_with_fallback(text)
+            file = discord.File(io.BytesIO(audio.data), filename=f"reply.{audio.format or 'wav'}")
+            await channel.send(content=_truncate_for_discord(text) or None, file=file)
+            return True
+        except Exception as exc:  # synthesis or upload failed
+            _LOG.warning("discord: voice reply failed, falling back to text: %s", exc)
+            return False
+
     @bot.event
     async def on_ready() -> None:
         _LOG.info("Discord bot connected as %s", bot.user)
@@ -364,6 +380,24 @@ def build_client():
 
         reply = get_bridge_scope().link("discord", str(ctx.author.id), (code or "").strip())
         await ctx.send(reply)
+
+    @bot.command(name="voice")
+    async def voice_cmd(ctx, mode: str | None = None) -> None:
+        if not _authorized(ctx.author.id):
+            await ctx.send("You are not authorized to use this bot.")
+            return
+        from yumi.core.features.tts.reply_mode import is_voice_reply, set_voice_reply
+
+        channel_id = ctx.channel.id
+        arg = (mode or "").strip().lower()
+        if arg in ("on", "off"):
+            set_voice_reply("discord", channel_id, arg == "on")
+            await ctx.send(
+                "Voice replies are ON — I'll answer with audio." if arg == "on" else "Voice replies are OFF."
+            )
+            return
+        state = "ON" if is_voice_reply("discord", channel_id) else "OFF"
+        await ctx.send(f"Voice replies are {state}. Use !voice on or !voice off.")
 
     @bot.command(name="clear")
     async def clear_cmd(ctx) -> None:
@@ -537,8 +571,13 @@ def build_client():
                         return
                     await consume_chat_stream(_iter_chat_events_from_http_stream(response), handler)
 
-        if handler.final_text():
-            await _reply(message, handler.final_text())
+        final = handler.final_text()
+        if final:
+            from yumi.core.features.tts.reply_mode import is_voice_reply
+
+            spoke = is_voice_reply("discord", message.channel.id) and await _send_voice_reply(message.channel, final)
+            if not spoke:
+                await _reply(message, final)
 
     @bot.event
     async def on_message(message) -> None:

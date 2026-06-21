@@ -73,6 +73,28 @@ async def _send_long_text(send: Callable[[str], Awaitable[Any]], text: str) -> N
         await send(chunk)
 
 
+async def _send_voice_reply(context, chat_id: int, text: str) -> bool:
+    """Synthesize *text* and send it as an audio message. Returns False on any
+    failure so the caller can fall back to plain text."""
+    import io
+
+    try:
+        from yumi.core.features.tts.playback import synthesize_with_fallback
+
+        audio = await synthesize_with_fallback(text)
+        buffer = io.BytesIO(audio.data)
+        buffer.name = f"reply.{audio.format or 'wav'}"
+        await context.bot.send_audio(
+            chat_id=chat_id,
+            audio=buffer,
+            caption=_truncate_for_telegram(text)[:1024] or None,
+        )
+        return True
+    except Exception as exc:  # synthesis or upload failed
+        _LOG.warning("telegram: voice reply failed, falling back to text: %s", exc)
+        return False
+
+
 async def _iter_chat_events_from_http_stream(response: httpx.Response):
     """Parse one HTTP NDJSON ``response`` body into typed :class:`ChatEvent` objects.
 
@@ -361,6 +383,23 @@ def build_application():
         code = " ".join(context.args).strip() if context.args else ""
         reply = get_bridge_scope().link("telegram", str(user.id) if user else "", code)
         await update.message.reply_text(reply)
+
+    async def voice_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        if not _authorized(update.effective_user.id if update.effective_user else None):
+            await update.message.reply_text("You are not authorized to use this bot.")
+            return
+        from yumi.core.features.tts.reply_mode import is_voice_reply, set_voice_reply
+
+        chat_id = update.effective_chat.id
+        arg = context.args[0].strip().lower() if context.args else ""
+        if arg in ("on", "off"):
+            set_voice_reply("telegram", chat_id, arg == "on")
+            await update.message.reply_text(
+                "Voice replies are ON — I'll answer with audio." if arg == "on" else "Voice replies are OFF."
+            )
+            return
+        state = "ON" if is_voice_reply("telegram", chat_id) else "OFF"
+        await update.message.reply_text(f"Voice replies are {state}. Use /voice on or /voice off.")
 
     async def clear_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if not _authorized(update.effective_user.id if update.effective_user else None):
@@ -701,8 +740,13 @@ def build_application():
                     return
                 await consume_chat_stream(_iter_chat_events_from_http_stream(response), handler)
 
-        if handler.final_text():
-            await _send_long_text(lambda t: update.message.reply_text(t), handler.final_text())
+        final = handler.final_text()
+        if final:
+            from yumi.core.features.tts.reply_mode import is_voice_reply
+
+            spoke = is_voice_reply("telegram", chat_id) and await _send_voice_reply(context, chat_id, final)
+            if not spoke:
+                await _send_long_text(lambda t: update.message.reply_text(t), final)
 
     async def on_error(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
         _LOG.exception("Telegram handler error", exc_info=context.error)
@@ -719,6 +763,7 @@ def build_application():
     app.add_handler(CommandHandler("start", start_cmd))
     app.add_handler(CommandHandler("help", help_cmd))
     app.add_handler(CommandHandler("link", link_cmd))
+    app.add_handler(CommandHandler("voice", voice_cmd))
     app.add_handler(CommandHandler("clear", clear_cmd))
     app.add_handler(CommandHandler("start_log", start_log_cmd))
     app.add_handler(CommandHandler("end_log", end_log_cmd))

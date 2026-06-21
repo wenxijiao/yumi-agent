@@ -45,3 +45,33 @@ def test_speak_synthesizes_then_plays(monkeypatch):
     monkeypatch.setattr(playback, "play_audio", lambda audio: played.update(data=audio.data))
     speak("hello")
     assert played["data"] == b"AUDIO"
+
+
+def test_synthesize_with_fallback_uses_configured_provider(monkeypatch):
+    class FakeProvider:
+        async def synthesize(self, text, voice=None, language=None):
+            return SpeechAudio(data=b"CONFIGURED", format="wav")
+
+    monkeypatch.setattr(playback, "create_tts_provider", lambda config=None: FakeProvider())
+    import asyncio
+
+    audio = asyncio.run(playback.synthesize_with_fallback("hi"))
+    assert audio.data == b"CONFIGURED"
+
+
+def test_synthesize_with_fallback_drops_to_system_voice(monkeypatch):
+    from yumi.core.features.tts.base import TtsNotConfiguredError
+
+    def _disabled(config=None):
+        raise TtsNotConfiguredError("off")
+
+    class FakeSystem:
+        async def synthesize(self, text, voice=None, language=None):
+            return SpeechAudio(data=b"SYSTEM", format="wav")
+
+    monkeypatch.setattr(playback, "create_tts_provider", _disabled)
+    monkeypatch.setattr("yumi.core.features.tts.system_provider.SystemTtsProvider", lambda: FakeSystem())
+    import asyncio
+
+    audio = asyncio.run(playback.synthesize_with_fallback("hi"))
+    assert audio.data == b"SYSTEM"
