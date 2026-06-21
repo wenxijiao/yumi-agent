@@ -1,4 +1,11 @@
-"""Configuration routes."""
+"""Configuration routes.
+
+These admin routes (model, system prompt, …) have no per-request auth: yumi-agent
+is a personal single-user agent and the API is meant for a trusted local machine
+(it binds 127.0.0.1 by default — see SECURITY.md). Don't expose it on an
+untrusted network. Identity is resolved through a plugin port, so the same routes
+can carry per-user authorization under other deployment models.
+"""
 
 from __future__ import annotations
 

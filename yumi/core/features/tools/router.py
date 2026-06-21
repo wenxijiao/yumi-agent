@@ -1,4 +1,9 @@
-"""Tool listing and policy routes."""
+"""Tool listing and policy routes.
+
+Like the other admin routes, tool toggle/confirm have no per-request auth:
+yumi-agent is a single-user agent for a trusted local machine (binds 127.0.0.1
+by default — see SECURITY.md). Don't expose the API on an untrusted network.
+"""
 
 from __future__ import annotations
 

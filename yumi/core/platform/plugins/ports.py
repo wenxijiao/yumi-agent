@@ -28,7 +28,13 @@ class IdentityProvider(Protocol):
         """Return the identity bound to the current async context."""
 
     def from_request(self, request: Any) -> Identity | None:
-        """Best-effort identity from an incoming HTTP/WS request (default: ``None``)."""
+        """Best-effort identity from an incoming HTTP/WS request (default: ``None``).
+
+        The single-user default returns ``None`` — a personal self-hosted agent
+        has one user and authenticates nothing. This hook exists so the same
+        request flow can derive an identity differently under other deployment
+        models; it is an extension point, not a feature the OSS build omits.
+        """
 
 
 @runtime_checkable

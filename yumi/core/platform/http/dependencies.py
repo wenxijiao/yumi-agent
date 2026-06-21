@@ -19,6 +19,11 @@ def get_runtime(request: Request | None = None) -> RuntimeState:
 
 
 def current_identity_dependency() -> Identity:
+    # By design this returns the single local identity: yumi-agent is a personal
+    # single-user agent meant to run on your own machine (default bind is
+    # loopback — see SECURITY.md). There is no login because there is one user.
+    # The identity is resolved through a plugin port, so the same routes can be
+    # extended for other deployment models without changing this code.
     return get_current_identity()
 
 
