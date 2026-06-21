@@ -19,6 +19,7 @@ from yumi.core.platform.runtime.accessors import (
     parse_edge_connection_key,
 )
 from yumi.core.platform.tools.tool import TOOL_REGISTRY
+from yumi.core.platform.tools.validation import is_valid_tool_name
 
 # ── edge tool confirmation helpers ──
 
@@ -187,6 +188,14 @@ async def handle_edge_peer(peer):
         for tool_schema in tools:
             original_name = tool_schema["function"]["name"]
             prefixed_name = f"{tool_prefix}{original_name}"
+            if not is_valid_tool_name(prefixed_name):
+                logger.warning(
+                    "Edge %s: skipping tool with a provider-invalid name %r "
+                    "(allowed: letters, digits, '_' or '-', max 64 chars).",
+                    connection_key,
+                    prefixed_name,
+                )
+                continue
             schema_copy = deepcopy(tool_schema)
             schema_copy["function"]["name"] = prefixed_name
             tool_timeout = schema_copy.pop("timeout", None)

@@ -574,6 +574,11 @@ class YumiAgent:
         tool_name = schema["function"]["name"]
         if not tool_name or not str(tool_name).strip():
             raise ValueError("Tool name cannot be empty; pass a non-empty name=.")
+        if not re.match(r"^[a-zA-Z0-9_-]{1,64}$", str(tool_name)):
+            raise ValueError(
+                f"Tool name {tool_name!r} is invalid: use only letters, digits, '_' or '-' "
+                "(max 64 chars). Model providers reject other function names."
+            )
         if tool_name in self._tools:
             raise ValueError(f"A tool named {tool_name!r} is already registered; use a unique name= for each tool.")
         self._tools[tool_name] = {

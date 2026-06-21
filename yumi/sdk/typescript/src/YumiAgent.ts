@@ -224,6 +224,12 @@ export class YumiAgent {
   }
 
   register(opts: RegisterOptions): void {
+    if (!/^[a-zA-Z0-9_-]{1,64}$/.test(opts.name)) {
+      throw new Error(
+        `Tool name "${opts.name}" is invalid: use only letters, digits, '_' or '-' ` +
+          `(max 64 chars). Model providers reject other function names.`
+      );
+    }
     const schema = buildToolSchema(opts);
     this.tools.set(opts.name, {
       schema,
