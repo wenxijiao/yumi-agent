@@ -348,7 +348,7 @@ Yumi exposes `POST /line/webhook`, verifies `X-Line-Signature`, and forwards cha
 
 ## Voice
 
-`yumi --server --voice` attaches a microphone wake-word session to the running API. After the wake word ("hi yumi") fires, Yumi records until you pause, transcribes with the configured Whisper model, and sends the transcript through the same `/chat` flow used by `--chat` / `--ui` / Telegram. v1 produces text replies only; the operator sees them in server logs.
+`yumi --server --voice` attaches a microphone wake-word session to the running API. After the wake word ("hi yumi") fires, Yumi records until you pause, transcribes with the configured Whisper model, and sends the transcript through the same `/chat` flow used by `--chat` / `--ui` / Telegram. Replies are spoken back aloud via TTS (and logged) — see [Spoken replies (TTS)](#spoken-replies-tts) below.
 
 ### Install
 
@@ -387,10 +387,37 @@ The merge happens in `yumi/core/features/memory/context.py::ContextBuilder._rece
 
 ### v1 limits
 
-- Text reply only (no TTS, no voice → Telegram bridge).
 - Single owner per server instance — multiple humans sharing a microphone all get the same `voice_<owner>` session.
 - macOS / Linux desktop only. Docker has no microphone, and voice cannot run on a remote `--server`.
 - No barge-in. The model finishes its turn before the next utterance is processed.
+
+## Spoken replies (TTS)
+
+Yumi can speak its replies. In voice mode (`--server --voice`) replies are spoken automatically; on Telegram / Discord, `/voice on` (`!voice on`) switches a chat to audio replies; `yumi --speak "hello"` is a quick smoke test. Configure it in `yumi --setup` (step 4) or directly in `~/.yumi/config.json`.
+
+### Backends
+
+| `tts_provider` | What it is | Needs |
+|---|---|---|
+| `system` | OS speech command (macOS `say`, Linux `espeak`/`espeak-ng`) | nothing (zero-dependency default) |
+| `dashscope` | Qwen3-TTS via the Alibaba Cloud DashScope API | `DASHSCOPE_API_KEY`; `pip install yumi-agent[tts]` |
+| `qwen` | Qwen3-TTS run locally | an NVIDIA GPU; `pip install yumi-agent[tts-local]` |
+
+`yumi --setup` installs the extra for the chosen backend on demand.
+
+### Config keys
+
+- `tts_provider` — `disabled` (default) / `system` / `dashscope` / `qwen`.
+- `tts_voice` — voice/speaker name. DashScope: `Cherry`, `Serena`, `Ethan`, … ; local qwen: `Ryan`, `Vivian`, `Serena`, … ; `system` uses the OS default unless set.
+- `tts_model` — backend model id. DashScope defaults to `qwen3-tts-flash`; local qwen to `Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice`.
+- `tts_api_key` — DashScope key (or set `DASHSCOPE_API_KEY`).
+- `tts_language` — `auto` (default) or a language name (`English`, `Chinese`, …).
+
+Environment: `DASHSCOPE_API_KEY`, `DASHSCOPE_BASE_URL` (defaults to the international endpoint; set the Beijing endpoint for China).
+
+### Bridge replies
+
+On Telegram / Discord, audio replies are sent as a normal audio file (WAV) with the text as caption — not a native voice note (which would require OGG/Opus re-encoding). If synthesis or upload fails, Yumi falls back to a plain-text reply.
 
 ## Data Storage
 
