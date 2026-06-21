@@ -14,20 +14,25 @@ from yumi.core.platform.runtime.edge_registry import EdgeRegistry
 
 
 def gemini_safe_edge_segment(edge_name: str) -> str:
-    """Make a substring safe for Gemini ``function_declarations[].name``.
+    """Make an edge-name substring safe for EVERY provider's function name.
 
-    Allowed: letters, digits, ``_ . : -`` (see Google GenAI INVALID_ARGUMENT on tool names).
+    Uses the strictest common rule (OpenAI / Anthropic): letters, digits, ``_``
+    and ``-`` only — so the prefixed tool name validates regardless of which
+    provider is configured. Gemini also tolerates ``.``/``:`` but OpenAI /
+    Anthropic reject them (and the server's tool-name validation would then drop
+    the tool), so we normalize those to ``_``. Capped well under the 64-char
+    provider limit to leave room for the ``edge_<seg>__`` prefix + tool name.
     """
     s = (edge_name or "").strip()
     if not s:
         return "edge"
-    t = re.sub(r"[^a-zA-Z0-9_.:-]+", "_", s)
+    t = re.sub(r"[^a-zA-Z0-9_-]+", "_", s)
     t = re.sub(r"_+", "_", t).strip("_")
     if not t:
         return "edge"
-    if t[0] in "0123456789.-:":
+    if t[0] in "0123456789-":
         t = "e" + t
-    return t[:80]
+    return t[:32]
 
 
 def edge_tool_key_prefix(edge_name: str) -> str:
