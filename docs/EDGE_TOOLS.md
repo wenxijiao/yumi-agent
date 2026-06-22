@@ -38,9 +38,17 @@ This creates `yumi_tools/`, a `.env` file, and language-specific setup templates
 1. Open `yumi_tools/README.md`
 2. Open the README for your language
 3. Edit the generated setup file
-4. Call the generated initialization function from your real app entry point
+4. Choose a run mode:
+   - **Embedded**: call the generated initialization function from your real app entry point
+   - **Standalone**: run the generated edge by itself for a quick smoke test
 
-`yumi --edge` only scaffolds files. Your own app still needs to call the generated `init_*` / `Init*` function at runtime.
+`yumi --edge` only scaffolds files. For embedded use, your own app still needs to call the generated `init_*` / `Init*` function at runtime. For standalone use, run:
+
+```bash
+yumi --run-edge --lang python
+```
+
+If you omit `--lang`, Yumi auto-selects the only runnable template or asks which one to run.
 
 ## Tool Routing
 
@@ -248,13 +256,12 @@ Connection resolution is the same across all SDKs:
 | HTTP URL | `http://192.168.1.10:8000` |
 
 > **A LAN code is a connection string, not a credential.** It just encodes the
-> server host/port (so the SDK knows where to connect). The OSS server has no
-> auth, so reaching the host/port is what grants access — anyone on the network
-> who can connect, can register tools. The optional `lan_secret` HMAC only
-> detects tampering, and only when both ends share the secret; it does not
-> authenticate the client. Don't expose the server on an untrusted network
-> (the default bind is loopback-only — see [Configuration](CONFIGURATION.md));
-> per-user identity/auth is a higher-layer (L2) concern.
+> server host/port (so the SDK knows where to connect). The local server has no
+> built-in user auth, so reaching the host/port is what grants access — anyone
+> on the network who can connect can register tools. The optional `lan_secret`
+> HMAC only detects tampering, and only when both ends share the secret; it does
+> not authenticate the client. Don't expose the server on an untrusted network
+> (the default bind is loopback-only — see [Configuration](CONFIGURATION.md)).
 
 ## Tool Confirmation
 
@@ -284,6 +291,16 @@ Do not enable proactive access for tools with side effects. Tools that require c
 | `yumi --edge --lang rust` | Rust template + `yumi_sdk` crate |
 | `yumi --edge --lang kotlin` | Kotlin template + `io.yumi.sdk` sources |
 | `yumi --edge --lang dart` | Dart template + `yumi_sdk` package |
+
+## Running A Standalone Edge
+
+Use `yumi --run-edge` when you want the generated setup file to be the process:
+
+```bash
+yumi --run-edge --lang python
+```
+
+This is useful for testing tools before embedding them in a real app. Embedded apps should call the generated init function and keep their own main loop.
 
 ## Further Reading
 

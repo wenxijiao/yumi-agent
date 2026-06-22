@@ -70,11 +70,12 @@ yumi --setup
 | Provider | Chat | Embedding | Notes |
 |---|---|---|---|
 | `ollama` | Yes | Yes | Local models, no API key needed |
-| `openai` | Yes | Yes | Also works with OpenAI-compatible endpoints (including DeepSeek via `openai_base_url`) |
+| `openai` | Yes | Yes | Also works with OpenAI-compatible endpoints via `openai_base_url` |
 | `gemini` | Yes | Yes | Google Gemini |
 | `fastembed` | No | Yes | Local multilingual embeddings installed/downloaded from the CLI |
 | `claude` | Yes | No | Anthropic Claude (use another provider for embeddings) |
 | `deepseek` | Yes | No | DeepSeek chat API; use another provider for embeddings |
+| `grok` | Yes | No | xAI Grok chat API; use another provider for embeddings |
 
 You can mix providers — for example OpenAI for chat and Ollama for embeddings.
 

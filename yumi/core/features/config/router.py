@@ -107,8 +107,11 @@ def _model_config_public_dict() -> dict:
         "claude_api_key_effective": bool(creds.get("claude_api_key")),
         "deepseek_api_key_saved": bool(saved.deepseek_api_key and str(saved.deepseek_api_key).strip()),
         "deepseek_api_key_effective": bool(creds.get("deepseek_api_key")),
+        "grok_api_key_saved": bool(saved.grok_api_key and str(saved.grok_api_key).strip()),
+        "grok_api_key_effective": bool(creds.get("grok_api_key")),
         "openai_base_url": saved.openai_base_url or "",
         "deepseek_base_url": saved.deepseek_base_url or "",
+        "grok_base_url": saved.grok_base_url or "",
     }
 
 
@@ -199,6 +202,13 @@ async def update_model_config_endpoint(request: ModelConfigUpdateRequest):
         v = request.deepseek_base_url.strip()
         config.deepseek_base_url = v if v else None
         keys_or_base_changed = True
+    if request.grok_api_key is not None and request.grok_api_key.strip():
+        config.grok_api_key = request.grok_api_key.strip()
+        keys_or_base_changed = True
+    if request.grok_base_url is not None:
+        v = request.grok_base_url.strip()
+        config.grok_base_url = v if v else None
+        keys_or_base_changed = True
 
     try:
         ensure_embedding_provider_supported(config.embedding_provider)
@@ -220,7 +230,7 @@ async def update_model_config_endpoint(request: ModelConfigUpdateRequest):
         raise provider_not_ready_http(exc) from exc
 
     need_reinit = provider_changed or (
-        keys_or_base_changed and config.chat_provider in ("openai", "gemini", "claude", "deepseek")
+        keys_or_base_changed and config.chat_provider in ("openai", "gemini", "claude", "deepseek", "grok")
     )
 
     if _state.get_runtime().bot:

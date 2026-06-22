@@ -180,34 +180,52 @@ def _prompt_line_credentials_if_missing() -> bool:
 
 
 def setup_messaging_tokens() -> None:
-    """Optional, interactive: configure Telegram / Discord bot tokens during
-    ``yumi --setup`` so ``yumi --server --telegram --discord`` won't prompt later."""
+    """Optional Step 5 of ``yumi --setup`` for messaging bridge credentials."""
     if not (sys.stdin.isatty() and sys.stdout.isatty()):
         return
-    print()
-    print("  Messaging bridges (optional) — chat with Yumi from Telegram / Discord.")
-    print("  Configure now or press Enter to skip. You can run several at once:")
-    print("    yumi --server --telegram --discord")
-    if get_telegram_bot_token():
-        print("  Telegram: already configured.")
-    else:
-        token = input("  Telegram bot token (@BotFather; Enter to skip): ").strip()
-        if token:
-            try:
-                save_telegram_bot_token(token)
-                print(f"  Telegram token saved to {CONFIG_PATH}.")
-            except ValueError as exc:
-                print(f"  {exc}")
-    if get_discord_bot_token():
-        print("  Discord: already configured.")
-    else:
-        token = input("  Discord bot token (Developer Portal — enable Message Content; Enter to skip): ").strip()
-        if token:
-            try:
-                save_discord_bot_token(token)
-                print(f"  Discord token saved to {CONFIG_PATH}.")
-            except ValueError as exc:
-                print(f"  {exc}")
+
+    from yumi.core.features.config.setup_wizard import _select_option
+
+    while True:
+        options = [
+            (
+                "telegram",
+                "Telegram",
+                "configured" if get_telegram_bot_token() else "set bot token",
+            ),
+            (
+                "discord",
+                "Discord",
+                "configured" if get_discord_bot_token() else "set bot token",
+            ),
+            (
+                "line",
+                "LINE",
+                "configured"
+                if get_line_channel_secret() and get_line_channel_access_token()
+                else "set channel secret and access token",
+            ),
+            ("skip", "Skip messaging setup", ""),
+        ]
+        choice = _select_option(
+            step="Step 5/5: Messaging bridges",
+            title="Configure messaging bridges?",
+            message=(
+                "Optional. You can chat with Yumi from Telegram, Discord, or LINE. "
+                "Missing credentials can also be filled later when you start a bridge."
+            ),
+            options=options,
+        )
+        if choice == "telegram":
+            _prompt_telegram_bot_token_if_missing()
+            continue
+        if choice == "discord":
+            _prompt_discord_bot_token_if_missing()
+            continue
+        if choice == "line":
+            _prompt_line_credentials_if_missing()
+            continue
+        return
 
 
 # ── connection code prompt ──
@@ -854,6 +872,121 @@ def run_edge(lang: str | list[str] | None = None, edge_name: str | None = None):
         print("  2. cd yumi_tools/dart && dart pub get && dart run")
         print("  3. Edit lib/yumi_setup.dart")
         print()
+
+
+_RUN_EDGE_COMMANDS: dict[str, tuple[list[str], str, str, str]] = {
+    "python": (
+        [sys.executable, "-m", "yumi_tools.python.yumi_setup"],
+        ".",
+        os.path.join("yumi_tools", "python", "yumi_setup.py"),
+        "Run the generated Python standalone edge.",
+    ),
+    "typescript": (
+        ["npx", "tsx", "yumiSetup.ts"],
+        os.path.join("yumi_tools", "typescript"),
+        os.path.join("yumi_tools", "typescript", "yumiSetup.ts"),
+        "Run the generated TypeScript standalone edge.",
+    ),
+    "go": (
+        ["go", "run", "."],
+        os.path.join("yumi_tools", "go"),
+        os.path.join("yumi_tools", "go", "main.go"),
+        "Run the generated Go standalone edge.",
+    ),
+    "rust": (
+        ["cargo", "run"],
+        os.path.join("yumi_tools", "rust"),
+        os.path.join("yumi_tools", "rust", "src", "main.rs"),
+        "Run the generated Rust standalone edge.",
+    ),
+    "kotlin": (
+        ["gradle", "run"],
+        os.path.join("yumi_tools", "kotlin"),
+        os.path.join("yumi_tools", "kotlin", "src", "main", "kotlin", "io", "yumi", "edge", "Main.kt"),
+        "Run the generated Kotlin standalone edge.",
+    ),
+    "dart": (
+        ["dart", "run"],
+        os.path.join("yumi_tools", "dart"),
+        os.path.join("yumi_tools", "dart", "bin", "yumi_edge.dart"),
+        "Run the generated Dart standalone edge.",
+    ),
+}
+
+
+def _available_run_edge_langs(workspace: str) -> list[str]:
+    available: list[str] = []
+    for lang_key, (_, _rel_cwd, marker, _) in _RUN_EDGE_COMMANDS.items():
+        if os.path.isfile(os.path.join(workspace, marker)):
+            available.append(lang_key)
+    return available
+
+
+def _prompt_run_edge_language(available: list[str]) -> str:
+    print("  Which standalone edge should run?")
+    print("  Options: " + ", ".join(available))
+    while True:
+        raw = input("  Language: ").strip().lower()
+        if raw in available:
+            return raw
+        print("  Pick one of: " + ", ".join(available))
+
+
+def run_edge_standalone(lang: str | list[str] | None = None) -> None:
+    """Run a generated standalone Edge template from the current workspace."""
+    workspace = os.getcwd()
+    selected = _parse_edge_langs([lang] if isinstance(lang, str) else lang)
+    available = _available_run_edge_langs(workspace)
+
+    if not os.path.isdir(os.path.join(workspace, "yumi_tools")):
+        print("  No yumi_tools/ directory found. Create one first with: yumi --edge")
+        return
+
+    if selected:
+        unsupported = [item for item in selected if item not in _RUN_EDGE_COMMANDS]
+        if unsupported:
+            print(
+                "  Standalone run is not wired for: "
+                + ", ".join(unsupported)
+                + ". Embed that SDK in your app, or run it with its language guide."
+            )
+            return
+        missing = [item for item in selected if item not in available]
+        if missing:
+            print(
+                "  Template not found for: " + ", ".join(missing) + ". Generate it first with `yumi --edge --lang ...`."
+            )
+            return
+        if len(selected) > 1:
+            print("  Choose one language for --run-edge, for example: yumi --run-edge --lang python")
+            return
+        lang_key = selected[0]
+    else:
+        if not available:
+            print("  No runnable standalone Edge template found under yumi_tools/.")
+            print("  Try: yumi --edge --lang python")
+            return
+        if len(available) == 1 or not sys.stdin.isatty():
+            if len(available) > 1:
+                print("  Multiple standalone edges found: " + ", ".join(available))
+                print("  Choose one with: yumi --run-edge --lang python")
+                return
+            lang_key = available[0]
+        else:
+            lang_key = _prompt_run_edge_language(available)
+
+    cmd, rel_cwd, _marker, note = _RUN_EDGE_COMMANDS[lang_key]
+    cwd = workspace if rel_cwd == "." else os.path.join(workspace, rel_cwd)
+    rows = [
+        ("Workspace:", workspace),
+        ("Language:", lang_key),
+        ("Command:", " ".join(cmd)),
+    ]
+    _print_banner("Yumi Edge Runner", rows, [note, "Press Ctrl+C to stop the edge."])
+    try:
+        subprocess.run(cmd, cwd=cwd, env=os.environ.copy())
+    except FileNotFoundError:
+        print(f"  Could not find `{cmd[0]}` on PATH. Install the {lang_key} toolchain, then try again.")
 
 
 def _write_connection_code(env_path: str, code: str) -> None:

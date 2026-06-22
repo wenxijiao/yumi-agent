@@ -16,12 +16,12 @@ Edit that JSON file for normal persistent configuration. Environment variables a
 
 Model and provider fields:
 
-- `chat_provider`: Chat model provider. Common values: `ollama`, `openai`, `gemini`, `claude`, `deepseek`. Default: `ollama`.
+- `chat_provider`: Chat model provider. Common values: `ollama`, `openai`, `gemini`, `claude`, `deepseek`, `grok`. Default: `ollama`.
 - `chat_model`: Chat model name. `null` means Yumi will use provider defaults/setup.
-- `embedding_provider`: Embedding provider. Default: `ollama`. `openai`, `gemini`, `fastembed`, and `ollama` can embed (`claude` / `deepseek` have no embedding API); choose one of those for cross-session memory vectors. `fastembed` is the setup wizard's no-Ollama local option and is installed/downloaded from the CLI when selected.
+- `embedding_provider`: Embedding provider. Default: `ollama`. `openai`, `gemini`, `fastembed`, and `ollama` can embed (`claude` / `deepseek` / `grok` have no embedding API); choose one of those for cross-session memory vectors. `fastembed` is the setup wizard's no-Ollama local option and is installed/downloaded from the CLI when selected.
 - `embedding_model`: Embedding model name. `null` means provider default/setup.
 - `embedding_dim`: Optional embedding vector dimension override. Usually leave `null`.
-- `openai_api_key`, `openai_base_url`, `gemini_api_key`, `claude_api_key`, `deepseek_api_key`, `deepseek_base_url`: Saved provider credentials/base URL. Environment variables override these.
+- `openai_api_key`, `openai_base_url`, `gemini_api_key`, `claude_api_key`, `deepseek_api_key`, `deepseek_base_url`, `grok_api_key`, `grok_base_url`: Saved provider credentials/base URL. Environment variables override these.
 
 Prompt and session fields:
 
@@ -120,7 +120,7 @@ Chat NDJSON tracing (optional): from Telegram (`/start_log` / `/end_log`), LINE,
 
 | Variable | Description |
 |---|---|
-| `YUMI_CHAT_PROVIDER` | Override chat provider (`ollama`, `openai`, `gemini`, `claude`, `deepseek`) |
+| `YUMI_CHAT_PROVIDER` | Override chat provider (`ollama`, `openai`, `gemini`, `claude`, `deepseek`, `grok`) |
 | `YUMI_CHAT_MODEL` | Override chat model |
 | `YUMI_EMBEDDING_PROVIDER` | Override embedding provider |
 | `YUMI_EMBED_MODEL` | Override embedding model |
@@ -130,6 +130,8 @@ Chat NDJSON tracing (optional): from Telegram (`/start_log` / `/end_log`), LINE,
 | `ANTHROPIC_API_KEY` | Anthropic Claude API key |
 | `DEEPSEEK_API_KEY` | DeepSeek API key (when `chat_provider` is `deepseek`) |
 | `DEEPSEEK_BASE_URL` | Optional DeepSeek API base URL (defaults to `https://api.deepseek.com`) |
+| `XAI_API_KEY` | xAI Grok API key (when `chat_provider` is `grok`) |
+| `XAI_BASE_URL` | Optional Grok API base URL (defaults to `https://api.x.ai/v1`) |
 | `OLLAMA_HOST` | Ollama server URL (default `http://127.0.0.1:11434`; useful when Ollama runs on a different host or in Docker) |
 | `YUMI_DEBUG_DIR` | Override directory for debug artifacts (default `~/.yumi/debug`; chat traces use `chat_trace/` under this) |
 | `YUMI_CHAT_DEBUG_REDACT_IMAGE_DATA` | When `1` / `true`, inline `data:...;base64,...` image URLs inside trace NDJSON `llm_provider_request` records are replaced with short placeholders (smaller files). Does not change what is sent to the model—only what is written to disk. When chat-debug tracing is enabled for a session, traces already include the full composed provider `messages` and `tools` after `compose_messages`. |
@@ -426,7 +428,7 @@ On Telegram / Discord, audio replies are sent as a normal audio file (WAV) with 
 | `~/.yumi/config.json` | Model config, prompt config, saved connection code |
 | `~/.yumi/memory/` | Session history and embeddings |
 
-`config.json` can hold **multiple provider API keys at once** (`openai_api_key`, `gemini_api_key`, `claude_api_key`, `deepseek_api_key`, and optional `openai_base_url`, `deepseek_base_url`). You can also use **`openai` + `openai_base_url`** pointed at DeepSeek’s OpenAI-compatible endpoint instead of `chat_provider: "deepseek"`. Environment variables still win when set. `yumi --setup` only asks for what the chosen chat/embedding providers need; for local embeddings it can install FastEmbed and download a multilingual model directly from the CLI. You can add other keys later via the web UI **Model Configuration** dialog or by editing `config.json`, so switching providers does not require re-entering keys once they are saved.
+`config.json` can hold **multiple provider API keys at once** (`openai_api_key`, `gemini_api_key`, `claude_api_key`, `deepseek_api_key`, `grok_api_key`, and optional provider base URLs). You can use the dedicated `deepseek` and `grok` providers, or point `openai_base_url` at another OpenAI-compatible endpoint. Environment variables still win when set. `yumi --setup` only asks for what the chosen chat/embedding providers need; for local embeddings it can install FastEmbed and download a multilingual model directly from the CLI. You can add other keys later via the web UI **Model Configuration** dialog or by editing `config.json`, so switching providers does not require re-entering keys once they are saved.
 
 To clear only memory and embeddings (keeping config):
 
@@ -450,12 +452,12 @@ When `yumi --server` starts, it prints:
 You can use those codes from `--chat`, `--ui`, `--edge`, or from any SDK.
 
 > **A connection code is a connection string, not a credential.** It just
-> encodes the server host/port. The OSS server has no auth, so reaching the
-> host/port is what grants access; the optional `lan_secret` HMAC only detects
-> tampering when both ends share the secret. The server binds to loopback by
-> default — expose it on a LAN only on a trusted network (`yumi --server --host
-> 0.0.0.0`). Per-user identity/auth is a higher-layer (L2) concern. See
-> [Edge Tools → Connection Code Formats](EDGE_TOOLS.md#connection-code-formats).
+> encodes the server host/port. The local server has no built-in user auth, so
+> reaching the host/port is what grants access; the optional `lan_secret` HMAC
+> only detects tampering when both ends share the secret. The server binds to
+> loopback by default — expose it on a LAN only on a trusted network (`yumi
+> --server --host 0.0.0.0`). See [Edge Tools → Connection Code
+> Formats](EDGE_TOOLS.md#connection-code-formats).
 
 Yumi saves the last successful connection code in `~/.yumi/config.json` and reuses it automatically.
 
@@ -491,7 +493,7 @@ To pass model configuration, uncomment or add environment variables in `docker-c
 ```yaml
 environment:
   YUMI_CHAT_PROVIDER: openai
-  YUMI_CHAT_MODEL: gpt-4o
+  YUMI_CHAT_MODEL: gpt-5.5
   OPENAI_API_KEY: sk-...
 ```
 

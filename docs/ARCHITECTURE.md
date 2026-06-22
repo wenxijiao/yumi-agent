@@ -197,7 +197,7 @@ The CLI is a **Command Pattern + Registry** in `yumi/cli/`:
 | `cli/registry.py` | `Command` ABC + `CommandRegistry` |
 | `cli/commands.py` | One `Command` subclass per sub-command, plus `validate_cross_command_flags` |
 
-`main()` builds the default registry, mounts each command's argparse flags, runs cross-command validation, then dispatches. Adding a sub-command is one `Command` subclass + one `registry.add(...)` line — no four-place edit. Higher layers can inject extra sub-commands via the [`AdminCli`](#plugin-ports) plugin port without changing L1.
+`main()` builds the default registry, mounts each command's argparse flags, runs cross-command validation, then dispatches. Adding a sub-command is one `Command` subclass + one `registry.add(...)` line — no four-place edit. Optional plugins can inject extra sub-commands via the [`AdminCli`](#plugin-ports) plugin port without changing the core CLI.
 
 ## Server-Side Tools
 
@@ -213,9 +213,9 @@ When the LLM selects an edge tool, `EdgeToolExecutor` sends a `tool_call` messag
 
 ## Plugin Ports
 
-`yumi/core/platform/plugins/ports.py` declares the protocols higher layers can implement. The core MUST only depend on these abstractions and never import L2/L3 packages directly.
+`yumi/core/platform/plugins/ports.py` declares the protocols optional plugins can implement. The core MUST only depend on these abstractions and never import plugin packages directly.
 
-| Port | Core default | Higher-layer replacement |
+| Port | Core default | Optional plugin |
 |---|---|---|
 | `IdentityProvider` | local synthetic user | authenticated identity |
 | `QuotaPolicy` | no-op | usage policy |

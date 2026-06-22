@@ -374,9 +374,8 @@ def build_client():
 
     @bot.command(name="link")
     async def link_cmd(ctx, code: str | None = None) -> None:
-        # !link binds this Discord account to a Yumi account in multi-user
-        # deployments (BridgeScope plugin). The single-user default just says no
-        # binding is needed.
+        # !link binds this Discord account when an identity plugin is present.
+        # The single-user default just says no binding is needed.
         from yumi.core.platform.plugins import get_bridge_scope
 
         reply = get_bridge_scope().link("discord", str(ctx.author.id), (code or "").strip())

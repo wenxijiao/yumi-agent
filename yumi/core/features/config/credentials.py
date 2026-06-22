@@ -19,6 +19,8 @@ def get_api_credentials() -> dict[str, str | None]:
         "claude_api_key": os.getenv("ANTHROPIC_API_KEY") or config.claude_api_key,
         "deepseek_api_key": os.getenv("DEEPSEEK_API_KEY") or config.deepseek_api_key,
         "deepseek_base_url": os.getenv("DEEPSEEK_BASE_URL") or config.deepseek_base_url,
+        "grok_api_key": os.getenv("XAI_API_KEY") or os.getenv("GROK_API_KEY") or config.grok_api_key,
+        "grok_base_url": os.getenv("XAI_BASE_URL") or os.getenv("GROK_BASE_URL") or config.grok_base_url,
     }
 
 
@@ -89,6 +91,13 @@ def ensure_provider_available(provider_name: str) -> None:
                 "DeepSeek API key is required for the DeepSeek provider.",
                 hint="Set DEEPSEEK_API_KEY or save deepseek_api_key in ~/.yumi/config.json or the web UI model settings.",
             )
+    elif provider_name == "grok":
+        if not creds["grok_api_key"]:
+            raise ProviderNotReadyError(
+                "YUMI_MISSING_GROK_KEY",
+                "Grok API key is required for the Grok provider.",
+                hint="Set XAI_API_KEY or save grok_api_key in ~/.yumi/config.json or the web UI model settings.",
+            )
     elif provider_name == "fastembed":
         if importlib.util.find_spec("fastembed") is None:
             raise ProviderNotReadyError(
@@ -132,6 +141,8 @@ _ENV_KEY_TO_PROVIDER: tuple[tuple[str, str], ...] = (
     ("ANTHROPIC_API_KEY", "claude"),
     ("GEMINI_API_KEY", "gemini"),
     ("DEEPSEEK_API_KEY", "deepseek"),
+    ("XAI_API_KEY", "grok"),
+    ("GROK_API_KEY", "grok"),
 )
 
 

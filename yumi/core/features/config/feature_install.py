@@ -73,8 +73,11 @@ def ensure_feature_installed(feature: str, *, assume_yes: bool = False) -> bool:
         return True
 
     print()
-    print(f"  {label} needs an optional package that isn't installed yet.")
-    answer = "y" if assume_yes else input("  Install it now? (Y/n): ").strip().lower()
+    if assume_yes:
+        answer = "y"
+    else:
+        print(f"  {label} needs an optional package that isn't installed yet.")
+        answer = input("  Install it now? (Y/n): ").strip().lower()
     if answer in ("n", "no"):
         print(f"  Skipped. Install later with:  pip install 'yumi-agent[{extra}]'")
         return False

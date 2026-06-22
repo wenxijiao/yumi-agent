@@ -268,6 +268,27 @@ class EdgeCommand(Command):
         run_edge(lang=_parse_edge_langs(args.langs), edge_name=args.edge_name)
 
 
+class RunEdgeCommand(Command):
+    name = "run-edge"
+
+    def register(self, parser, mutex_group):
+        mutex_group.add_argument(
+            "--run-edge",
+            "--run_edge",
+            dest="run_edge",
+            action="store_true",
+            help="Run a generated standalone Yumi Edge template",
+        )
+
+    def matches(self, args):
+        return bool(getattr(args, "run_edge", False))
+
+    def run(self, args):
+        from yumi.cli import _parse_edge_langs, run_edge_standalone
+
+        run_edge_standalone(lang=_parse_edge_langs(args.langs))
+
+
 class DemoCommand(Command):
     name = "demo"
 
@@ -297,13 +318,13 @@ class SetupCommand(Command):
             "--provider",
             dest="setup_provider",
             default=None,
-            help="With --setup: chat provider (ollama/openai/claude/gemini/deepseek), non-interactive",
+            help="With --setup: chat provider (ollama/openai/claude/gemini/deepseek/grok), non-interactive",
         )
         parser.add_argument(
             "--model",
             dest="setup_model",
             default=None,
-            help="With --setup: chat model (default: provider's recommended)",
+            help="With --setup: chat model (default: provider fallback)",
         )
         parser.add_argument(
             "--api-key", dest="setup_api_key", default=None, help="With --setup: API key for the chosen cloud provider"
@@ -447,6 +468,7 @@ _NON_SERVER_BASE_FLAGS = (
     "speak",
     "chat",
     "edge",
+    "run_edge",
     "demo",
     "setup",
     "config",
@@ -454,6 +476,14 @@ _NON_SERVER_BASE_FLAGS = (
     "cleanup_memory",
     "tool_routing",
 )
+_PRIMARY_COMMAND_FLAGS = ("server",) + _NON_SERVER_BASE_FLAGS
+
+
+def _flag_is_selected(args: argparse.Namespace, flag: str) -> bool:
+    value = getattr(args, flag, False)
+    if flag == "speak":
+        return value is not None
+    return bool(value)
 
 
 def _format_non_server_flag_list() -> str:
@@ -467,10 +497,16 @@ def validate_cross_command_flags(args: argparse.Namespace) -> str | None:
     Per-command checks live in each :class:`Command.validate`. This helper
     handles the combinations the OSS CLI has historically rejected:
 
+    * more than one primary command together,
     * any two of ``--telegram`` / ``--discord`` / ``--line`` together,
     * ``--telegram`` / ``--discord`` / ``--line`` combined with any non-server command,
     * ``--tool-routing``-only flags used without ``--tool-routing``.
     """
+    primary_flags = [flag for flag in _PRIMARY_COMMAND_FLAGS if _flag_is_selected(args, flag)]
+    if len(primary_flags) > 1:
+        pretty = ", ".join(f"--{flag.replace('_', '-')}" for flag in primary_flags)
+        return f"Choose only one main command at a time ({pretty})."
+
     bridge_flags = [f for f in ("telegram", "discord", "line") if getattr(args, f, False)]
     if len(bridge_flags) > 1 and not getattr(args, "server", False):
         return (
@@ -487,7 +523,7 @@ def validate_cross_command_flags(args: argparse.Namespace) -> str | None:
     flag_list = _format_non_server_flag_list()
 
     if bridge_flags:
-        if any(getattr(args, flag, False) for flag in _NON_SERVER_BASE_FLAGS):
+        if any(_flag_is_selected(args, flag) for flag in _NON_SERVER_BASE_FLAGS):
             return f"Cannot combine --telegram/--discord/--line with {flag_list}."
 
     if getattr(args, "voice", False):
@@ -495,7 +531,7 @@ def validate_cross_command_flags(args: argparse.Namespace) -> str | None:
             return "Cannot combine --voice with --discord."
         if getattr(args, "line", False):
             return "Cannot combine --voice with --line."
-        if any(getattr(args, flag, False) for flag in _NON_SERVER_BASE_FLAGS):
+        if any(_flag_is_selected(args, flag) for flag in _NON_SERVER_BASE_FLAGS):
             return f"Cannot combine --voice with {flag_list}."
         if not getattr(args, "server", False):
             return "--voice is a modifier; it must be combined with --server."
@@ -509,17 +545,18 @@ def build_default_registry() -> CommandRegistry:
     """Return the OSS-default :class:`CommandRegistry`.
 
     Order is significant only for ``--help`` output (commands are listed in
-    insertion order). Enterprise builds may extend the registry via the
-    ``AdminCli`` plugin port without altering this file.
+    insertion order). Plugins may extend the registry via the ``AdminCli`` port
+    without altering this file.
     """
     registry = CommandRegistry()
-    # mutex commands first so their primary flags appear together in --help
+    # Registration order controls display order within help sections.
     registry.add(ServerCommand())
-    registry.add(UICommand())
-    registry.add(SpeakCommand())
     registry.add(ChatCommand())
-    registry.add(EdgeCommand())
+    registry.add(UICommand())
     registry.add(DemoCommand())
+    registry.add(SpeakCommand())
+    registry.add(EdgeCommand())
+    registry.add(RunEdgeCommand())
     registry.add(SetupCommand())
     registry.add(ConfigCommand())
     registry.add(ToolRoutingCommand())
@@ -542,6 +579,7 @@ __all__ = [
     "DiscordStandaloneCommand",
     "EdgeCommand",
     "LineStandaloneCommand",
+    "RunEdgeCommand",
     "ServerCommand",
     "SetupCommand",
     "TelegramStandaloneCommand",

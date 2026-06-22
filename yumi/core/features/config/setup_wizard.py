@@ -1,6 +1,9 @@
 """Interactive terminal wizard for chat/embedding model selection."""
 
 import os
+import shutil
+import sys
+import textwrap
 
 from yumi.core.features.config.credentials import (
     _get_provider,
@@ -11,15 +14,216 @@ from yumi.core.features.config.credentials import (
     is_model_available,
 )
 from yumi.core.features.config.model import (
-    RECOMMENDED_CHAT_MODEL,
     RECOMMENDED_CHAT_MODELS,
-    RECOMMENDED_EMBEDDING_MODEL,
     RECOMMENDED_EMBEDDING_MODELS,
-    RECOMMENDED_STT_MODEL,
     ModelConfig,
 )
-from yumi.core.features.config.paths import CONFIG_PATH
+from yumi.core.features.config.paths import CONFIG_DIR, CONFIG_PATH
 from yumi.core.features.config.store import load_model_config, load_saved_model_config, save_model_config
+
+
+def _interactive_terminal() -> bool:
+    return bool(sys.stdin.isatty() and sys.stdout.isatty())
+
+
+def _clear_screen() -> None:
+    if not _interactive_terminal():
+        return
+    os.system("cls" if os.name == "nt" else "clear")
+
+
+def _red(text: str) -> str:
+    if not _interactive_terminal() or os.getenv("NO_COLOR"):
+        return text
+    return f"\033[31m{text}\033[0m"
+
+
+def _yellow(text: str) -> str:
+    if not _interactive_terminal() or os.getenv("NO_COLOR"):
+        return text
+    return f"\033[33m{text}\033[0m"
+
+
+_SELECT_TEXT_PAD = "   "
+
+
+def _select_wrap_width(prefix: str) -> int:
+    columns = shutil.get_terminal_size((100, 24)).columns
+    return max(20, columns - len(prefix) - 1)
+
+
+def _wrapped_select_lines(text: str, *, prefix: str) -> list[str]:
+    lines: list[str] = []
+    for raw in text.splitlines() or [""]:
+        wrapped = textwrap.wrap(
+            raw,
+            width=_select_wrap_width(prefix),
+            break_long_words=False,
+            break_on_hyphens=False,
+        )
+        lines.extend(wrapped or [""])
+    return lines
+
+
+def _print_select_text(text: str = "", *, style=None) -> None:
+    if not text:
+        print()
+        return
+    for line in _wrapped_select_lines(text, prefix=_SELECT_TEXT_PAD):
+        print(f"{_SELECT_TEXT_PAD}{style(line) if style else line}")
+
+
+def _print_select_option(marker: str, text: str) -> None:
+    first_prefix = f" {marker} "
+    for index, line in enumerate(_wrapped_select_lines(text, prefix=first_prefix)):
+        prefix = first_prefix if index == 0 else _SELECT_TEXT_PAD
+        print(f"{prefix}{line}")
+
+
+def _read_key() -> str:
+    """Read one navigation key from an interactive terminal."""
+    if os.name == "nt":
+        import msvcrt
+
+        ch = msvcrt.getwch()
+        if ch == "\x03":
+            raise KeyboardInterrupt
+        if ch in ("\x00", "\xe0"):
+            code = msvcrt.getwch()
+            if code == "H":
+                return "up"
+            if code == "P":
+                return "down"
+            return ""
+        if ch in ("\r", "\n"):
+            return "enter"
+        return ch
+
+    import termios
+    import tty
+
+    fd = sys.stdin.fileno()
+    old = termios.tcgetattr(fd)
+    try:
+        tty.setraw(fd)
+        ch = sys.stdin.read(1)
+        if ch == "\x03":
+            raise KeyboardInterrupt
+        if ch in ("\r", "\n"):
+            return "enter"
+        if ch == "\x1b":
+            seq = sys.stdin.read(2)
+            if seq == "[A":
+                return "up"
+            if seq == "[B":
+                return "down"
+            return ""
+        return ch
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old)
+
+
+def _draw_select_page(
+    *,
+    step: str | None,
+    title: str,
+    options: list[tuple[str, str, str]],
+    selected: int,
+    message: str | None = None,
+    warning: str | None = None,
+    error: str | None = None,
+    footer: str | None = None,
+) -> None:
+    _clear_screen()
+    _print_select_text("Yumi setup")
+    if step:
+        _print_select_text(step)
+    print()
+    _print_select_text(title)
+    if message:
+        _print_select_text(message)
+    if warning:
+        print()
+        _print_select_text(warning, style=_yellow)
+    if error:
+        print()
+        _print_select_text(error, style=_red)
+    print()
+    label_width = max((len(label) for _value, label, _description in options), default=0)
+    for index, (_value, label, description) in enumerate(options):
+        marker = ">" if index == selected else " "
+        if description:
+            _print_select_option(marker, f"{label:<{label_width}} — {description}")
+        else:
+            _print_select_option(marker, label)
+    print()
+    _print_select_text(footer or "Use ↑/↓ to move. Press Enter to confirm.")
+
+
+def _select_option(
+    *,
+    title: str,
+    options: list[tuple[str, str, str]],
+    step: str | None = None,
+    message: str | None = None,
+    warning: str | None = None,
+    error: str | None = None,
+    footer: str | None = None,
+    default: int = 0,
+) -> str:
+    """Select an option with arrow keys on a TTY, numeric input otherwise."""
+    if not options:
+        raise ValueError("options cannot be empty")
+
+    if not _interactive_terminal():
+        if step:
+            print(step)
+        print(title)
+        if message:
+            print(message)
+        if warning:
+            print(warning)
+        if error:
+            print(error)
+        for i, (_value, label, description) in enumerate(options, 1):
+            suffix = f" — {description}" if description else ""
+            print(f"  {i}. {label}{suffix}")
+        while True:
+            choice = input("> ").strip()
+            if not choice:
+                return options[min(max(default, 0), len(options) - 1)][0]
+            try:
+                idx = int(choice)
+            except ValueError:
+                print(f"Please enter a number from 1 to {len(options)}.")
+                continue
+            if 1 <= idx <= len(options):
+                return options[idx - 1][0]
+            print("That selection is out of range.")
+
+    selected = min(max(default, 0), len(options) - 1)
+    while True:
+        _draw_select_page(
+            step=step,
+            title=title,
+            message=message,
+            warning=warning,
+            error=error,
+            options=options,
+            selected=selected,
+            footer=footer,
+        )
+        key = _read_key()
+        if key == "up":
+            selected = (selected - 1) % len(options)
+        elif key == "down":
+            selected = (selected + 1) % len(options)
+        elif key == "enter":
+            return options[selected][0]
+        elif key.isdigit():
+            idx = int(key)
+            if 1 <= idx <= len(options):
+                return options[idx - 1][0]
 
 
 def _api_key_target(provider_name: str) -> tuple[str, str] | None:
@@ -31,6 +235,8 @@ def _api_key_target(provider_name: str) -> tuple[str, str] | None:
         return "ANTHROPIC_API_KEY", "claude_api_key"
     if provider_name == "deepseek":
         return "DEEPSEEK_API_KEY", "deepseek_api_key"
+    if provider_name == "grok":
+        return "XAI_API_KEY", "grok_api_key"
     return None
 
 
@@ -46,27 +252,15 @@ def _mask_secret(value: str) -> str:
     return value[:4] + "..." + value[-4:] if len(value) > 8 else "***"
 
 
-def _print_models(title: str, models: list[str]) -> None:
-    print(title)
-    if not models:
-        print("  (none found)")
-        return
-    for index, model in enumerate(models, start=1):
-        print(f"  {index}. {model}")
-
-
-def _choose_installed_model(models: list[str], label: str) -> str:
-    while True:
-        _print_models(f"Installed {label} models:", models)
-        choice = input(f"Choose a {label} model by number: ").strip()
-        try:
-            selected_index = int(choice)
-        except ValueError:
-            print("Please enter a valid number.")
-            continue
-        if 1 <= selected_index <= len(models):
-            return models[selected_index - 1]
-        print("That selection is out of range.")
+def _choose_installed_model(models: list[str], label: str, *, step: str | None = None) -> str | None:
+    options = [(model, model, "") for model in models]
+    options.append(("back", "Back", ""))
+    selected = _select_option(
+        step=step,
+        title=f"Choose an installed {label} model",
+        options=options,
+    )
+    return None if selected == "back" else selected
 
 
 def _persist_cloud_api_key(provider_name: str, key: str, *, announce: bool = True) -> None:
@@ -114,38 +308,31 @@ def _prompt_ollama_model(label: str) -> str | None:
         installed = []
 
     while True:
-        print()
-        print(f"Choose a {label} model:")
-        options: dict[str, str] = {}
-        n = 1
-
+        options: list[tuple[str, str, str]] = []
         if installed:
-            print(f"  {n}. Use an installed {label} model")
-            options[str(n)] = "installed"
-            n += 1
+            options.append(("installed", f"Use an installed {label} model", ""))
+        rec = (RECOMMENDED_CHAT_MODELS.get("ollama") or [None])[0] if label == "chat" else None
+        options.extend(
+            [
+                *([("default", f"Download default {label} model", rec)] if rec else []),
+                ("manual", f"Enter a {label} model name", "downloads it if missing"),
+                ("back", "Back", ""),
+            ]
+        )
 
-        rec = RECOMMENDED_CHAT_MODEL if label == "chat" else RECOMMENDED_EMBEDDING_MODEL
-        print(f"  {n}. Download recommended {label} model ({rec})")
-        options[str(n)] = "recommended"
-        n += 1
-
-        print(f"  {n}. Enter a {label} model name manually")
-        options[str(n)] = "manual"
-        n += 1
-
-        print(f"  {n}. Back")
-        options[str(n)] = "back"
-
-        selected = input("> ").strip()
-        action = options.get(selected)
-        if not action:
-            print("Please choose one of the listed options.")
-            continue
+        action = _select_option(
+            step="Step 1/5: AI model",
+            title=f"Choose a {label} model",
+            options=options,
+        )
 
         if action == "installed":
-            return _choose_installed_model(installed, label)
+            model = _choose_installed_model(installed, label, step="Step 1/5: AI model")
+            if model:
+                return model
+            continue
 
-        if action == "recommended":
+        if action == "default" and rec:
             try:
                 return ensure_model_ready("ollama", rec)
             except Exception as exc:
@@ -179,71 +366,46 @@ def _prompt_model_name(provider_name: str, label: str) -> str | None:
 
 
 _WHISPER_MODELS = ("tiny", "base", "small", "medium", "large", "turbo")
+_DEFAULT_WHISPER_MODEL_DIR = CONFIG_DIR / "models" / "whisper"
 
 
 def _prompt_stt_config(config: ModelConfig) -> None:
     """Ask for optional local STT settings and mutate *config*."""
-    print()
-    print("Configure speech-to-text (STT) for voice messages?")
-    print("  1. Skip / disable STT")
-    print(f"  2. Use local Whisper multilingual model (recommended: {RECOMMENDED_STT_MODEL})")
-    print("  3. Keep existing STT settings")
+    choice = _select_option(
+        step="Step 3/5: Voice input (speech-to-text)",
+        title="Configure speech-to-text (STT) for voice messages?",
+        options=[
+            ("keep", "Keep existing STT settings", ""),
+            ("whisper", "Use local Whisper multilingual model", ""),
+            ("disable", "Skip / disable STT", ""),
+        ],
+    )
+    if choice == "disable":
+        config.stt_provider = "disabled"
+        config.stt_backend = "faster-whisper"
+        config.stt_model = None
+        config.stt_language = "auto"
+        print("  STT disabled. You can enable it later with `yumi --setup`.")
+        return
+    if choice == "keep":
+        print(f"  Keeping STT: {config.stt_provider} / {config.stt_model or 'unset'}")
+        return
 
-    while True:
-        choice = input("> ").strip()
-        if choice == "1":
-            config.stt_provider = "disabled"
-            config.stt_backend = "faster-whisper"
-            config.stt_model = None
-            config.stt_language = "auto"
-            print("  STT disabled. You can enable it later with `yumi --setup`.")
-            return
-        if choice == "3":
-            print(f"  Keeping STT: {config.stt_provider} / {config.stt_model or 'unset'}")
-            return
-        if choice == "2":
-            break
-        print("Please choose one of the listed options.")
+    model = _select_option(
+        step="Step 3/5: Voice input (speech-to-text)",
+        title="Choose a Whisper multilingual model",
+        options=[(name, name, "") for name in _WHISPER_MODELS],
+    )
 
-    print()
-    print("Choose a Whisper multilingual model:")
-    hints = {
-        "tiny": "lightest, fastest, lower accuracy",
-        "base": "recommended starter balance",
-        "small": "better accuracy, slower on low-end CPU",
-        "medium": "heavy; use on stronger hardware",
-        "large": "very heavy; not recommended for first setup",
-        "turbo": "fast for its size, still heavier than small",
-    }
-    for i, name in enumerate(_WHISPER_MODELS, 1):
-        default = " (default)" if name == RECOMMENDED_STT_MODEL else ""
-        print(f"  {i}. {name}{default} — {hints[name]}")
-
-    while True:
-        selected = input("> ").strip()
-        if not selected:
-            model = RECOMMENDED_STT_MODEL
-            break
-        try:
-            idx = int(selected)
-        except ValueError:
-            print("Please enter a valid number.")
-            continue
-        if 1 <= idx <= len(_WHISPER_MODELS):
-            model = _WHISPER_MODELS[idx - 1]
-            break
-        print("That selection is out of range.")
-
-    model_dir = input("  Model cache directory (Enter for ~/.yumi/models/whisper): ").strip()
     config.stt_provider = "whisper"
     config.stt_backend = "faster-whisper"
     config.stt_model = model
-    config.stt_model_dir = model_dir or None
+    config.stt_model_dir = str(_DEFAULT_WHISPER_MODEL_DIR)
     config.stt_language = "auto"
 
     from yumi.core.features.config.feature_install import ensure_feature_installed
 
-    if not ensure_feature_installed("stt"):
+    if not ensure_feature_installed("stt", assume_yes=True):
         print("  STT settings saved, but the package isn't installed yet — skipping model download.")
         print("  Re-run `yumi --setup` after installing to cache the weights.")
         return
@@ -260,56 +422,51 @@ def _prompt_stt_config(config: ModelConfig) -> None:
 
 # Curated voice shortlists (both backends accept more — type a name to override).
 _TTS_DASHSCOPE_VOICES = ("Cherry", "Serena", "Ethan", "Chelsie", "Dylan", "Eric", "Ryan", "Jada", "Sunny")
-_TTS_QWEN_SPEAKERS = ("Ryan", "Vivian", "Serena", "Dylan", "Eric", "Aiden", "Uncle_Fu", "Ono_Anna", "Sohee")
-_QWEN_DEFAULT_MODEL = "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice"
 
 
 def _prompt_tts_voice(label: str, voices: tuple[str, ...], default: str) -> str:
-    print(f"  Choose a {label} voice (Enter for {default}, or type any voice name):")
-    for i, name in enumerate(voices, 1):
-        tag = " (default)" if name == default else ""
-        print(f"    {i}. {name}{tag}")
-    raw = input("  > ").strip()
-    if not raw:
+    options = [(name, name, "default" if name == default else "") for name in voices]
+    options.append(("custom", "Enter a custom voice name", ""))
+    selected = _select_option(
+        step="Step 4/5: Spoken replies (text-to-speech)",
+        title=f"Choose a {label} voice",
+        options=options,
+        default=voices.index(default) if default in voices else 0,
+    )
+    if selected == "custom":
+        custom = input("  Voice name (Enter for default): ").strip()
+        return custom or default
+    if not selected:
         return default
-    try:
-        idx = int(raw)
-    except ValueError:
-        return raw  # free-form voice name
-    if 1 <= idx <= len(voices):
-        return voices[idx - 1]
-    return default
+    return selected
 
 
 def _prompt_tts_config(config: ModelConfig) -> None:
     """Ask for optional spoken-reply (TTS) settings and mutate *config*."""
-    print()
-    print("Enable spoken replies (text-to-speech)?")
-    print("  1. Skip / disable")
-    print("  2. System voice — macOS `say` / Linux `espeak` (offline, no key, instant)")
-    print("  3. Qwen3-TTS · cloud — via DashScope API (best quality, needs a key)")
-    print("  4. Qwen3-TTS · local — runs on your own NVIDIA GPU (heavy download)")
-    print("  5. Keep current TTS settings")
-
-    while True:
-        choice = input("> ").strip()
-        if choice == "1":
-            config.tts_provider = "disabled"
-            print("  Spoken replies off. Enable later with `yumi --setup`.")
-            return
-        if choice == "5":
-            print(f"  Keeping TTS: {config.tts_provider}")
-            return
-        if choice in ("2", "3", "4"):
-            break
-        print("Please choose one of the listed options.")
+    choice = _select_option(
+        step="Step 4/5: Spoken replies (text-to-speech)",
+        title="Enable spoken replies (text-to-speech)?",
+        options=[
+            ("keep", "Keep current TTS settings", ""),
+            ("system", "System voice", "macOS say / Linux espeak; offline, no key, instant"),
+            ("dashscope", "Qwen3-TTS cloud", "via DashScope API; best quality; needs a key"),
+            ("disable", "Skip / disable", ""),
+        ],
+    )
+    if choice == "disable":
+        config.tts_provider = "disabled"
+        print("  Spoken replies off. Enable later with `yumi --setup`.")
+        return
+    if choice == "keep":
+        print(f"  Keeping TTS: {config.tts_provider}")
+        return
 
     from yumi.core.features.config.feature_install import ensure_feature_installed
 
-    if choice == "2":
+    if choice == "system":
         config.tts_provider = "system"
         config.tts_voice = None
-    elif choice == "3":
+    elif choice == "dashscope":
         config.tts_provider = "dashscope"
         config.tts_model = None
         config.tts_voice = _prompt_tts_voice("DashScope", _TTS_DASHSCOPE_VOICES, "Cherry")
@@ -318,43 +475,9 @@ def _prompt_tts_config(config: ModelConfig) -> None:
             if key:
                 config.tts_api_key = key
                 os.environ["DASHSCOPE_API_KEY"] = key
-        if not ensure_feature_installed("tts"):
+        if not ensure_feature_installed("tts", assume_yes=True):
             print("  The dashscope package isn't installed yet; spoken replies start once it is.")
             return
-    elif choice == "4":
-        import importlib.util
-
-        # Local Qwen3-TTS runs on PyTorch. We deliberately do NOT auto-install it:
-        # the CUDA build is multi-GB and version-specific, so only the user can
-        # pick the right one. Bail with guidance rather than pulling a CPU-only
-        # torch that would then fail on a GPU device.
-        if importlib.util.find_spec("torch") is None:
-            print("  Local Qwen3-TTS needs PyTorch, which can't be auto-installed here")
-            print("  (the CUDA build is multi-GB and version-specific). Install it for your")
-            print("  GPU from https://pytorch.org/get-started/locally/ , then re-run `yumi --setup`.")
-            print("  No-setup alternatives: option 2 (System voice) or option 3 (DashScope cloud).")
-            config.tts_provider = "disabled"
-            return
-        config.tts_provider = "qwen"
-        config.tts_model = _QWEN_DEFAULT_MODEL
-        config.tts_voice = _prompt_tts_voice("Qwen", _TTS_QWEN_SPEAKERS, "Ryan")
-        if not ensure_feature_installed("tts-local"):
-            print("  qwen-tts isn't installed yet; local spoken replies start once it is.")
-            return
-
-    _maybe_test_tts(config)
-
-
-def _maybe_test_tts(config: ModelConfig) -> None:
-    """Offer to synthesize + play a short line so the user hears the result now."""
-    if (input("  Test it now — play a short line? (Y/n): ").strip().lower()) in ("n", "no"):
-        return
-    try:
-        from yumi.core.features.tts.playback import speak
-
-        speak("Hi, I'm Yumi. Spoken replies are on.", config=config)
-    except Exception as exc:
-        print(f"  TTS test skipped: {exc}")
 
 
 # ── top-level run-mode + cloud pickers ──────────────────────────────────────
@@ -364,6 +487,7 @@ _CLOUD_PROVIDERS: tuple[tuple[str, str], ...] = (
     ("claude", "Anthropic (Claude)"),
     ("gemini", "Gemini"),
     ("deepseek", "DeepSeek"),
+    ("grok", "Grok (xAI)"),
 )
 
 _CLOUD_EMBEDDING_PROVIDERS: tuple[tuple[str, str], ...] = (
@@ -387,6 +511,12 @@ _FASTEMBED_MODELS: tuple[tuple[str, str, str], ...] = (
         "intfloat/multilingual-e5-large",
         "~2.24GB",
     ),
+)
+
+_EMBEDDING_STABILITY_WARNING = (
+    "Important: keep the same embedding provider/model once Yumi starts saving memory.\n"
+    "Changing it later can make old memory and tool-routing vectors inconsistent; "
+    "run `yumi --cleanup-memory` first if you need to switch."
 )
 
 
@@ -419,18 +549,19 @@ def _embedding_config_available(config: ModelConfig) -> bool:
     return True
 
 
-def _choose_run_mode() -> str:
+def _choose_run_mode(notice: str | None = None) -> str:
     """Return 'cloud' or 'local'. Cloud and local are presented equally."""
-    print("How do you want to run the AI model?")
-    print("  1. Cloud API key   — quickest start, any machine (OpenAI / Claude / Gemini / DeepSeek)")
-    print("  2. Local (Ollama)  — fully private & offline; needs Ollama + a model download")
-    while True:
-        choice = input("> ").strip()
-        if choice == "1":
-            return "cloud"
-        if choice == "2":
-            return "local"
-        print("Please enter 1 or 2.")
+    return _select_option(
+        step="Step 1/5: AI model",
+        title="How do you want to run the AI model?",
+        message="No chat model is configured yet. Choose one to continue.",
+        error=notice,
+        options=[
+            ("cloud", "Cloud API key", "quickest start, any machine (OpenAI / Claude / Gemini / DeepSeek / Grok)"),
+            ("local", "Local (Ollama)", "fully private and offline; needs Ollama running"),
+            ("exit", "Exit setup", ""),
+        ],
+    )
 
 
 def _choose_chat_action(current: ModelConfig) -> str:
@@ -442,16 +573,15 @@ def _choose_chat_action(current: ModelConfig) -> str:
         print("Choose a working chat model to continue.")
         return "reconfigure"
 
-    print(f"Current chat model: {current.chat_provider} / {current.chat_model}")
-    print("  1. Keep current")
-    print("  2. Reconfigure")
-    while True:
-        choice = input("> ").strip()
-        if choice in ("", "1"):
-            return "keep"
-        if choice == "2":
-            return "reconfigure"
-        print("Please enter 1 or 2.")
+    return _select_option(
+        step="Step 1/5: AI model",
+        title="Current chat model is configured.",
+        message=f"{current.chat_provider} / {current.chat_model}",
+        options=[
+            ("keep", "Keep current", ""),
+            ("reconfigure", "Reconfigure", ""),
+        ],
+    )
 
 
 def _provider_label(provider: str) -> str:
@@ -465,62 +595,41 @@ def _provider_label(provider: str) -> str:
 
 
 def _choose_cloud_provider() -> str | None:
-    print()
-    print("Which provider?")
-    for i, (_key, label) in enumerate(_CLOUD_PROVIDERS, 1):
-        print(f"  {i}. {label}")
-    back_idx = len(_CLOUD_PROVIDERS) + 1
-    print(f"  {back_idx}. Back")
-    while True:
-        choice = input("> ").strip()
-        try:
-            idx = int(choice)
-        except ValueError:
-            print("Please enter a valid number.")
-            continue
-        if idx == back_idx:
-            return None
-        if 1 <= idx <= len(_CLOUD_PROVIDERS):
-            return _CLOUD_PROVIDERS[idx - 1][0]
-        print("That selection is out of range.")
+    options = [(key, label, "") for key, label in _CLOUD_PROVIDERS]
+    options.append(("back", "Back", ""))
+    selected = _select_option(
+        step="Step 1/5: AI model",
+        title="Which cloud provider do you want to use?",
+        options=options,
+    )
+    return None if selected == "back" else selected
 
 
-def _choose_recommended_model(provider: str, label: str) -> str | None:
-    """Pick from the curated default models for a cloud provider (or custom)."""
+def _choose_cloud_model(provider: str, label: str) -> str | None:
+    """Let users quickly pick known model ids, or enter their own."""
     models = RECOMMENDED_CHAT_MODELS.get(provider, [])
     if not models:
         return _prompt_model_name(provider, label)
 
-    print()
-    print(f"Choose a {label} model:")
-    for i, name in enumerate(models, 1):
-        tag = "  (recommended)" if i == 1 else ""
-        print(f"  {i}. {name}{tag}")
-    custom_idx = len(models) + 1
-    print(f"  {custom_idx}. Enter a custom model name")
-    back_idx = custom_idx + 1
-    print(f"  {back_idx}. Back")
-
     while True:
-        choice = input("> ").strip()
-        if not choice:
-            return models[0]
-        try:
-            idx = int(choice)
-        except ValueError:
-            print("Please enter a valid number.")
-            continue
-        if 1 <= idx <= len(models):
-            return models[idx - 1]
-        if idx == custom_idx:
+        options = [(name, name, "") for name in models]
+        options.append(("custom", "Enter a custom model name", ""))
+        options.append(("back", "Back", ""))
+        selected = _select_option(
+            step="Step 1/5: AI model",
+            title=f"Choose a {label} model for {_provider_label(provider)}",
+            options=options,
+        )
+        if selected in models:
+            return selected
+        if selected == "custom":
             name = input(f"  {label.capitalize()} model name: ").strip()
             if name:
                 return name
             print("  Model name cannot be empty.")
             continue
-        if idx == back_idx:
+        if selected == "back":
             return None
-        print("That selection is out of range.")
 
 
 def _ensure_chat_provider_api_key(provider: str) -> bool:
@@ -546,15 +655,19 @@ def _ensure_chat_provider_api_key(provider: str) -> bool:
 
 
 def _configure_chat_model() -> tuple[str, str]:
+    notice: str | None = None
     while True:
-        mode = _choose_run_mode()
+        mode = _choose_run_mode(notice)
+        notice = None
+        if mode == "exit":
+            raise SystemExit("  Setup cancelled.")
         if mode == "cloud":
             chat_provider = _choose_cloud_provider()
             if chat_provider is None:
                 continue
             if not _ensure_chat_provider_api_key(chat_provider):
                 continue
-            chat_model = _choose_recommended_model(chat_provider, "chat")
+            chat_model = _choose_cloud_model(chat_provider, "chat")
             if chat_model is None:
                 continue
             try:
@@ -567,9 +680,10 @@ def _configure_chat_model() -> tuple[str, str]:
         try:
             ensure_provider_available("ollama")
         except Exception as exc:
-            print()
-            print("  Ollama isn't reachable. Install it from https://ollama.com and start it,")
-            print(f"  or pick a cloud API key instead. Details: {exc}")
+            notice = (
+                "Ollama isn't reachable. Install it from https://ollama.com and start it, "
+                f"or pick a cloud API key instead.\nDetails: {exc}"
+            )
             continue
         chat_model = _prompt_model_name("ollama", "chat")
         if chat_model is None:
@@ -599,7 +713,6 @@ def _ensure_cloud_embedding_key(provider: str, label: str) -> bool:
     else:
         key = input(f"  {label} API key (Enter to go back): ").strip()
     if not key:
-        print("  Back to embedding provider choices.")
         return False
     _persist_cloud_api_key(provider, key, announce=False)
     return True
@@ -607,27 +720,17 @@ def _ensure_cloud_embedding_key(provider: str, label: str) -> bool:
 
 def _setup_cloud_embeddings(config: ModelConfig, chat_provider: str) -> bool:
     while True:
-        options = _cloud_embedding_options(chat_provider)
-        print()
-        print("Cloud embeddings:")
-        for i, (_provider, label) in enumerate(options, 1):
-            print(f"  {i}. {label}")
-        back_idx = len(options) + 1
-        print(f"  {back_idx}. Back")
-
-        choice = input("> ").strip()
-        try:
-            idx = int(choice)
-        except ValueError:
-            print("Please enter a valid number.")
-            continue
-        if idx == back_idx:
+        options = [(provider, label, "") for provider, label in _cloud_embedding_options(chat_provider)]
+        options.append(("back", "Back", ""))
+        provider = _select_option(
+            step="Step 2/5: Memory (text embeddings)",
+            title="Choose a cloud embedding provider",
+            options=options,
+        )
+        if provider == "back":
             return False
-        if not (1 <= idx <= len(options)):
-            print("That selection is out of range.")
-            continue
 
-        provider, label = options[idx - 1]
+        label = _provider_label(provider)
         if not _ensure_cloud_embedding_key(provider, label):
             continue
         config.embedding_provider = provider
@@ -658,101 +761,78 @@ def _prepare_fastembed_model(model: str, size_label: str) -> bool:
 
 def _setup_fastembed_embeddings(config: ModelConfig) -> bool:
     while True:
-        print()
-        print("Local embeddings:")
-        for i, (label, _model, size) in enumerate(_FASTEMBED_MODELS, 1):
-            print(f"  {i}. {label} ({size})")
-        back_idx = len(_FASTEMBED_MODELS) + 1
-        print(f"  {back_idx}. Back")
-
-        choice = input("> ").strip()
-        try:
-            idx = int(choice)
-        except ValueError:
-            print("Please enter a valid number.")
-            continue
-        if idx == back_idx:
+        options = [(model, label, size) for label, model, size in _FASTEMBED_MODELS]
+        options.append(("back", "Back", ""))
+        selected = _select_option(
+            step="Step 2/5: Memory (text embeddings)",
+            title="Choose a local embedding model",
+            options=options,
+        )
+        if selected == "back":
             return False
-        if not (1 <= idx <= len(_FASTEMBED_MODELS)):
-            print("That selection is out of range.")
-            continue
 
-        _label, model, size = _FASTEMBED_MODELS[idx - 1]
+        model = selected
+        size = next(size for _label, candidate, size in _FASTEMBED_MODELS if candidate == model)
         if not _prepare_fastembed_model(model, size):
             return False
         config.embedding_provider = "fastembed"
         config.embedding_model = model
+        _clear_screen()
         return True
 
 
-def _choose_installed_ollama_embedding_model() -> str | None:
-    try:
-        models = _get_provider("ollama").list_models()
-    except Exception as exc:
-        print(f"  Could not list Ollama models: {exc}")
-        return None
-    if not models:
-        print("  No installed Ollama models were found.")
-        return None
-
-    while True:
-        print()
-        print("Installed Ollama models:")
-        for i, model in enumerate(models, 1):
-            print(f"  {i}. {model}")
-        back_idx = len(models) + 1
-        print(f"  {back_idx}. Back")
-        choice = input("> ").strip()
-        try:
-            idx = int(choice)
-        except ValueError:
-            print("Please enter a valid number.")
-            continue
-        if idx == back_idx:
-            return None
-        if 1 <= idx <= len(models):
-            return models[idx - 1]
-        print("That selection is out of range.")
-
-
 def _setup_ollama_embeddings(config: ModelConfig) -> bool:
+    notice: str | None = None
     try:
         ensure_provider_available("ollama")
     except Exception as exc:
-        print()
-        print("  Ollama embeddings require Ollama to be installed and running first.")
-        print(f"  {exc}")
-        return False
+        notice = f"Ollama embeddings require Ollama to be installed and running first.\nDetails: {exc}"
 
     while True:
-        print()
-        print("Ollama embeddings:")
-        print("  1. Choose an installed Ollama model")
-        print("  2. Enter a model name")
-        print("  3. Back")
-        choice = input("> ").strip()
-        if choice == "1":
-            model = _choose_installed_ollama_embedding_model()
+        choice = _select_option(
+            step="Step 2/5: Memory (text embeddings)",
+            title="Configure Ollama embeddings",
+            error=notice,
+            options=[
+                ("installed", "Choose an installed Ollama model", ""),
+                ("manual", "Enter a model name", ""),
+                ("back", "Back", ""),
+            ],
+        )
+        notice = None
+        if choice == "installed":
+            try:
+                models = _get_provider("ollama").list_models()
+            except Exception as exc:
+                notice = f"Could not list installed Ollama models.\nDetails: {exc}"
+                continue
+            if not models:
+                notice = (
+                    "No installed Ollama embedding models were found.\n"
+                    "Choose 'Enter a model name' to download one, or run `ollama pull qwen3-embedding:0.6b` first."
+                )
+                continue
+            model = _choose_installed_model(models, "Ollama embedding", step="Step 2/5: Memory (text embeddings)")
             if not model:
                 continue
             config.embedding_provider = "ollama"
             config.embedding_model = model
             return True
-        if choice == "2":
+        if choice == "manual":
             model_name = input("  Ollama embedding model name (Enter to go back): ").strip()
             if not model_name:
                 continue
             try:
                 model = ensure_model_ready("ollama", model_name)
             except Exception as exc:
-                print(f"  Failed to prepare {model_name}: {exc}")
+                notice = f"Failed to prepare Ollama embedding model {model_name!r}.\nDetails: {exc}"
                 continue
             config.embedding_provider = "ollama"
             config.embedding_model = model
+            _clear_screen()
             return True
-        if choice == "3":
+        if choice == "back":
             return False
-        print("Please choose one of the listed options.")
 
 
 def _choose_embedding_action(config: ModelConfig) -> str:
@@ -764,47 +844,50 @@ def _choose_embedding_action(config: ModelConfig) -> str:
             )
         return "reconfigure"
 
-    print(f"Current embeddings: {config.embedding_provider} / {config.embedding_model}")
-    print("  1. Keep current")
-    print("  2. Reconfigure")
-    while True:
-        choice = input("> ").strip()
-        if choice in ("", "1"):
-            return "keep"
-        if choice == "2":
-            return "reconfigure"
-        print("Please enter 1 or 2.")
+    return _select_option(
+        step="Step 2/5: Memory (text embeddings)",
+        title="Current embeddings are configured.",
+        message=f"{config.embedding_provider} / {config.embedding_model}",
+        warning=_EMBEDDING_STABILITY_WARNING,
+        options=[
+            ("keep", "Keep current", ""),
+            ("reconfigure", "Reconfigure", ""),
+        ],
+    )
 
 
 def _configure_embeddings(config: ModelConfig, chat_provider: str) -> None:
     """Embedding backend selection with backtracking submenus."""
     while True:
-        print()
-        print("Embeddings improve memory search and Edge tool routing.")
-        print("Choose an embedding backend:")
-        print("  1. Cloud embeddings")
-        print("  2. Local embeddings — Yumi installs and downloads everything from the CLI")
-        print("  3. Ollama embeddings — requires Ollama already installed and running")
-        print("  4. Skip embeddings for now — Yumi still runs, but memory/tool routing quality will be reduced")
-        choice = input("> ").strip()
-        if choice == "1":
+        choice = _select_option(
+            step="Step 2/5: Memory (text embeddings)",
+            title="Choose an embedding backend",
+            message="Embeddings improve memory search and Edge tool routing.",
+            warning=_EMBEDDING_STABILITY_WARNING,
+            options=[
+                ("cloud", "Cloud embeddings", ""),
+                ("local", "Local embeddings", "Yumi installs and downloads everything from the CLI"),
+                ("ollama", "Ollama embeddings", "requires Ollama already installed and running"),
+                ("skip", "Skip embeddings for now", "memory and tool-routing quality will be reduced"),
+            ],
+        )
+        if choice == "cloud":
             if _setup_cloud_embeddings(config, chat_provider):
                 return
             continue
-        if choice == "2":
+        if choice == "local":
             if _setup_fastembed_embeddings(config):
                 return
             continue
-        if choice == "3":
+        if choice == "ollama":
             if _setup_ollama_embeddings(config):
                 return
             continue
-        if choice == "4":
+        if choice == "skip":
             config.embedding_provider = "disabled"
             config.embedding_model = None
             print("  Embeddings skipped for now. Enable later with `yumi --setup`.")
             return
-        print("Please choose one of the listed options.")
 
 
 def _setup_embeddings(config: ModelConfig, chat_provider: str) -> None:
@@ -825,7 +908,7 @@ def configure_models_noninteractive(
 ) -> ModelConfig:
     """Apply a model config without any prompts (for `--setup --provider ...`/CI).
 
-    Missing ``model`` falls back to the provider's recommended default. Embeddings
+    Missing ``model`` falls back to the provider's non-interactive default. Embeddings
     default to off unless an embedding provider/model is given.
     """
     from yumi.core.platform.providers import SUPPORTED_PROVIDERS
@@ -837,7 +920,7 @@ def configure_models_noninteractive(
     config.chat_provider = provider
     config.chat_model = model or (RECOMMENDED_CHAT_MODELS.get(provider) or [None])[0]
     if not config.chat_model:
-        raise ValueError(f"No model given and no recommended default for provider {provider!r}.")
+        raise ValueError(f"No model given and no non-interactive default for provider {provider!r}.")
     if api_key:
         # Set on this config (the single save below persists it) + process env.
         _key_fields = {
@@ -845,6 +928,7 @@ def configure_models_noninteractive(
             "gemini": ("GEMINI_API_KEY", "gemini_api_key"),
             "claude": ("ANTHROPIC_API_KEY", "claude_api_key"),
             "deepseek": ("DEEPSEEK_API_KEY", "deepseek_api_key"),
+            "grok": ("XAI_API_KEY", "grok_api_key"),
         }
         pair = _key_fields.get(provider)
         if pair:
@@ -876,10 +960,12 @@ def run_model_setup(force: bool = False) -> ModelConfig:
     if current.chat_model and not force:
         return load_model_config()
 
-    print("Welcome to Yumi.")
-    print("Let's set you up — first choose a working chat model; the last 3 steps are optional.\n")
+    if not _interactive_terminal():
+        print("Welcome to Yumi.")
+        print("Let's set you up — first choose a working chat model; the remaining steps are optional.\n")
 
-    print("── Step 1/4: AI model ──")
+    if not _interactive_terminal():
+        print("── Step 1/5: AI model ──")
     config = load_saved_model_config()
     chat_action = _choose_chat_action(current)
     if chat_action == "keep":
@@ -889,12 +975,18 @@ def run_model_setup(force: bool = False) -> ModelConfig:
         config.chat_provider = chat_provider
         config.chat_model = chat_model
     config.system_prompt = current.system_prompt
+    save_model_config(config)
 
-    print("\n── Step 2/4: Memory (text embeddings) ──")
+    if not _interactive_terminal():
+        print("\n── Step 2/5: Memory (text embeddings) ──")
     _setup_embeddings(config, chat_provider)
-    print("\n── Step 3/4: Voice input (speech-to-text) ──")
+    save_model_config(config)
+    if not _interactive_terminal():
+        print("\n── Step 3/5: Voice input (speech-to-text) ──")
     _prompt_stt_config(config)
-    print("\n── Step 4/4: Spoken replies (text-to-speech) ──")
+    save_model_config(config)
+    if not _interactive_terminal():
+        print("\n── Step 4/5: Spoken replies (text-to-speech) ──")
     _prompt_tts_config(config)
     save_model_config(config)
 

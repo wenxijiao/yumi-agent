@@ -37,7 +37,13 @@ yumi_tools/
 1. Open the folder for the language you actually use
 2. Read that folder's `README.md`
 3. Edit the generated setup file
-4. Call the generated init function from your app entry point
+4. Pick one run mode:
+   - Embedded: call the generated init function from your app entry point
+   - Standalone: run the generated edge by itself for a quick test
+
+```bash
+yumi --run-edge --lang python
+```
 
 ## Generate Again
 

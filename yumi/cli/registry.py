@@ -37,14 +37,13 @@ class Command(ABC):
     @abstractmethod
     def register(
         self,
-        parser: argparse.ArgumentParser,
+        parser: argparse.ArgumentParser | argparse._ArgumentGroup,
         mutex_group: argparse._MutuallyExclusiveGroup,
     ) -> None:
         """Add this command's flags to ``parser`` / ``mutex_group``.
 
-        Mutex commands (only one of them runs per invocation) add their
-        primary flag to ``mutex_group``; modifier flags shared with other
-        commands (like ``--telegram``) attach directly to ``parser``.
+        Commands add their primary flag to ``mutex_group`` for tidy help
+        sections. Cross-section mutual exclusion is validated after parsing.
         """
 
     @abstractmethod
@@ -82,12 +81,25 @@ class CommandRegistry:
     def install(self, parser: argparse.ArgumentParser) -> None:
         """Mount every command's flags onto ``parser``.
 
-        Creates one mutex group shared by all mutex commands; modifier flags
-        attach directly to ``parser`` via the command's own ``register``.
+        Commands are split into help sections so ``yumi --help`` reads like a
+        first-run guide instead of one long flat option list.
         """
-        mutex_group = parser.add_mutually_exclusive_group()
+        group_specs = (
+            ("Run locally", ("server", "chat", "ui", "demo", "speak")),
+            ("Connect your app", ("edge", "run-edge", "tool-routing")),
+            ("Setup and maintenance", ("setup", "config", "cleanup", "cleanup-memory")),
+            ("Messaging and voice", ("telegram", "discord", "line", "voice")),
+        )
+        command_to_group = {name: title for title, names in group_specs for name in names}
+        groups = {title: parser.add_argument_group(title) for title, _ in group_specs}
+        mutex_groups = {title: group.add_mutually_exclusive_group() for title, group in groups.items()}
+
         for cmd in self._commands:
-            cmd.register(parser, mutex_group)
+            title = command_to_group.get(cmd.name, "Other options")
+            if title not in groups:
+                groups[title] = parser.add_argument_group(title)
+                mutex_groups[title] = groups[title].add_mutually_exclusive_group()
+            cmd.register(groups[title], mutex_groups[title])
 
     def select(self, args: argparse.Namespace) -> Command | None:
         """Pick the unique command that ``matches`` ``args``.

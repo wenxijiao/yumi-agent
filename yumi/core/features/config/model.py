@@ -18,6 +18,8 @@ class ModelConfig(BaseModel):
     claude_api_key: str | None = None
     deepseek_api_key: str | None = None
     deepseek_base_url: str | None = None
+    grok_api_key: str | None = None
+    grok_base_url: str | None = None
     connection_code: str | None = None
     session_prompts: dict[str, str] = {}
     ui_dark_mode: bool = True
@@ -201,19 +203,21 @@ RECOMMENDED_FASTEMBED_MODEL = "sentence-transformers/paraphrase-multilingual-Min
 RECOMMENDED_STT_MODEL = "base"
 
 DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com"
+DEFAULT_GROK_BASE_URL = "https://api.x.ai/v1"
 
-# Curated default chat models shown in `yumi --setup` so cloud users don't have
-# to memorise model ids. First entry is the recommended default. Edit here when
-# providers ship new models; users can always pick "custom".
+# Non-interactive chat model fallbacks. Interactive setup asks users to paste a
+# model id from their provider's model list instead of presenting recommendations.
+# First entry is used when env/CI setup has a provider key but no explicit model.
 RECOMMENDED_CHAT_MODELS: dict[str, list[str]] = {
-    "openai": ["gpt-4o", "gpt-4o-mini"],
-    "claude": ["claude-sonnet-4-6", "claude-opus-4-8", "claude-haiku-4-5-20251001"],
-    "gemini": ["gemini-2.0-flash", "gemini-2.5-pro"],
-    "deepseek": ["deepseek-chat", "deepseek-reasoner"],
+    "openai": ["gpt-5.5", "gpt-5.4", "gpt-5.4-mini"],
+    "claude": ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5-20251001"],
+    "gemini": ["gemini-3.1-pro-preview", "gemini-3.5-flash", "gemini-3-flash-preview"],
+    "deepseek": ["deepseek-v4-flash", "deepseek-v4-pro"],
+    "grok": ["grok-4.3", "grok-build-0.1"],
     "ollama": [RECOMMENDED_CHAT_MODEL],
 }
 
-# Providers that expose a text-embedding endpoint. Claude and DeepSeek do not,
+# Providers that expose a text-embedding endpoint. Claude, DeepSeek, and Grok do not,
 # so memory/tool-routing embeddings must use one of these (or be disabled).
 EMBEDDING_CAPABLE_PROVIDERS: tuple[str, ...] = ("ollama", "openai", "gemini", "fastembed")
 

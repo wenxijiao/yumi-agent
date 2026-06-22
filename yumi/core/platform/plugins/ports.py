@@ -2,7 +2,7 @@
 
 Each ``Protocol`` describes one extension point that the core calls into during
 normal request handling. The package ships trivial single-user defaults in
-:mod:`yumi.core.platform.plugins.single_user`; higher layers can register
+:mod:`yumi.core.platform.plugins.single_user`; optional plugins can register
 richer implementations via :func:`yumi.core.platform.plugins.register_plugin`.
 
 The core MUST only depend on these abstractions.
@@ -92,12 +92,12 @@ class BridgeScope(Protocol):
     """Resolve a messaging-bridge user (Telegram / Discord / …) to a Yumi session
     + server connection, and handle ``/link`` account binding.
 
-    This is the single multi-user insertion point messaging bridges need. The
+    This is the single identity insertion point messaging bridges need. The
     single-user default treats the channel user as the only user: the session is
-    ``<channel>_<id>`` over the shared connection and ``/link`` is a no-op. A
-    multi-user plugin maps the channel user to a user account via a stored
-    binding plus one-time link codes, so each user only drives their own edges
-    and memory.
+    ``<channel>_<id>`` over the shared connection and ``/link`` is a no-op. An
+    identity plugin may map the channel user to an account via a stored binding
+    plus one-time link codes, so each account only drives its own edges and
+    memory.
     """
 
     def session_id(self, channel: str, channel_user_id: str) -> str:

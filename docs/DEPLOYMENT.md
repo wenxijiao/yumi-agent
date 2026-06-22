@@ -1,7 +1,7 @@
 # Deployment
 
-Yumi (L1) ships as a standalone Python package — `pip install yumi-agent` gives
-you a runnable local-first agent server with no L2/L3 dependencies.
+Yumi ships as a standalone Python package. `pip install yumi-agent` gives you a
+runnable local-first agent server, CLI, HTTP API, and Edge SDK templates.
 
 ## Install
 
@@ -25,8 +25,9 @@ yumi --ui           # launch the Reflex web UI (needs the [ui] extra)
 ```
 
 `python -m yumi.core.api` also starts the server. It binds `127.0.0.1:8000` by
-default (loopback only — the OSS API has no auth); expose it on your LAN with
-`YUMI_HOST=0.0.0.0` (or `yumi --server --host 0.0.0.0`) on a trusted network.
+default (loopback only; the local API has no built-in user auth). Expose it on
+your LAN with `YUMI_HOST=0.0.0.0` (or `yumi --server --host 0.0.0.0`) only on a
+trusted network.
 
 ## Configuration
 
@@ -68,5 +69,5 @@ python -m venv /tmp/venv && /tmp/venv/bin/pip install dist/yumi_agent-*.whl
 /tmp/venv/bin/yumi --help
 ```
 
-This is the same smoke check run in CI to guarantee L1 installs and imports
-standalone.
+This is the same smoke check run in CI to guarantee the package installs and
+imports standalone.

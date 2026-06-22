@@ -15,6 +15,10 @@ pip install websockets
 4. Either call `init_yumi()` from your app, **or** run the setup file alone for a quick test (no `main.py`):
 
 ```bash
+yumi --run-edge --lang python
+```
+
+```bash
 # from your project root (where `yumi_tools/` lives)
 python -m yumi_tools.python.yumi_setup
 ```

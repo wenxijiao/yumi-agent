@@ -1,6 +1,9 @@
 """Provider factory selection + credential resolution (no network)."""
 
 import json
+import sys
+import types
+import warnings
 
 import pytest
 from yumi.core.features.config.credentials import (
@@ -37,12 +40,40 @@ def test_create_provider_unknown_raises():
 def test_supported_providers_listed():
     assert "ollama" in SUPPORTED_PROVIDERS
     assert "openai" in SUPPORTED_PROVIDERS
+    assert "grok" in SUPPORTED_PROVIDERS
     assert "fastembed" in EMBEDDING_ONLY_PROVIDERS
 
 
 def test_create_provider_fastembed_is_embedding_only():
     provider = create_provider("fastembed")
     assert type(provider).__name__ == "FastEmbedProvider"
+
+
+def test_fastembed_provider_suppresses_known_pooling_warning(monkeypatch):
+    from yumi.core.platform.providers.fastembed_provider import FastEmbedProvider
+
+    class FakeTextEmbedding:
+        def __init__(self, model_name: str) -> None:
+            warnings.warn(
+                f"The model {model_name} now uses mean pooling instead of CLS embedding. "
+                "In order to preserve the previous behaviour, consider pinning fastembed.",
+                UserWarning,
+                stacklevel=1,
+            )
+
+        def embed(self, _texts):
+            return [[1.0, 2.0]]
+
+    fake_fastembed = types.ModuleType("fastembed")
+    fake_fastembed.TextEmbedding = FakeTextEmbedding
+    monkeypatch.setitem(sys.modules, "fastembed", fake_fastembed)
+
+    provider = FastEmbedProvider()
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        assert provider.embed("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2", "hello") == [1.0, 2.0]
+
+    assert caught == []
 
 
 # ── credentials ──
@@ -61,7 +92,13 @@ def test_credentials_fall_back_to_config(isolated_config, monkeypatch):
     assert creds["gemini_api_key"] == "cfg-key"
 
 
-@pytest.mark.parametrize("name", ["deepseek", "claude", "", "unknown"])
+def test_xai_credentials_take_priority(isolated_config, monkeypatch):
+    monkeypatch.setenv("XAI_API_KEY", "xai-env")
+    creds = get_api_credentials()
+    assert creds["grok_api_key"] == "xai-env"
+
+
+@pytest.mark.parametrize("name", ["deepseek", "claude", "grok", "", "unknown"])
 def test_embedding_provider_without_embedding_api_is_rejected(name):
     with pytest.raises(ValueError, match=repr(name)):
         ensure_embedding_provider_supported(name)

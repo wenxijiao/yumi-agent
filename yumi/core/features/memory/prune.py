@@ -1,8 +1,8 @@
 """Periodic memory maintenance hook (no-op in OSS).
 
-Enterprise plugins that need scheduled compaction or row-level retention
-can spawn their own task; OSS keeps this as a no-op so the LanceDB store
-never fights with itself in single-user mode.
+Plugins that need scheduled compaction or row-level retention can spawn their
+own task; the default keeps this as a no-op so the LanceDB store never fights
+with itself in single-user mode.
 """
 
 from __future__ import annotations

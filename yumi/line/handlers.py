@@ -479,10 +479,12 @@ async def _get_model_dict(line_user_id: str, *, use_http: bool) -> dict[str, Any
         "gemini_api_key_saved": bool(cfg.gemini_api_key and str(cfg.gemini_api_key).strip()),
         "claude_api_key_saved": bool(cfg.claude_api_key and str(cfg.claude_api_key).strip()),
         "deepseek_api_key_saved": bool(cfg.deepseek_api_key and str(cfg.deepseek_api_key).strip()),
+        "grok_api_key_saved": bool(cfg.grok_api_key and str(cfg.grok_api_key).strip()),
         "openai_api_key_effective": bool(creds.get("openai_api_key")),
         "gemini_api_key_effective": bool(creds.get("gemini_api_key")),
         "claude_api_key_effective": bool(creds.get("claude_api_key")),
         "deepseek_api_key_effective": bool(creds.get("deepseek_api_key")),
+        "grok_api_key_effective": bool(creds.get("grok_api_key")),
     }
 
 

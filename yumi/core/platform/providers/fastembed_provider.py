@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import warnings
 from typing import Any
 
 from yumi.core.platform.providers.base import BaseLLMProvider
+
+_FASTEMBED_POOLING_WARNING = r"The model .* now uses mean pooling instead of CLS embedding\..*"
 
 
 class FastEmbedProvider(BaseLLMProvider):
@@ -22,7 +25,9 @@ class FastEmbedProvider(BaseLLMProvider):
                     "FastEmbed is not installed. Run `yumi --setup` and choose Local embeddings, "
                     "or install it with `pip install 'yumi-agent[embed]'`."
                 ) from exc
-            self._models[model_name] = TextEmbedding(model_name=model_name)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message=_FASTEMBED_POOLING_WARNING, category=UserWarning)
+                self._models[model_name] = TextEmbedding(model_name=model_name)
         return self._models[model_name]
 
     def embed(self, model: str, text: str) -> list[float]:

@@ -142,7 +142,8 @@ Your app connects to the Yumi server over WebSocket and registers functions as t
 | `yumi --speak "..."` | Synthesize text with the configured TTS and play it (smoke test) |
 | `yumi --ui` | Start the web UI (chat, tools, settings) |
 | `yumi --chat` | Start terminal chat |
-| `yumi --edge` | Scaffold an edge workspace in the current directory |
+| `yumi --edge` | Interactively scaffold an edge workspace in the current directory |
+| `yumi --run-edge --lang python` | Run a generated standalone edge template |
 | `yumi --demo` | Run the Smart Home + Planner (schedule) demo |
 | `yumi --setup` | Reconfigure models and providers |
 | `yumi --config` | Create/update `~/.yumi/config.json` with all known settings and defaults |
@@ -162,11 +163,12 @@ Your app connects to the Yumi server over WebSocket and registers functions as t
 | Provider | Chat | Embedding | Notes |
 |---|---|---|---|
 | Ollama | Yes | Yes | Local models, no API key needed |
-| OpenAI | Yes | Yes | Also works with OpenAI-compatible endpoints (point `openai_base_url` at DeepSeek, etc.) |
+| OpenAI | Yes | Yes | Also works with OpenAI-compatible endpoints via `openai_base_url` |
 | Gemini | Yes | Yes | Google Gemini |
 | FastEmbed | No | Yes | Local multilingual embeddings installed/downloaded by `yumi --setup`; no Ollama needed |
 | Claude | Yes | No | Anthropic Claude (use another provider for embeddings) |
 | DeepSeek | Yes | No | OpenAI-compatible chat API; use FastEmbed, Ollama, OpenAI, or Gemini for embeddings |
+| Grok | Yes | No | xAI Grok chat API; use FastEmbed, Ollama, OpenAI, or Gemini for embeddings |
 
 You can mix providers — for example OpenAI for chat and Ollama for embeddings.
 
@@ -207,10 +209,10 @@ Yumi is **not** another Python-only LLM chaining library. It ships a runnable se
 
 This package (`yumi-agent`) is the **open-source, self-hosted core** — run your own server at home. You chat with it remotely through **Telegram, LINE, or Discord** bridges, while edge devices register tools on the **same machine or your LAN**. No account scoping, no quotas — a complete single-user agent on your own hardware.
 
-Hosted deployments, connecting edges across separate networks, and multi-user setups are offered as a separate commercial edition — see [COMMERCIAL.md](COMMERCIAL.md) and [docs/UPGRADING_TO_ENTERPRISE.md](docs/UPGRADING_TO_ENTERPRISE.md). The core consumes those higher layers only through the plugin-port abstractions under `yumi.core.platform.plugins`, which live outside this L1 repository.
+Use it locally through the terminal chat or web UI, connect messaging bridges when you want remote chat, and add your own apps/devices through Edge SDKs. The API is local-first and single-user by default, so keep it on localhost or a trusted network unless you put your own access controls in front.
 
 ## License
 
 Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
-[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Changelog](CHANGELOG.md) · [Commercial](COMMERCIAL.md) · [Code of Conduct](CODE_OF_CONDUCT.md)
+[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Changelog](CHANGELOG.md) · [Code of Conduct](CODE_OF_CONDUCT.md)

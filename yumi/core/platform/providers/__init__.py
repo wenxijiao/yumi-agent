@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from yumi.core.platform.providers.base import BaseLLMProvider
 
-SUPPORTED_PROVIDERS = ("ollama", "openai", "gemini", "claude", "deepseek")
+SUPPORTED_PROVIDERS = ("ollama", "openai", "gemini", "claude", "deepseek", "grok")
 EMBEDDING_ONLY_PROVIDERS = ("fastembed",)
 ALL_PROVIDER_NAMES = (*SUPPORTED_PROVIDERS, *EMBEDDING_ONLY_PROVIDERS)
 
@@ -49,6 +49,13 @@ def create_provider(
 
         base = creds["deepseek_base_url"] or DEFAULT_DEEPSEEK_BASE_URL
         return OpenAIProvider(api_key=creds["deepseek_api_key"], base_url=base)
+
+    if provider_name == "grok":
+        from yumi.core.features.config.model import DEFAULT_GROK_BASE_URL
+        from yumi.core.platform.providers.openai_provider import OpenAIProvider
+
+        base = creds["grok_base_url"] or DEFAULT_GROK_BASE_URL
+        return OpenAIProvider(api_key=creds["grok_api_key"], base_url=base)
 
     if provider_name == "fastembed":
         from yumi.core.platform.providers.fastembed_provider import FastEmbedProvider

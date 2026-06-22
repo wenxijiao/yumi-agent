@@ -30,6 +30,8 @@ def _select_name(argv: list[str]) -> str | None:
         (["--ui"], "ui"),
         (["--chat"], "chat"),
         (["--edge"], "edge"),
+        (["--run-edge"], "run-edge"),
+        (["--run_edge"], "run-edge"),
         (["--setup"], "setup"),
         (["--config"], "config"),
     ],
@@ -42,9 +44,9 @@ def test_no_flags_selects_nothing():
     assert _select_name([]) is None
 
 
-def test_mutually_exclusive_primary_flags_rejected_by_argparse():
-    with pytest.raises(SystemExit):
-        _parse(["--server", "--chat"])
+def test_multiple_primary_commands_are_rejected():
+    err = validate_cross_command_flags(_parse(["--server", "--setup"]))
+    assert err and "--server" in err and "--setup" in err
 
 
 # ── cross-command validation ──

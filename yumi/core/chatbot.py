@@ -38,8 +38,8 @@ class YumiBot:
         self.memories: OrderedDict[str, Memory] = OrderedDict()
 
     def _storage_dir_for_session(self, session_id: str) -> str | None:
-        # OSS default: shared memory dir. Enterprise plugins resolve per-user
-        # storage via the MemoryFactory port, so we just delegate.
+        # Default: shared memory dir. Plugins can resolve per-owner storage via
+        # the MemoryFactory port, so we just delegate.
         owner = get_session_scope().owner_user_from_session_id(session_id)
         if owner == "_local":
             return None

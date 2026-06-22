@@ -78,7 +78,7 @@ def delete_session_prompt(session_id: str) -> None:
 
 
 def _plugin_sections() -> list[str]:
-    """Identity-aware contextual blocks supplied by the active plugin (L2/L3).
+    """Identity-aware contextual blocks supplied by the active plugin.
 
     Imports the plugin registry lazily because :mod:`yumi.core.features.config`
     eagerly pulls in this module during its own initialization, and the

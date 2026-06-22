@@ -2,7 +2,7 @@
 
 We bypass HTTP and call :func:`yumi.core.features.chat.pipeline.generate_chat_events`
 directly: the voice loop already runs in the API process, so any owner-scoped
-quota / auth checks would be paid twice if we did a self-call.
+quota / auth checks would be applied twice if we did a self-call.
 """
 
 from __future__ import annotations

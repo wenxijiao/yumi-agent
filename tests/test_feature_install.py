@@ -47,6 +47,20 @@ def test_assume_yes_installs_the_extra_requirements(monkeypatch):
     assert any("sounddevice" in t for t in captured["cmd"][4:])
 
 
+def test_assume_yes_does_not_prompt_or_print_optional_package_notice(monkeypatch, capsys):
+    states = iter([False, True])  # missing -> install -> importable
+    monkeypatch.setattr(fi, "is_feature_installed", lambda f: next(states))
+    monkeypatch.setattr("builtins.input", lambda *a: (_ for _ in ()).throw(AssertionError("should not prompt")))
+    monkeypatch.setattr(subprocess, "run", lambda cmd, check: None)
+
+    assert fi.ensure_feature_installed("stt", assume_yes=True) is True
+
+    out = capsys.readouterr().out
+    assert "needs an optional package" not in out
+    assert "Install it now?" not in out
+    assert "Installing:" in out
+
+
 def test_install_that_stays_unimportable_returns_false(monkeypatch):
     monkeypatch.setattr(fi, "is_feature_installed", lambda f: False)  # never becomes importable
     monkeypatch.setattr(subprocess, "run", lambda cmd, check: None)

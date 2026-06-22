@@ -1,9 +1,9 @@
 """Yumi plugin extension layer.
 
-The core only talks to higher-layer capabilities through the ports defined
-here. Single-user defaults live in
-:mod:`yumi.core.platform.plugins.single_user` and ship with OSS so the codebase
-behaves correctly without any plugin installed.
+The core only talks to optional extension capabilities through the ports
+defined here. Single-user defaults live in
+:mod:`yumi.core.platform.plugins.single_user` and ship with Yumi so the
+codebase behaves correctly without any plugin installed.
 
 Plugins register richer implementations via :func:`register_plugin`, typically
 driven by the ``yumi.plugins`` entry-point group (see

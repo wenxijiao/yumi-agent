@@ -8,7 +8,7 @@ from yumi.core.platform.plugins import get_audit_sink
 def audit_event(event: str, user_id: str | None = None, **fields: object) -> None:
     """Emit an audit event through the active sink.
 
-    OSS default writes to the standard logger only. Enterprise plugins can
-    swap in a sink that also persists rows to SQLite/Postgres.
+    The default sink writes to the standard logger only. Plugins can swap in a
+    sink that also persists rows to SQLite/Postgres.
     """
     get_audit_sink().event(event, user_id, **fields)

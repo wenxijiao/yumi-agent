@@ -92,6 +92,8 @@ class ModelConfigUpdateRequest(BaseModel):
     openai_base_url: str | None = None
     deepseek_api_key: str | None = None
     deepseek_base_url: str | None = None
+    grok_api_key: str | None = None
+    grok_base_url: str | None = None
 
 
 class ChatDebugRequest(BaseModel):

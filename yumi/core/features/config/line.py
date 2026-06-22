@@ -53,7 +53,7 @@ def get_line_model_candidates() -> list[str]:
     raw = os.getenv("YUMI_LINE_MODEL_CANDIDATES")
     if raw and raw.strip():
         return [p.strip() for p in raw.split(",") if p.strip()][:20]
-    return ["gpt-4o-mini", "gpt-4o", "gemini-2.0-flash", "qwen3.5:9b"]
+    return ["gpt-5.4-mini", "gpt-5.5", "gemini-3.5-flash", "grok-4.3", "qwen3.5:9b"]
 
 
 def save_line_channel_secret(secret: str) -> None:

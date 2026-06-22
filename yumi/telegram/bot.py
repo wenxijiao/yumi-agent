@@ -375,9 +375,9 @@ def build_application():
         await start_cmd(update, context)
 
     async def link_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        # /link binds this Telegram account to a Yumi account in multi-user
-        # deployments (BridgeScope plugin). The single-user default just replies
-        # that no binding is needed. Allowed even when not yet authorized.
+        # /link binds this Telegram account when an identity plugin is present.
+        # The single-user default just replies that no binding is needed.
+        # Allowed even when not yet authorized.
         from yumi.core.platform.plugins import get_bridge_scope
 
         user = update.effective_user

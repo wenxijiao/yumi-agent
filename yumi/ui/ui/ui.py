@@ -205,6 +205,8 @@ class State(rx.State):
     model_edit_claude_api_key: str = ""
     model_edit_deepseek_api_key: str = ""
     model_edit_deepseek_base_url: str = ""
+    model_edit_grok_api_key: str = ""
+    model_edit_grok_base_url: str = ""
     model_edit_openai_base_url: str = ""
     model_saving: bool = False
     edit_memory_max_recent: int = 10
@@ -402,6 +404,10 @@ class State(rx.State):
     @rx.var
     def model_deepseek_key_saved(self) -> bool:
         return bool(self.model_config.get("deepseek_api_key_saved"))
+
+    @rx.var
+    def model_grok_key_saved(self) -> bool:
+        return bool(self.model_config.get("grok_api_key_saved"))
 
     # ── private helpers ──
 
@@ -884,6 +890,12 @@ class State(rx.State):
     def set_model_edit_deepseek_base_url(self, value: str):
         self.model_edit_deepseek_base_url = value
 
+    def set_model_edit_grok_api_key(self, value: str):
+        self.model_edit_grok_api_key = value
+
+    def set_model_edit_grok_base_url(self, value: str):
+        self.model_edit_grok_base_url = value
+
     def use_suggestion(self, text: str):
         self.draft = text
         return rx.call_script(CHAT_INPUT_RESIZE_FOCUS_JS)
@@ -1225,6 +1237,8 @@ class State(rx.State):
         self.model_edit_claude_api_key = ""
         self.model_edit_deepseek_api_key = ""
         self.model_edit_deepseek_base_url = self.model_config.get("deepseek_base_url") or ""
+        self.model_edit_grok_api_key = ""
+        self.model_edit_grok_base_url = self.model_config.get("grok_base_url") or ""
         self.model_edit_openai_base_url = self.model_config.get("openai_base_url") or ""
         self.model_dialog_open = True
         return rx.call_script(
@@ -1253,6 +1267,7 @@ class State(rx.State):
                     "embedding_model": self.model_edit_embed_model,
                     "openai_base_url": self.model_edit_openai_base_url,
                     "deepseek_base_url": self.model_edit_deepseek_base_url,
+                    "grok_base_url": self.model_edit_grok_base_url,
                 }
                 if self.model_edit_openai_api_key.strip():
                     payload["openai_api_key"] = self.model_edit_openai_api_key.strip()
@@ -1262,6 +1277,8 @@ class State(rx.State):
                     payload["claude_api_key"] = self.model_edit_claude_api_key.strip()
                 if self.model_edit_deepseek_api_key.strip():
                     payload["deepseek_api_key"] = self.model_edit_deepseek_api_key.strip()
+                if self.model_edit_grok_api_key.strip():
+                    payload["grok_api_key"] = self.model_edit_grok_api_key.strip()
                 return requests.put(
                     self._api("/config/model"),
                     json=payload,
@@ -1277,6 +1294,7 @@ class State(rx.State):
                 self.model_edit_gemini_api_key = ""
                 self.model_edit_claude_api_key = ""
                 self.model_edit_deepseek_api_key = ""
+                self.model_edit_grok_api_key = ""
                 self.model_dialog_open = False
             else:
                 try:
@@ -2745,7 +2763,7 @@ def _model_dialog() -> rx.Component:
                 rx.vstack(
                     rx.text("Chat Provider", size="2", weight="medium", color="var(--text-2)"),
                     rx.select(
-                        ["ollama", "openai", "gemini", "claude", "deepseek"],
+                        ["ollama", "openai", "gemini", "claude", "deepseek", "grok"],
                         value=State.model_edit_chat_provider,
                         on_change=State.set_model_edit_chat_provider,
                         width="100%",
@@ -2759,7 +2777,7 @@ def _model_dialog() -> rx.Component:
                     rx.el.input(
                         id="edit-chat-model",
                         on_change=State.set_model_edit_chat_model,
-                        placeholder="e.g. gemini-2.5-flash, gpt-4o, claude-sonnet-4-20250514, deepseek-chat, qwen3:8b",
+                        placeholder="e.g. gpt-5.5, gemini-3.5-flash, claude-opus-4-8, grok-4.3, qwen3:8b",
                         style={
                             "width": "100%",
                             "padding": "6px 10px",
@@ -2947,6 +2965,58 @@ def _model_dialog() -> rx.Component:
                             value=State.model_edit_deepseek_base_url,
                             placeholder="Default: https://api.deepseek.com",
                             on_change=State.set_model_edit_deepseek_base_url,
+                            style={
+                                "width": "100%",
+                                "padding": "6px 10px",
+                                "border": "1px solid var(--border)",
+                                "border-radius": "6px",
+                                "font-size": "13px",
+                                "background": "var(--bg-page)",
+                                "color": "var(--text-1)",
+                                "outline": "none",
+                                "font-family": "inherit",
+                            },
+                        ),
+                        spacing="1",
+                        width="100%",
+                    ),
+                    rx.vstack(
+                        rx.hstack(
+                            rx.text("Grok (xAI)", size="2", weight="medium", color="var(--text-2)"),
+                            rx.cond(
+                                State.model_grok_key_saved,
+                                rx.badge("saved", variant="surface", color_scheme="gray", size="1"),
+                                rx.fragment(),
+                            ),
+                            spacing="2",
+                            align="center",
+                        ),
+                        rx.el.input(
+                            type="password",
+                            autocomplete="off",
+                            placeholder="XAI_API_KEY",
+                            on_change=State.set_model_edit_grok_api_key,
+                            style={
+                                "width": "100%",
+                                "padding": "6px 10px",
+                                "border": "1px solid var(--border)",
+                                "border-radius": "6px",
+                                "font-size": "13px",
+                                "background": "var(--bg-page)",
+                                "color": "var(--text-1)",
+                                "outline": "none",
+                                "font-family": "inherit",
+                            },
+                        ),
+                        spacing="1",
+                        width="100%",
+                    ),
+                    rx.vstack(
+                        rx.text("Grok base URL (optional)", size="2", weight="medium", color="var(--text-2)"),
+                        rx.el.input(
+                            value=State.model_edit_grok_base_url,
+                            placeholder="Default: https://api.x.ai/v1",
+                            on_change=State.set_model_edit_grok_base_url,
                             style={
                                 "width": "100%",
                                 "padding": "6px 10px",
