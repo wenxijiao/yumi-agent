@@ -1,12 +1,28 @@
 {
   "name": "yumi-sdk",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Yumi Edge SDK for TypeScript / JavaScript",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wenxijiao/yumi-agent.git",
+    "directory": "yumi/sdk/typescript"
+  },
+  "homepage": "https://github.com/wenxijiao/yumi-agent#readme",
+  "bugs": {
+    "url": "https://github.com/wenxijiao/yumi-agent/issues"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "tsconfig.json"
+  ],
   "scripts": {
     "build": "tsc",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "prepack": "npm run build"
   },
   "dependencies": {
     "ws": "^8.0.0"

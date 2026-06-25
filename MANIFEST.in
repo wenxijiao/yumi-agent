@@ -3,6 +3,13 @@ prune yumi/ui/.web
 prune yumi/ui/.states
 prune yumi/ui/__pycache__
 prune yumi/ui/ui/__pycache__
+prune yumi/sdk/typescript/node_modules
+prune yumi/sdk/typescript/dist
+prune yumi/sdk/swift/.build
+prune yumi/sdk/swift/.swiftpm
+prune yumi/sdk/java/target
+prune yumi/sdk/csharp/bin
+prune yumi/sdk/csharp/obj
 prune _enterprise_seed
 global-exclude *.py[cod]
 global-exclude .DS_Store

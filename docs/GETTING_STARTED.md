@@ -18,7 +18,7 @@ If you are installing from source:
 
 ```bash
 git clone https://github.com/wenxijiao/yumi-agent.git
-cd Yumi
+cd yumi-agent
 pip install .
 ```
 
@@ -32,8 +32,8 @@ pip install -e ".[dev]"
 
 | Artifact | Install |
 |----------|---------|
-| **Python app & server** | PyPI package name: **`yumi-agent`** (publish when ready). Until then: `pip install .` from a clone. |
-| **TypeScript SDK** | npm package name: **`yumi-sdk`** ([`yumi/sdk/typescript/package.json`](../yumi/sdk/typescript/package.json)). Until published: copy from this repo or use `yumi --edge`. |
+| **Python app & server** | PyPI package name: **`yumi-agent`**. Source installs use `pip install .` from a clone. |
+| **TypeScript SDK** | npm package name: **`yumi-sdk`** ([`yumi/sdk/typescript/package.json`](../yumi/sdk/typescript/package.json)). Source/template installs can copy from this repo or use `yumi --edge`. |
 | **Go, Swift, Java, C++, Rust, Kotlin, Dart, UE5** | Vendored from [`yumi/sdk/`](../yumi/sdk/README.md) or copied into your project via `yumi --edge`; not published as language-specific registry packages yet. |
 
 Publishing tagged releases to PyPI and npm is documented in [CONTRIBUTING.md](../CONTRIBUTING.md#releases-pypi--npm).

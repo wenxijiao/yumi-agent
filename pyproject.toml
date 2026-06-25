@@ -58,7 +58,48 @@ exclude = ["_enterprise_seed*"]
 yumi = [
     "edge/template/**/*",
     "edge/template/*",
-    "sdk/**/*",
+    "sdk/AGENTS.md",
+    "sdk/README.md",
+    "sdk/cpp/CMakeLists.txt",
+    "sdk/cpp/include/**/*",
+    "sdk/cpp/src/**/*",
+    "sdk/csharp/*",
+    "sdk/dart/pubspec.yaml",
+    "sdk/dart/pubspec.lock",
+    "sdk/dart/lib/**/*",
+    "sdk/dart/test/**/*",
+    "sdk/go/*",
+    "sdk/java/pom.xml",
+    "sdk/java/src/**/*",
+    "sdk/kotlin/build.gradle.kts",
+    "sdk/kotlin/settings.gradle.kts",
+    "sdk/kotlin/src/**/*",
+    "sdk/rust/Cargo.toml",
+    "sdk/rust/src/**/*",
+    "sdk/swift/Package.swift",
+    "sdk/swift/Sources/**/*",
+    "sdk/typescript/package.json",
+    "sdk/typescript/package-lock.json",
+    "sdk/typescript/tsconfig.json",
+    "sdk/typescript/src/**/*",
+    "sdk/ue5/**/*",
+]
+
+[tool.setuptools.exclude-package-data]
+yumi = [
+    "**/__pycache__/*",
+    "**/*.py[cod]",
+    "**/.DS_Store",
+    "sdk/**/node_modules/**/*",
+    "sdk/**/dist/**/*",
+    "sdk/**/build/**/*",
+    "sdk/swift/.build/**/*",
+    "sdk/swift/.swiftpm/**/*",
+    "sdk/java/target/**/*",
+    "sdk/csharp/bin/**/*",
+    "sdk/csharp/obj/**/*",
+    "ui/.web/**/*",
+    "ui/.states/**/*",
 ]
 
 [project.scripts]
@@ -77,6 +118,7 @@ dev = [
     "pytest-cov>=4.0",
     "ruff>=0.8.0",
     "pyright>=1.1",
+    "twine>=6.0",
 ]
 # Heavy / system-dependent / cloud features kept OUT of the base install.
 # `yumi --setup` offers to install these on demand when you turn the feature on;
