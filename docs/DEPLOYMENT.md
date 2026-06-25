@@ -6,12 +6,17 @@ runnable local-first agent server, CLI, HTTP API, and Edge SDK templates.
 ## Install
 
 ```bash
-pip install yumi-agent            # core (Ollama provider, HTTP API, CLI)
-pip install "yumi-agent[all]"     # + UI, voice, STT, Telegram, cloud providers
+pip install yumi-agent            # batteries-included: all chat/embedding
+                                  # providers, Telegram/Discord/LINE bridges,
+                                  # HTTP API, and CLI
+pip install "yumi-agent[all]"     # + web UI, voice wake-word, STT, and TTS
 ```
 
-Optional extras (combine as needed): `ui`, `voice`, `stt`, `telegram`,
-`openai`, `gemini`, `claude`, `providers` (all cloud providers), `files`.
+Optional extras (combine as needed): `embed` (local FastEmbed embeddings),
+`ui` (Reflex web UI), `stt` (Whisper speech-to-text), `voice` (microphone
+wake-word loop), `tts` (DashScope spoken replies), `tts-local` (on-GPU
+Qwen3-TTS), and `all` (everything above). Cloud providers and messaging
+bridges are in the base install — no extra needed.
 
 Python 3.10+.
 

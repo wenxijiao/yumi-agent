@@ -7,8 +7,7 @@ Thank you for your interest in contributing. This document describes how to set 
 ```bash
 # After forking, replace <your-user> with your GitHub username:
 git clone https://github.com/<your-user>/yumi-agent.git
-cd Yumi
-# If you cloned into a different folder name (e.g. yumi-agent), use that path instead of `Yumi`.
+cd yumi-agent
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
@@ -44,12 +43,12 @@ python -m build
 ```
 
 1. Create an annotated tag: `git tag -a v0.1.0 -m "v0.1.0"` and `git push origin v0.1.0`.
-2. Configure repository **Secrets**:
-   - `PYPI_API_TOKEN` — [PyPI API token](https://pypi.org/help/#apitoken) for the `yumi-agent` project.
+2. Configure PyPI **Trusted Publishing** for this repository and workflow file (`release.yml`) with the `pypi` and `testpypi` GitHub environments. The Python publish job uses OIDC, so there is no long-lived PyPI API token to store.
+3. Configure repository **Secrets**:
    - `NPM_TOKEN` — [npm automation token](https://docs.npmjs.com/creating-and-viewing-access-tokens) with publish rights for `yumi-sdk`.
-3. The [Release workflow](.github/workflows/release.yml) runs on `v*` tags: builds the Python wheel/sdist and publishes to PyPI, and publishes the TypeScript package to npm. Jobs are skipped if the corresponding secret is missing.
+4. The [Release workflow](.github/workflows/release.yml) runs on `v*` tags: builds the Python wheel/sdist and publishes to PyPI, and publishes the TypeScript package to npm. The npm job is skipped if `NPM_TOKEN` is missing.
 
-Forks and contributors without these secrets will not run the publish steps.
+Forks and contributors without the publish environment or npm secret will not run the publish steps.
 
 ## Repository administration (maintainers)
 

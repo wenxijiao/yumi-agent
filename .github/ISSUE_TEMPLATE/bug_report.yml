@@ -1,0 +1,48 @@
+name: Bug report
+description: Report a problem with Yumi
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. Please search existing issues first to avoid duplicates.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug and what you expected instead.
+      placeholder: When I run `yumi --server`, ...
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The exact commands and actions that trigger the bug.
+      placeholder: |
+        1. Run `yumi --setup` and pick ...
+        2. Run `yumi --server`
+        3. See error
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or output
+      description: Paste any error output or tracebacks. Redact tokens/API keys.
+      render: shell
+  - type: input
+    id: version
+    attributes:
+      label: Yumi version
+      description: Output of `yumi --version` (or the git commit you are on).
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python version, and provider (Ollama/OpenAI/Claude/...).
+      placeholder: macOS 14, Python 3.12, OpenAI
+    validations:
+      required: true

@@ -5,8 +5,10 @@ whose accessors return the OSS default unless a plugin overrides a port via
 :func:`register_plugin`. These tests assert the default wiring, the
 per-port replacement semantics, and the behaviour of each single-user default.
 
-Every test that mutates the registry restores the original ports via the
-``restore_registry`` fixture so global state never leaks across tests.
+An autouse ``restore_registry`` fixture pins every port to its single-user
+default before each test and restores the prior wiring afterwards, so these
+assertions hold even when a ``yumi.plugins`` entry-point (e.g. a closed-source
+enterprise plugin) is installed in the environment.
 """
 
 from __future__ import annotations
@@ -20,6 +22,7 @@ from yumi.core.platform.plugins import (
     get_audit_sink,
     get_billing_hook,
     get_bot_pool,
+    get_bridge_scope,
     get_current_identity,
     get_edge_scope,
     get_identity_provider,
@@ -44,6 +47,7 @@ from yumi.core.platform.plugins.single_user import (
     PassThroughSessionScope,
     SharedBotPool,
     SharedMemoryFactory,
+    SingleUserBridgeScope,
     SingleUserIdentityProvider,
     ZeroBillingHook,
 )
@@ -53,6 +57,7 @@ _ALL_GETTERS = {
     "quota_policy": get_quota_policy,
     "billing_hook": get_billing_hook,
     "session_scope": get_session_scope,
+    "bridge_scope": get_bridge_scope,
     "bot_pool": get_bot_pool,
     "memory_factory": get_memory_factory,
     "edge_scope": get_edge_scope,
@@ -64,10 +69,37 @@ _ALL_GETTERS = {
 }
 
 
-@pytest.fixture
+def _single_user_defaults() -> dict:
+    """Fresh instances of every single-user (OSS) port implementation."""
+    return {
+        "identity_provider": SingleUserIdentityProvider(),
+        "quota_policy": NoOpQuotaPolicy(),
+        "billing_hook": ZeroBillingHook(),
+        "session_scope": PassThroughSessionScope(),
+        "bridge_scope": SingleUserBridgeScope(),
+        "bot_pool": SharedBotPool(),
+        "memory_factory": SharedMemoryFactory(),
+        "edge_scope": FlatEdgeScope(),
+        "audit_sink": LoggingAuditSink(),
+        "route_extender": NoOpRouteExtender(),
+        "middleware_extender": NoOpMiddlewareExtender(),
+        "admin_cli": NoOpAdminCli(),
+        "system_prompt_extender": NoOpSystemPromptExtender(),
+    }
+
+
+@pytest.fixture(autouse=True)
 def restore_registry():
-    """Snapshot every port before the test and re-register them afterwards."""
+    """Pin the registry to single-user OSS defaults around every test.
+
+    The registry is a process-global singleton, so an installed ``yumi.plugins``
+    entry-point (e.g. a closed-source enterprise plugin) may have overridden
+    ports earlier in the session. Snapshot whatever is registered, force every
+    port back to its single-user default so the OSS-default assertions are
+    deterministic regardless of the environment, then restore the snapshot.
+    """
     snapshot = {name: getter() for name, getter in _ALL_GETTERS.items()}
+    register_plugin(**_single_user_defaults())
     yield
     register_plugin(**snapshot)
 
@@ -93,7 +125,7 @@ def test_defaults_are_single_user_implementations():
 # ── register_plugin semantics ───────────────────────────────────────────────
 
 
-def test_register_plugin_replaces_only_supplied_ports(restore_registry):
+def test_register_plugin_replaces_only_supplied_ports():
     sentinel = NoOpQuotaPolicy()
     before_billing = get_billing_hook()
 
@@ -104,7 +136,7 @@ def test_register_plugin_replaces_only_supplied_ports(restore_registry):
     assert get_billing_hook() is before_billing
 
 
-def test_register_plugin_later_registration_wins(restore_registry):
+def test_register_plugin_later_registration_wins():
     first = NoOpQuotaPolicy()
     second = NoOpQuotaPolicy()
 
@@ -114,7 +146,7 @@ def test_register_plugin_later_registration_wins(restore_registry):
     assert get_quota_policy() is second
 
 
-def test_register_plugin_none_is_a_noop(restore_registry):
+def test_register_plugin_none_is_a_noop():
     before = get_quota_policy()
     register_plugin(quota_policy=None)
     assert get_quota_policy() is before

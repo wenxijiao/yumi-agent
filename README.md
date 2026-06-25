@@ -196,6 +196,7 @@ You can mix providers — for example OpenAI for chat and Ollama for embeddings.
 | [Edge Tools Guide](docs/EDGE_TOOLS.md) | Connect your app, device, or game as an edge tool host |
 | [Tool Registration](docs/TOOL_REGISTRATION.md) | All tool registration parameters, confirmation, proactive options |
 | [Configuration](docs/CONFIGURATION.md) | `~/.yumi/config.json`, environment variables, Telegram, Discord, LINE, Docker |
+| [Deployment](docs/DEPLOYMENT.md) | Install, first run, Docker, production notes (TLS, CORS, health checks) |
 | [Architecture](docs/ARCHITECTURE.md) | System design, plugin ports, API stability |
 | [HTTP API](docs/HTTP_API.md) | Chat NDJSON stream, all routes, curl examples |
 | [Memory](docs/MEMORY.md) | Session history and LanceDB embeddings |

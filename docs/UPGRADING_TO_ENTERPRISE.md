@@ -51,7 +51,7 @@ This means:
    docker pull ${REGISTRY_URL}/yumi-enterprise:latest
 
    # Or, on a Python host (private wheel)
-   pip install yumi-agent==0.2.*           # OSS, from PyPI
+   pip install yumi-agent==0.3.*           # OSS, from PyPI
    pip install /path/to/yumi_enterprise-*.whl --no-deps
    ```
 
@@ -100,7 +100,7 @@ mode at any time.
 
 ## Compatibility promise
 
-`yumi-enterprise` pins a narrow OSS range (`yumi-agent>=0.2,<0.3`).
+`yumi-enterprise` pins a narrow OSS range (`yumi-agent>=0.3,<0.4`).
 Within that range the OSS team commits to:
 
 - not removing or renaming any class in `yumi.core.platform.plugins`
