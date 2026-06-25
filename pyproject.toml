@@ -1,12 +1,13 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=77.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "yumi-agent"
 version = "0.3.0"
 description = "Yumi — open-source self-hosted AI agent framework: cross-language tool edges + Telegram/LINE/Discord chat"
-license = { file = "LICENSE" }
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Yumi contributors" }]
@@ -16,7 +17,6 @@ classifiers = [
     "Environment :: Console",
     "Framework :: FastAPI",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -179,6 +179,9 @@ reportMissingModuleSource = "none"
 # Edge templates ship multi-language scaffolds; analysis targets the runtime packages only.
 exclude = [
     "_enterprise_seed",
+    "build",
+    "dist",
+    "*.egg-info",
     "yumi/ui",
     "yumi/edge/template",
     "**/__pycache__",
