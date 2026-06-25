@@ -86,6 +86,8 @@ def _read_key() -> str:
         import msvcrt
 
         ch = msvcrt.getwch()
+        if ch == "":
+            raise EOFError  # stdin closed (EOF)
         if ch == "\x03":
             raise KeyboardInterrupt
         if ch in ("\x00", "\xe0"):
@@ -107,12 +109,16 @@ def _read_key() -> str:
     try:
         tty.setraw(fd)
         ch = sys.stdin.read(1)
+        if ch == "":
+            raise EOFError  # stdin closed — don't spin redrawing on an empty key
         if ch == "\x03":
             raise KeyboardInterrupt
         if ch in ("\r", "\n"):
             return "enter"
         if ch == "\x1b":
             seq = sys.stdin.read(2)
+            if len(seq) < 2:
+                raise EOFError
             if seq == "[A":
                 return "up"
             if seq == "[B":
@@ -189,7 +195,11 @@ def _select_option(
             suffix = f" — {description}" if description else ""
             print(f"  {i}. {label}{suffix}")
         while True:
-            choice = input("> ").strip()
+            try:
+                choice = input("> ").strip()
+            except EOFError:
+                # Piped/closed stdin (e.g. `yumi --setup </dev/null`) → default.
+                return options[min(max(default, 0), len(options) - 1)][0]
             if not choice:
                 return options[min(max(default, 0), len(options) - 1)][0]
             try:
@@ -213,14 +223,21 @@ def _select_option(
             selected=selected,
             footer=footer,
         )
-        key = _read_key()
+        try:
+            key = _read_key()
+        except EOFError:
+            # stdin closed mid-prompt — exit cleanly instead of spinning.
+            raise SystemExit("  Setup cancelled.")
         if key == "up":
             selected = (selected - 1) % len(options)
         elif key == "down":
             selected = (selected + 1) % len(options)
         elif key == "enter":
             return options[selected][0]
-        elif key.isdigit():
+        elif key.isdigit() and len(options) <= 9:
+            # Single-digit shortcuts can only address up to 9 options; for
+            # longer menus they'd be misleading (no way to reach item 10+), so
+            # fall through to arrow-key navigation instead.
             idx = int(key)
             if 1 <= idx <= len(options):
                 return options[idx - 1][0]

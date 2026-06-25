@@ -5,7 +5,9 @@ from typing import Any
 
 from yumi.core.platform.providers.base import BaseLLMProvider
 
-_FASTEMBED_POOLING_WARNING = r"The model .* now uses mean pooling instead of CLS embedding\..*"
+# Match on the stable middle of the message, not a start-anchored prefix, so an
+# upstream change that prepends text to the warning doesn't make it leak through.
+_FASTEMBED_POOLING_WARNING = r".*mean pooling instead of CLS embedding.*"
 
 
 class FastEmbedProvider(BaseLLMProvider):
