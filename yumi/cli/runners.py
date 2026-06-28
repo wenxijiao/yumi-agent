@@ -1060,6 +1060,79 @@ def _prompt_run_edge_language(available: list[str]) -> str:
         )
 
 
+def _run_edge_command(workspace: str, lang_key: str) -> tuple[list[str], str, str]:
+    cmd, rel_cwd, _marker, note = _RUN_EDGE_COMMANDS[lang_key]
+    cwd = workspace if rel_cwd == "." else os.path.join(workspace, rel_cwd)
+    return cmd, cwd, note
+
+
+def _terminate_run_edge_processes(processes: list[tuple[str, subprocess.Popen]]) -> None:
+    for _lang_key, proc in processes:
+        if proc.poll() is None:
+            proc.terminate()
+
+    deadline = time.time() + 5
+    while time.time() < deadline:
+        if all(proc.poll() is not None for _lang_key, proc in processes):
+            return
+        time.sleep(0.1)
+
+    for _lang_key, proc in processes:
+        if proc.poll() is None:
+            proc.kill()
+
+
+def _run_edge_commands(workspace: str, lang_keys: list[str]) -> None:
+    if len(lang_keys) == 1:
+        lang_key = lang_keys[0]
+        cmd, cwd, note = _run_edge_command(workspace, lang_key)
+        rows = [
+            ("Workspace:", workspace),
+            ("Language:", lang_key),
+            ("Command:", " ".join(cmd)),
+        ]
+        _print_banner("Yumi Edge Runner", rows, [note, "Press Ctrl+C to stop the edge."])
+        try:
+            subprocess.run(cmd, cwd=cwd, env=os.environ.copy())
+        except FileNotFoundError:
+            print(f"  Could not find `{cmd[0]}` on PATH. Install the {lang_key} toolchain, then try again.")
+        return
+
+    rows = [
+        ("Workspace:", workspace),
+        ("Languages:", ", ".join(lang_keys)),
+        ("Processes:", str(len(lang_keys))),
+    ]
+    notes = [
+        "Running standalone edges in parallel.",
+        "Press Ctrl+C to stop all edges.",
+    ]
+    _print_banner("Yumi Edge Runner", rows, notes)
+
+    processes: list[tuple[str, subprocess.Popen]] = []
+    try:
+        for lang_key in lang_keys:
+            cmd, cwd, _note = _run_edge_command(workspace, lang_key)
+            try:
+                proc = subprocess.Popen(cmd, cwd=cwd, env=os.environ.copy())
+            except FileNotFoundError:
+                print(f"  Could not find `{cmd[0]}` on PATH. Install the {lang_key} toolchain, then try again.")
+                continue
+            processes.append((lang_key, proc))
+            print(f"  Started {lang_key}: {' '.join(cmd)}")
+
+        if not processes:
+            return
+
+        while True:
+            if all(proc.poll() is not None for _lang_key, proc in processes):
+                return
+            time.sleep(0.5)
+    except KeyboardInterrupt:
+        print("\n  Stopping edge processes...")
+        _terminate_run_edge_processes(processes)
+
+
 def run_edge_standalone(lang: str | list[str] | None = None) -> None:
     """Run a generated standalone Edge template from the current workspace."""
     workspace = os.getcwd()
@@ -1085,10 +1158,7 @@ def run_edge_standalone(lang: str | list[str] | None = None) -> None:
                 "  Template not found for: " + ", ".join(missing) + ". Generate it first with `yumi --edge --lang ...`."
             )
             return
-        if len(selected) > 1:
-            print("  Choose one language for --run-edge, for example: yumi --run-edge --lang python")
-            return
-        lang_key = selected[0]
+        lang_keys = selected
     else:
         if not available:
             print("  No runnable standalone Edge template found under yumi_tools/.")
@@ -1097,24 +1167,13 @@ def run_edge_standalone(lang: str | list[str] | None = None) -> None:
         if len(available) == 1 or not sys.stdin.isatty():
             if len(available) > 1:
                 print("  Multiple standalone edges found: " + ", ".join(available))
-                print("  Choose one with: yumi --run-edge --lang python")
+                print("  Choose one or more with: yumi --run-edge --lang python --lang go")
                 return
-            lang_key = available[0]
+            lang_keys = [available[0]]
         else:
-            lang_key = _prompt_run_edge_language(available)
+            lang_keys = [_prompt_run_edge_language(available)]
 
-    cmd, rel_cwd, _marker, note = _RUN_EDGE_COMMANDS[lang_key]
-    cwd = workspace if rel_cwd == "." else os.path.join(workspace, rel_cwd)
-    rows = [
-        ("Workspace:", workspace),
-        ("Language:", lang_key),
-        ("Command:", " ".join(cmd)),
-    ]
-    _print_banner("Yumi Edge Runner", rows, [note, "Press Ctrl+C to stop the edge."])
-    try:
-        subprocess.run(cmd, cwd=cwd, env=os.environ.copy())
-    except FileNotFoundError:
-        print(f"  Could not find `{cmd[0]}` on PATH. Install the {lang_key} toolchain, then try again.")
+    _run_edge_commands(workspace, lang_keys)
 
 
 def _write_connection_code(env_path: str, code: str) -> None:

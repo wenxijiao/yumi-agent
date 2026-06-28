@@ -43,7 +43,11 @@ yumi_tools/
 
 ```bash
 yumi --run-edge --lang python
+yumi --run-edge --lang python --lang go
 ```
+
+Pass multiple `--lang` values to run several generated standalone edges in
+parallel. Ctrl+C stops all of them together.
 
 ## Generate Again
 

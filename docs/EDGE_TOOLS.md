@@ -298,9 +298,11 @@ Use `yumi --run-edge` when you want the generated setup file to be the process:
 
 ```bash
 yumi --run-edge --lang python
+yumi --run-edge --lang python --lang go
 ```
 
 This is useful for testing tools before embedding them in a real app. Embedded apps should call the generated init function and keep their own main loop.
+When you pass multiple `--lang` values, Yumi starts those standalone edge templates in parallel and stops them together on Ctrl+C.
 
 ## Further Reading
 

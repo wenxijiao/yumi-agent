@@ -158,6 +158,42 @@ def test_run_edge_standalone_runs_python_template(monkeypatch, tmp_path):
     assert "PATH" in env
 
 
+def test_run_edge_standalone_runs_multiple_templates(monkeypatch, tmp_path):
+    python_setup = tmp_path / "yumi_tools" / "python" / "yumi_setup.py"
+    go_main = tmp_path / "yumi_tools" / "go" / "main.go"
+    python_setup.parent.mkdir(parents=True)
+    go_main.parent.mkdir(parents=True)
+    python_setup.write_text("# generated template\n", encoding="utf-8")
+    go_main.write_text("package main\n", encoding="utf-8")
+    calls = []
+
+    class FakeProcess:
+        def poll(self):
+            return 0
+
+        def terminate(self):
+            return None
+
+        def kill(self):
+            return None
+
+    def fake_popen(cmd, cwd, env):
+        calls.append((cmd, cwd, env))
+        return FakeProcess()
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(cli_runners.subprocess, "Popen", fake_popen)
+
+    cli.run_edge_standalone(lang=["python,go"])
+
+    assert len(calls) == 2
+    assert calls[0][0] == [sys.executable, "-m", "yumi_tools.python.yumi_setup"]
+    assert calls[0][1] == str(tmp_path)
+    assert calls[1][0] == ["go", "run", "."]
+    assert calls[1][1] == str(tmp_path / "yumi_tools" / "go")
+    assert all("PATH" in env for _cmd, _cwd, env in calls)
+
+
 def test_tool_routing_cli_updates_config(monkeypatch, tmp_path, capsys):
     p = tmp_path / "config.json"
     monkeypatch.setattr("yumi.core.features.config.paths.CONFIG_PATH", p)
