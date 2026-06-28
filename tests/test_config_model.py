@@ -49,6 +49,7 @@ def test_model_config_tts_env_overrides(monkeypatch, tmp_path):
     monkeypatch.setenv("YUMI_TTS_VOICE", "nova")
     monkeypatch.setenv("YUMI_TTS_MODEL", "gpt-4o-mini-tts")
     monkeypatch.setenv("YUMI_TTS_LANGUAGE", "en")
+    monkeypatch.setenv("YUMI_TTS_API_KEY", "dashscope-key")
 
     cfg = load_model_config()
 
@@ -56,6 +57,7 @@ def test_model_config_tts_env_overrides(monkeypatch, tmp_path):
     assert cfg.tts_voice == "nova"
     assert cfg.tts_model == "gpt-4o-mini-tts"
     assert cfg.tts_language == "en"
+    assert cfg.tts_api_key == "dashscope-key"
 
 
 def test_model_config_migrates_legacy_proactive_timezone_json_key():

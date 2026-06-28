@@ -296,6 +296,9 @@ def load_model_config() -> ModelConfig:
     tts_language = os.getenv("YUMI_TTS_LANGUAGE")
     if tts_language:
         config.tts_language = tts_language.strip() or config.tts_language
+    tts_api_key = os.getenv("YUMI_TTS_API_KEY")
+    if tts_api_key:
+        config.tts_api_key = tts_api_key.strip() or config.tts_api_key
 
     config.proactive_enabled = config.proactive_mode != "off"
 

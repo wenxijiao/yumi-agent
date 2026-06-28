@@ -8,7 +8,7 @@ from yumi.core.features.stt.base import SpeechToTextProvider, SttError, SttNotCo
 from yumi.core.features.stt.types import TranscriptionResult
 from yumi.core.features.stt.whisper_provider import WhisperSttProvider
 
-_PROVIDER_CACHE: tuple[tuple[str, str, str, str, str, str], SpeechToTextProvider] | None = None
+_PROVIDER_CACHE: tuple[tuple[str, ...], SpeechToTextProvider] | None = None
 
 
 def create_stt_provider(config: ModelConfig | None = None) -> SpeechToTextProvider:
@@ -38,6 +38,10 @@ def create_stt_provider(config: ModelConfig | None = None) -> SpeechToTextProvid
             api_key=cfg.tts_api_key,  # the shared DashScope account key
             language=cfg.stt_language or "auto",
         )
+    if provider == "grok":
+        from yumi.core.features.stt.grok_provider import GrokSttProvider
+
+        return GrokSttProvider(api_key=cfg.grok_api_key, base_url=cfg.grok_base_url)
     if provider != "whisper":
         raise SttError(f"Unsupported STT provider: {cfg.stt_provider!r}")
     backend = (cfg.stt_backend or "faster-whisper").strip().lower()
@@ -50,7 +54,7 @@ def create_stt_provider(config: ModelConfig | None = None) -> SpeechToTextProvid
     )
 
 
-def _cache_key(config: ModelConfig) -> tuple[str, str, str, str, str, str]:
+def _cache_key(config: ModelConfig) -> tuple[str, ...]:
     return (
         config.stt_provider or "disabled",
         config.stt_backend or "faster-whisper",
@@ -60,6 +64,8 @@ def _cache_key(config: ModelConfig) -> tuple[str, str, str, str, str, str]:
         # DashScope STT captures tts_api_key at construction, so rotating the key
         # must invalidate the cached provider (openai/gemini read it lazily).
         config.tts_api_key or "",
+        config.grok_api_key or "",
+        config.grok_base_url or "",
     )
 
 

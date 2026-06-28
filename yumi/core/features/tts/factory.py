@@ -30,6 +30,24 @@ def create_tts_provider(config: ModelConfig | None = None) -> TextToSpeechProvid
             voice=cfg.tts_voice,
             language=cfg.tts_language,
         )
+    if provider == "gemini":
+        from yumi.core.features.tts.gemini_provider import GeminiTtsProvider
+
+        return GeminiTtsProvider(
+            api_key=cfg.gemini_api_key,
+            model=cfg.tts_model,
+            voice=cfg.tts_voice,
+            language=cfg.tts_language,
+        )
+    if provider == "grok":
+        from yumi.core.features.tts.grok_provider import GrokTtsProvider
+
+        return GrokTtsProvider(
+            api_key=cfg.grok_api_key,
+            base_url=cfg.grok_base_url,
+            voice=cfg.tts_voice,
+            language=cfg.tts_language,
+        )
     if provider == "qwen":
         from yumi.core.features.tts.qwen_provider import QwenTtsProvider
 

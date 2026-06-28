@@ -105,6 +105,10 @@ def test_model_config_public_dict_includes_key_flags(monkeypatch, tmp_path: Path
     assert d["stt_provider"] == "disabled"
     assert d["stt_backend"] == "faster-whisper"
     assert d["stt_model"] == ""
+    assert d["tts_provider"] == "disabled"
+    assert d["tts_model"] == ""
+    assert d["tts_voice"] == ""
+    assert d["tts_api_key_saved"] is False
 
 
 def test_create_provider_deepseek_wraps_openai_provider():
@@ -195,6 +199,58 @@ def test_put_config_model_rejects_grok_embedding_provider(monkeypatch, tmp_path:
     exc = asyncio.run(_run())
     assert exc.status_code == 400
     assert "grok" in str(exc.detail).lower()
+
+
+def test_put_config_model_accepts_openai_stt_model(monkeypatch, tmp_path: Path) -> None:
+    p = _patch_config_path(monkeypatch, tmp_path)
+    p.write_text(
+        json.dumps({"chat_provider": "ollama", "chat_model": "m", "openai_api_key": "sk-test"}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("yumi.core.features.config.router.ensure_provider_available", lambda provider: None)
+
+    async def _run():
+        return await update_model_config_endpoint(
+            ModelConfigUpdateRequest(
+                stt_provider="openai",
+                stt_backend="api",
+                stt_model="gpt-4o-transcribe",
+            )
+        )
+
+    response = asyncio.run(_run())
+    saved = json.loads(p.read_text(encoding="utf-8"))
+    assert response["stt_provider"] == "openai"
+    assert response["stt_model"] == "gpt-4o-transcribe"
+    assert saved["stt_provider"] == "openai"
+    assert saved["stt_backend"] == "api"
+
+
+def test_put_config_model_accepts_cloud_tts_provider(monkeypatch, tmp_path: Path) -> None:
+    p = _patch_config_path(monkeypatch, tmp_path)
+    p.write_text(
+        json.dumps({"chat_provider": "ollama", "chat_model": "m", "gemini_api_key": "gem-test"}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("yumi.core.features.config.router.ensure_provider_available", lambda provider: None)
+
+    async def _run():
+        return await update_model_config_endpoint(
+            ModelConfigUpdateRequest(
+                tts_provider="gemini",
+                tts_model="gemini-3.1-flash-tts-preview",
+                tts_voice="Kore",
+                tts_language="ja",
+            )
+        )
+
+    response = asyncio.run(_run())
+    saved = json.loads(p.read_text(encoding="utf-8"))
+    assert response["tts_provider"] == "gemini"
+    assert response["tts_model"] == "gemini-3.1-flash-tts-preview"
+    assert response["tts_voice"] == "Kore"
+    assert saved["tts_provider"] == "gemini"
+    assert saved["tts_language"] == "ja"
 
 
 def test_put_config_model_rejects_claude_embedding_provider(monkeypatch, tmp_path: Path) -> None:

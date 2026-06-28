@@ -33,6 +33,18 @@ def test_chat_and_embedding_overrides(isolated_config, monkeypatch):
     assert cfg.embedding_model == "embed-1"
 
 
+def test_tts_overrides(isolated_config, monkeypatch):
+    monkeypatch.setenv("YUMI_TTS_PROVIDER", "gemini")
+    monkeypatch.setenv("YUMI_TTS_MODEL", "gemini-3.1-flash-tts-preview")
+    monkeypatch.setenv("YUMI_TTS_VOICE", "Kore")
+    monkeypatch.setenv("YUMI_TTS_LANGUAGE", "ja")
+    cfg = load_model_config()
+    assert cfg.tts_provider == "gemini"
+    assert cfg.tts_model == "gemini-3.1-flash-tts-preview"
+    assert cfg.tts_voice == "Kore"
+    assert cfg.tts_language == "ja"
+
+
 def test_memory_limits_are_clamped(isolated_config, monkeypatch):
     monkeypatch.setenv("YUMI_MEMORY_MAX_RECENT", "9999")  # clamp to 500
     monkeypatch.setenv("YUMI_MEMORY_MAX_RELATED", "-5")  # clamp to 0

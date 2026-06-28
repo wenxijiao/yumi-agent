@@ -852,11 +852,13 @@ _DEFAULT_WHISPER_MODEL_DIR = CONFIG_DIR / "models" / "whisper"
 _STT_OPENAI_MODELS = ("gpt-4o-mini-transcribe", "gpt-4o-transcribe", "whisper-1")
 _STT_GEMINI_MODELS = ("gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite")
 _STT_DASHSCOPE_MODELS = ("qwen3-asr-flash",)
+_STT_GROK_MODELS: tuple[str, ...] = ()
 # (value, label, models) for each cloud transcription provider.
 _STT_CLOUD_PROVIDERS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("openai", "OpenAI", _STT_OPENAI_MODELS),
     ("gemini", "Gemini", _STT_GEMINI_MODELS),
     ("dashscope", "DashScope (Qwen)", _STT_DASHSCOPE_MODELS),
+    ("grok", "Grok (xAI)", _STT_GROK_MODELS),
 )
 
 
@@ -927,17 +929,19 @@ def _setup_cloud_stt(config: ModelConfig) -> bool:
         label, models = next((lab, mods) for val, lab, mods in _STT_CLOUD_PROVIDERS if val == provider)
         if not _ensure_cloud_voice_key(config, provider, label, f"Step 3/5: Voice input · {label} · API key"):
             continue
-        model_options = [(name, name, "") for name in models]
-        model_options.append(("back", "← Back", ""))
-        model = _select_option(
-            step=f"Step 3/5: Voice input (speech-to-text) · {label} · Model",
-            title=f"Choose a {label} transcription model",
-            options=model_options,
-        )
-        if model == "back":
-            continue
+        model: str | None = None
+        if models:
+            model_options = [(name, name, "") for name in models]
+            model_options.append(("back", "← Back", ""))
+            model = _select_option(
+                step=f"Step 3/5: Voice input (speech-to-text) · {label} · Model",
+                title=f"Choose a {label} transcription model",
+                options=model_options,
+            )
+            if model == "back":
+                continue
         config.stt_provider = provider
-        config.stt_backend = ""
+        config.stt_backend = "api"
         config.stt_model = model
         config.stt_model_dir = None
         config.stt_language = "auto"
@@ -947,7 +951,8 @@ def _setup_cloud_stt(config: ModelConfig) -> bool:
                 if not ensure_feature_installed("tts", assume_yes=True):
                     _note("DashScope package isn't installed yet; transcription starts once it is.", ok=False)
                     return True
-        _note(f"Voice input ready: {provider} · {model}")
+        detail = f"{provider} · {model}" if model else provider
+        _note(f"Voice input ready: {detail}")
         return True
 
 
@@ -1002,7 +1007,7 @@ def _prompt_stt_config(config: ModelConfig) -> str:
                 ("keep", "Keep current voice input", f"{config.stt_provider} / {config.stt_model or 'unset'}")
             )
         options += [
-            ("cloud", "Cloud transcription", "OpenAI · Gemini · DashScope; nothing to download"),
+            ("cloud", "Cloud transcription", "OpenAI · Gemini · DashScope · Grok; nothing to download"),
             ("local", "Local Whisper", "fully offline; downloads a multilingual model"),
             ("disable", "Skip / disable voice input", ""),
             ("back", "← Back to previous step", ""),
@@ -1039,10 +1044,45 @@ def _prompt_stt_config(config: ModelConfig) -> str:
 # Curated voice shortlists (both backends accept more — type a name to override).
 _TTS_DASHSCOPE_VOICES = ("Cherry", "Serena", "Ethan", "Chelsie", "Dylan", "Eric", "Ryan", "Jada", "Sunny")
 _TTS_OPENAI_VOICES = ("alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer")
+_TTS_GEMINI_VOICES = (
+    "Zephyr",
+    "Puck",
+    "Charon",
+    "Kore",
+    "Fenrir",
+    "Leda",
+    "Orus",
+    "Aoede",
+    "Callirrhoe",
+    "Autonoe",
+    "Enceladus",
+    "Iapetus",
+    "Umbriel",
+    "Algieba",
+    "Despina",
+    "Erinome",
+    "Algenib",
+    "Rasalgethi",
+    "Laomedeia",
+    "Achernar",
+    "Alnilam",
+    "Schedar",
+    "Gacrux",
+    "Pulcherrima",
+    "Achird",
+    "Zubenelgenubi",
+    "Vindemiatrix",
+    "Sadachbia",
+    "Sadaltager",
+    "Sulafat",
+)
+_TTS_GROK_VOICES = ("eve", "ara", "rex", "sal", "leo")
 # (value, label, voices, default_voice) for each cloud voice provider.
 _TTS_CLOUD_PROVIDERS: tuple[tuple[str, str, tuple[str, ...], str], ...] = (
     ("dashscope", "Qwen3-TTS (DashScope)", _TTS_DASHSCOPE_VOICES, "Cherry"),
     ("openai", "OpenAI", _TTS_OPENAI_VOICES, "alloy"),
+    ("gemini", "Gemini", _TTS_GEMINI_VOICES, "Kore"),
+    ("grok", "Grok (xAI)", _TTS_GROK_VOICES, "eve"),
 )
 
 
@@ -1077,7 +1117,7 @@ def _setup_cloud_tts(config: ModelConfig) -> bool:
         provider = _select_option(
             step="Step 4/5: Spoken replies (text-to-speech) · Provider",
             title="Which cloud voice provider?",
-            message="Both reuse a key you may already have.",
+            message="They reuse a key you may already have.",
             options=options,
         )
         if provider == "back":
@@ -1089,6 +1129,7 @@ def _setup_cloud_tts(config: ModelConfig) -> bool:
         config.tts_provider = provider
         config.tts_model = None
         config.tts_voice = voice
+        config.tts_language = "auto"
         if provider == "dashscope":
             with _normal_screen():
                 print("\n  Installing DashScope support...\n")
@@ -1116,7 +1157,9 @@ def _setup_local_tts(config: ModelConfig) -> bool:
         return False
     if choice == "system":
         config.tts_provider = "system"
+        config.tts_model = None
         config.tts_voice = None
+        config.tts_language = "auto"
         _note("Spoken replies: system voice.")
         return True
     config.tts_provider = "qwen"
@@ -1139,7 +1182,7 @@ def _prompt_tts_config(config: ModelConfig) -> str:
         if config.tts_provider not in ("", "disabled"):
             options.append(("keep", "Keep current spoken replies", config.tts_provider))
         options += [
-            ("cloud", "Cloud voice", "DashScope · OpenAI; best quality, needs a key"),
+            ("cloud", "Cloud voice", "DashScope · OpenAI · Gemini · Grok; best quality, needs a key"),
             ("local", "Local / system voice", "offline, no key"),
             ("disable", "Skip / disable", ""),
             ("back", "← Back to previous step", ""),

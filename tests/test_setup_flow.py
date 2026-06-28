@@ -594,7 +594,23 @@ def test_prompt_stt_config_cloud_picks_provider_then_model(isolated_config, monk
     assert setup_wizard._prompt_stt_config(cfg) == "next"
 
     assert cfg.stt_provider == "gemini"
+    assert cfg.stt_backend == "api"
     assert cfg.stt_model == "gemini-2.5-flash"
+    assert cfg.stt_model_dir is None
+
+
+def test_prompt_stt_config_cloud_grok_without_model(isolated_config, monkeypatch):
+    isolated_config.write_text(json.dumps({"grok_api_key": "xai-existing"}), encoding="utf-8")
+    selections = iter(["cloud", "grok"])
+    cfg = ModelConfig()
+    monkeypatch.setattr(setup_wizard, "_select_option", lambda **_k: next(selections))
+    monkeypatch.setattr("builtins.input", lambda _prompt="": "")
+
+    assert setup_wizard._prompt_stt_config(cfg) == "next"
+
+    assert cfg.stt_provider == "grok"
+    assert cfg.stt_backend == "api"
+    assert cfg.stt_model is None
     assert cfg.stt_model_dir is None
 
 
@@ -694,6 +710,22 @@ def test_prompt_tts_config_cloud_dashscope_installs(isolated_config, monkeypatch
     assert cfg.tts_provider == "dashscope"
     assert cfg.tts_voice == "Cherry"
     assert installed_features == [("tts", True)]
+
+
+def test_prompt_tts_config_cloud_grok(isolated_config, monkeypatch):
+    isolated_config.write_text(json.dumps({"grok_api_key": "xai-existing"}), encoding="utf-8")
+    selections = iter(["cloud", "grok", "ara"])
+
+    cfg = ModelConfig()
+    monkeypatch.setattr(setup_wizard, "_select_option", lambda **_k: next(selections))
+    monkeypatch.setattr("builtins.input", lambda _prompt="": "")
+
+    assert setup_wizard._prompt_tts_config(cfg) == "next"
+
+    assert cfg.tts_provider == "grok"
+    assert cfg.tts_model is None
+    assert cfg.tts_voice == "ara"
+    assert cfg.tts_language == "auto"
 
 
 def test_run_model_setup_saves_chat_before_optional_steps(isolated_config, monkeypatch):

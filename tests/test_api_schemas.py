@@ -14,6 +14,7 @@ def test_model_config_update_optional_fields():
     assert r.chat_provider is None
     assert r.memory_max_recent_messages is None
     assert r.stt_provider is None
+    assert r.tts_provider is None
 
 
 def test_transcribe_request_defaults():

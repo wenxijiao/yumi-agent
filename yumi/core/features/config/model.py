@@ -103,9 +103,12 @@ class ModelConfig(BaseModel):
     voice_owner_id: str | None = None
     # Text-to-speech (optional): spoken replies. "disabled" by default so
     # text-only installs stay lightweight. Provider is one of:
-    #   system    — OS speech command (macOS `say` / Linux `espeak`), zero deps
-    #   dashscope — Qwen3-TTS via the Alibaba Cloud DashScope API (needs a key)
-    #   qwen      — Qwen3-TTS run locally (heavy `tts` extra; realistically a GPU)
+    #   system    - OS speech command (macOS `say` / Linux `espeak`), zero deps
+    #   openai    - OpenAI audio/speech endpoint
+    #   gemini    - Gemini native audio TTS
+    #   grok      - xAI/Grok voice TTS endpoint
+    #   dashscope - Qwen3-TTS via the Alibaba Cloud DashScope API (needs a key)
+    #   qwen      - Qwen3-TTS run locally (heavy `tts` extra; realistically a GPU)
     tts_provider: str = "disabled"
     tts_voice: str | None = None
     tts_model: str | None = None

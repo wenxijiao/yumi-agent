@@ -45,6 +45,10 @@ from yumi.logging_config import get_logger
 router = APIRouter()
 logger = get_logger(__name__)
 
+_SUPPORTED_STT_PROVIDERS = ("disabled", "whisper", "openai", "gemini", "dashscope", "grok")
+_SUPPORTED_TTS_PROVIDERS = ("disabled", "system", "dashscope", "qwen", "openai", "gemini", "grok")
+_CLOUD_VOICE_PROVIDERS = ("openai", "gemini", "grok")
+
 
 @router.get("/config/system-prompt")
 async def get_system_prompt_endpoint():
@@ -99,6 +103,11 @@ def _model_config_public_dict() -> dict:
         "stt_model": runtime.stt_model or "",
         "stt_model_dir": runtime.stt_model_dir or "",
         "stt_language": runtime.stt_language,
+        "tts_provider": runtime.tts_provider,
+        "tts_voice": runtime.tts_voice or "",
+        "tts_model": runtime.tts_model or "",
+        "tts_language": runtime.tts_language,
+        "tts_api_key_saved": bool(saved.tts_api_key and str(saved.tts_api_key).strip()),
         "openai_api_key_saved": bool(saved.openai_api_key and str(saved.openai_api_key).strip()),
         "gemini_api_key_saved": bool(saved.gemini_api_key and str(saved.gemini_api_key).strip()),
         "claude_api_key_saved": bool(saved.claude_api_key and str(saved.claude_api_key).strip()),
@@ -130,22 +139,32 @@ async def update_model_config_endpoint(request: ModelConfigUpdateRequest):
         raise unknown_provider_http(
             role="embedding", name=request.embedding_provider, supported=EMBEDDING_CAPABLE_PROVIDERS
         )
-    if request.stt_provider and request.stt_provider not in ("disabled", "whisper"):
-        raise HTTPException(status_code=400, detail="Unsupported STT provider. Use 'disabled' or 'whisper'.")
-    if request.stt_backend and request.stt_backend != "faster-whisper":
-        raise HTTPException(status_code=400, detail="Unsupported STT backend. Use 'faster-whisper'.")
+    current = load_saved_model_config()
+    target_stt_provider = (request.stt_provider or current.stt_provider or "disabled").strip().lower()
+    if request.stt_provider and request.stt_provider not in _SUPPORTED_STT_PROVIDERS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported STT provider. Use one of: {', '.join(_SUPPORTED_STT_PROVIDERS)}.",
+        )
+    if request.stt_backend and target_stt_provider == "whisper" and request.stt_backend != "faster-whisper":
+        raise HTTPException(status_code=400, detail="Unsupported Whisper STT backend. Use 'faster-whisper'.")
     if request.stt_model:
         from yumi.core.features.stt import WHISPER_MULTILINGUAL_MODELS
 
-        if request.stt_model not in WHISPER_MULTILINGUAL_MODELS:
+        if target_stt_provider == "whisper" and request.stt_model not in WHISPER_MULTILINGUAL_MODELS:
             raise HTTPException(
                 status_code=400,
                 detail=f"Unsupported Whisper model. Use one of: {', '.join(WHISPER_MULTILINGUAL_MODELS)}.",
             )
+    if request.tts_provider and request.tts_provider not in _SUPPORTED_TTS_PROVIDERS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported TTS provider. Use one of: {', '.join(_SUPPORTED_TTS_PROVIDERS)}.",
+        )
 
     backup_before = CONFIG_PATH.read_text(encoding="utf-8") if CONFIG_PATH.exists() else None
 
-    config = load_saved_model_config()
+    config = current
     provider_changed = False
     keys_or_base_changed = False
 
@@ -182,6 +201,18 @@ async def update_model_config_endpoint(request: ModelConfigUpdateRequest):
         config.stt_model_dir = v if v else None
     if request.stt_language is not None:
         config.stt_language = request.stt_language.strip() or "auto"
+    if request.tts_provider is not None:
+        config.tts_provider = request.tts_provider.strip() or "disabled"
+    if request.tts_voice is not None:
+        v = request.tts_voice.strip()
+        config.tts_voice = v if v else None
+    if request.tts_model is not None:
+        v = request.tts_model.strip()
+        config.tts_model = v if v else None
+    if request.tts_api_key is not None and request.tts_api_key.strip():
+        config.tts_api_key = request.tts_api_key.strip()
+    if request.tts_language is not None:
+        config.tts_language = request.tts_language.strip() or "auto"
     if request.openai_api_key is not None and request.openai_api_key.strip():
         config.openai_api_key = request.openai_api_key.strip()
         keys_or_base_changed = True
@@ -218,7 +249,12 @@ async def update_model_config_endpoint(request: ModelConfigUpdateRequest):
     try:
         save_model_config(config)
         seen: set[str] = set()
-        for prov in (config.chat_provider, config.embedding_provider):
+        providers_to_check = [config.chat_provider, config.embedding_provider]
+        if config.stt_provider in ("openai", "gemini", "grok"):
+            providers_to_check.append(config.stt_provider)
+        if config.tts_provider in _CLOUD_VOICE_PROVIDERS:
+            providers_to_check.append(config.tts_provider)
+        for prov in providers_to_check:
             if prov == "disabled":
                 continue
             if prov in seen:

@@ -85,6 +85,11 @@ class ModelConfigUpdateRequest(BaseModel):
     stt_model: str | None = None
     stt_model_dir: str | None = None
     stt_language: str | None = None
+    tts_provider: str | None = None
+    tts_voice: str | None = None
+    tts_model: str | None = None
+    tts_api_key: str | None = None
+    tts_language: str | None = None
     # Stored in ~/.yumi/config.json; omit or leave empty to keep existing value.
     openai_api_key: str | None = None
     gemini_api_key: str | None = None
