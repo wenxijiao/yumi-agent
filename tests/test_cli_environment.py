@@ -3,6 +3,7 @@
 import json
 import os
 import sys
+from types import SimpleNamespace
 
 import pytest
 import yumi.cli as cli
@@ -192,6 +193,65 @@ def test_run_edge_standalone_runs_multiple_templates(monkeypatch, tmp_path):
     assert calls[1][0] == ["go", "run", "."]
     assert calls[1][1] == str(tmp_path / "yumi_tools" / "go")
     assert all("PATH" in env for _cmd, _cwd, env in calls)
+
+
+def test_print_lan_codes_uses_configured_server_port(monkeypatch, capsys):
+    monkeypatch.setenv("YUMI_PORT", "9000")
+    monkeypatch.setattr(cli_runners, "_get_lan_ip", lambda: "192.168.1.50")
+    monkeypatch.setattr(cli_runners, "get_lan_secret", lambda: None)
+
+    cli_runners._print_lan_codes()
+
+    out = capsys.readouterr().out
+    codes = [line.split(":", 1)[1].strip() for line in out.splitlines() if "Code" in line]
+    assert codes
+    assert all(cli_runners.parse_lan_code(code) == "http://192.168.1.50:9000" for code in codes)
+
+
+def test_run_server_with_bridge_uses_configured_port(monkeypatch):
+    monkeypatch.setenv("YUMI_PORT", "9000")
+    monkeypatch.setenv("YUMI_HOST", "127.0.0.1")
+    monkeypatch.setattr(cli_runners, "_prompt_telegram_bot_token_if_missing", lambda: True)
+    monkeypatch.setattr(cli_runners, "get_telegram_bot_token", lambda: "tg-token")
+    monkeypatch.setattr(cli_runners, "_print_banner", lambda *args, **kwargs: None)
+    monkeypatch.setattr(cli_runners, "_print_lan_codes", lambda: None)
+    monkeypatch.setattr(
+        cli_runners,
+        "_preflight_models",
+        lambda: SimpleNamespace(
+            chat_provider="ollama",
+            chat_model="m",
+            embedding_provider="disabled",
+            embedding_model=None,
+            voice_owner_id=None,
+            voice_wake_word="hi yumi",
+            voice_porcupine_access_key=None,
+        ),
+    )
+    waits = []
+    monkeypatch.setattr(cli_runners, "_wait_for_server_health", lambda url, timeout=90: waits.append(url) or True)
+    popen_calls = []
+
+    class FakeProcess:
+        def wait(self, timeout=None):
+            return 0
+
+        def terminate(self):
+            return None
+
+        def kill(self):
+            return None
+
+    def fake_popen(cmd, env):
+        popen_calls.append((cmd, env))
+        return FakeProcess()
+
+    monkeypatch.setattr(cli_runners.subprocess, "Popen", fake_popen)
+
+    cli_runners.run_server_with_bridges(telegram=True)
+
+    assert waits == ["http://127.0.0.1:9000"]
+    assert popen_calls[1][1]["YUMI_SERVER_URL"] == "http://127.0.0.1:9000"
 
 
 def test_tool_routing_cli_updates_config(monkeypatch, tmp_path, capsys):

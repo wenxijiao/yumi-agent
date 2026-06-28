@@ -5,11 +5,15 @@ the server-side state is populated asynchronously.  We use a short poll
 loop to wait for the registration to complete.
 """
 
+import asyncio
 import time
 
 import pytest
 from fastapi.testclient import TestClient
 from yumi.core.api import app
+from yumi.core.features.edge.api import handle_edge_peer
+from yumi.core.features.edge.peers import EdgePeerDisconnected
+from yumi.core.platform.plugins import get_edge_scope, register_plugin
 from yumi.core.platform.runtime.accessors import ACTIVE_CONNECTIONS, EDGE_TOOLS_REGISTRY
 
 
@@ -114,3 +118,74 @@ def test_edge_duplicate_name_is_rejected():
 
         # The original edge is untouched and still the active connection.
         assert ACTIVE_CONNECTIONS.get("dup-device") is first_peer
+
+
+def test_edge_registration_uses_scope_for_connection_key_and_tool_prefix():
+    class ScopedEdgeScope:
+        def __init__(self):
+            self.connection_args = []
+            self.prefix_args = []
+            self.registered = []
+            self.disconnected = []
+
+        def connection_key(self, owner_user_id: str | None, edge_name: str) -> str:
+            self.connection_args.append((owner_user_id, edge_name))
+            return f"u:{owner_user_id}::{edge_name}"
+
+        def tool_register_prefix(self, owner_user_id: str | None, edge_name: str) -> str:
+            self.prefix_args.append((owner_user_id, edge_name))
+            return f"edge_{owner_user_id}_{edge_name}__"
+
+        def filter_edge_tool_schemas(self, identity, registry: dict[str, dict], disabled: set[str]) -> list:  # noqa: ARG002
+            return []
+
+        def on_edge_register(self, connection_key: str, auth_msg: dict) -> None:  # noqa: ARG002
+            self.registered.append((connection_key, list(EDGE_TOOLS_REGISTRY.get(connection_key, {}))))
+
+        def on_edge_disconnect(self, connection_key: str) -> None:
+            self.disconnected.append(connection_key)
+
+    class FakePeer:
+        def __init__(self):
+            self.sent = []
+            self.closed = False
+            self._registered = False
+
+        async def receive_json(self):
+            if self._registered:
+                raise EdgePeerDisconnected()
+            self._registered = True
+            return {
+                "type": "register",
+                "owner_user_id": "u42",
+                "edge_name": "garage",
+                "tools": [
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "ping",
+                            "description": "Returns pong",
+                            "parameters": {"type": "object", "properties": {}, "required": []},
+                        },
+                    }
+                ],
+            }
+
+        async def send_json(self, payload):
+            self.sent.append(payload)
+
+        async def close(self, code=1000, reason=""):  # noqa: ARG002
+            self.closed = True
+
+    previous_scope = get_edge_scope()
+    scope = ScopedEdgeScope()
+    register_plugin(edge_scope=scope)
+    try:
+        asyncio.run(handle_edge_peer(FakePeer()))
+    finally:
+        register_plugin(edge_scope=previous_scope)
+
+    assert scope.connection_args == [("u42", "garage")]
+    assert scope.prefix_args == [("u42", "garage")]
+    assert scope.registered == [("u:u42::garage", ["edge_u42_garage__ping"])]
+    assert scope.disconnected == ["u:u42::garage"]

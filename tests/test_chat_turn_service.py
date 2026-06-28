@@ -16,7 +16,7 @@ import asyncio
 from collections.abc import AsyncIterator
 
 import pytest
-from yumi.core.features.chat.service import ChatTurnService
+from yumi.core.features.chat.service import ChatTurnService, _persist_tool_ephemeral_spans
 from yumi.core.platform.dispatch import MAX_TOOL_LOOPS
 from yumi.core.platform.plugins.identity import Identity, set_current_identity
 from yumi.core.platform.runtime import RuntimeState
@@ -145,6 +145,32 @@ def test_usage_recorded_on_tool_call_turns(runtime, install_fakes, monkeypatch):
     svc = ChatTurnService(runtime)
     asyncio.run(_drain(svc.stream_chat_turn("hi", "s_usage")))
     assert captured.get("pt", 0) > 0  # tokens from tool-call turns were recorded
+
+
+def test_persist_tool_ephemeral_spans_persists_every_completed_tool_turn():
+    messages = [
+        {"role": "system", "content": "ambient"},
+        {"role": "assistant", "content": "", "tool_calls": [{"function": {"name": "first", "arguments": {}}}]},
+        {"role": "tool", "content": "one", "name": "first"},
+        {"role": "assistant", "content": "", "tool_calls": [{"function": {"name": "second", "arguments": {}}}]},
+        {"role": "tool", "content": "two", "name": "second"},
+    ]
+    persisted = []
+
+    class _Mem:
+        def persist_openai_messages(self, turn):
+            persisted.append(turn)
+
+    class _Bot:
+        def session_memory(self, _session_id):
+            return _Mem()
+
+    _persist_tool_ephemeral_spans(messages, "s_multi_tool", _Bot())
+
+    assert [[row["role"] for row in turn] for turn in persisted] == [["assistant", "tool"], ["assistant", "tool"]]
+    assert persisted[0][0]["tool_calls"][0]["function"]["name"] == "first"
+    assert persisted[1][0]["tool_calls"][0]["function"]["name"] == "second"
+    assert messages == [{"role": "system", "content": "ambient"}]
 
 
 def test_normalize_exhausted_emits_error(runtime, install_fakes):

@@ -367,6 +367,22 @@ def _subprocess_env_ensure_platform_tokens() -> dict:
     return env
 
 
+def _bind_host_port_from_env() -> tuple[str, str]:
+    host = (os.environ.get("YUMI_HOST") or "127.0.0.1").strip() or "127.0.0.1"
+    port = (os.environ.get("YUMI_PORT") or "8000").strip() or "8000"
+    return host, port
+
+
+def _loopback_url_for_bind(host: str, port: str) -> str:
+    if host in ("0.0.0.0", ""):
+        return f"http://127.0.0.1:{port}"
+    if host == "::":
+        return f"http://[::1]:{port}"
+    if ":" in host and not host.startswith("["):
+        return f"http://[{host}]:{port}"
+    return f"http://{host}:{port}"
+
+
 def _server_banner_rows(config) -> list[tuple[str, str]]:
     from yumi.core.platform.tools.tool import TOOL_REGISTRY
     from yumi.tools.bootstrap import init_yumi
@@ -374,12 +390,13 @@ def _server_banner_rows(config) -> list[tuple[str, str]]:
     init_yumi()
     tool_count = len(TOOL_REGISTRY)
 
+    _bind_host, bind_port = _bind_host_port_from_env()
     lan_ip = _get_lan_ip()
     rows: list[tuple[str, str]] = [
-        ("Local:", "http://127.0.0.1:8000"),
+        ("Local:", f"http://127.0.0.1:{bind_port}"),
     ]
     if lan_ip:
-        rows.append(("Network:", f"http://{lan_ip}:8000"))
+        rows.append(("Network:", f"http://{lan_ip}:{bind_port}"))
     rows.append(("", ""))
     rows.append(("Chat:", f"{config.chat_provider} / {config.chat_model}"))
     rows.append(("Embed:", f"{config.embedding_provider} / {config.embedding_model}"))
@@ -392,7 +409,12 @@ def _print_lan_codes() -> None:
     if not lan_ip:
         return
     lan_secret = get_lan_secret()
-    base_url = build_lan_server_url(lan_ip)
+    _bind_host, bind_port = _bind_host_port_from_env()
+    try:
+        port = int(bind_port)
+    except ValueError:
+        port = 8000
+    base_url = build_lan_server_url(lan_ip, port)
     permanent_code = issue_lan_code(base_url, expires_at=0, secret=lan_secret)
     temp_expires = int(time.time()) + 86400
     temp_code = issue_lan_code(base_url, expires_at=temp_expires, secret=lan_secret)
@@ -507,7 +529,7 @@ def run_server_with_bridges(
     _print_lan_codes()
 
     server_proc = subprocess.Popen([sys.executable, "-m", "yumi.core.api"], env=server_env)
-    local_url = "http://127.0.0.1:8000"
+    local_url = _loopback_url_for_bind(bind_host, bind_port)
     bridge_procs: list[subprocess.Popen] = []
     try:
         if not _wait_for_server_health(local_url, timeout=90):

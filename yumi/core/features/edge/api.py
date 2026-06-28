@@ -13,6 +13,7 @@ from yumi.core.platform.runtime.accessors import (
     EDGE_TOOLS_REGISTRY,
     PENDING_EDGE_OPS,
     PENDING_TOOL_CALLS,
+    edge_connection_key,
     edge_tool_key_prefix,
     edge_tool_register_prefix,
     logger,
@@ -81,6 +82,15 @@ async def _warn_edge_skipped_tools(peer, connection_key: str, skipped: list[str]
         )
     except Exception as exc:  # the edge may have gone away
         logger.debug("Edge %s: could not send skipped-tools warning: %s", connection_key, exc)
+
+
+def _owner_user_id_from_register(auth_msg: dict) -> str | None:
+    value = auth_msg.get("owner_user_id")
+    if isinstance(value, str):
+        value = value.strip()
+        if value:
+            return value
+    return None
 
 
 # ── edge tool confirmation helpers ──
@@ -214,8 +224,9 @@ async def handle_edge_peer(peer):
             raise ValueError("Expected a register message from the edge client.")
 
         edge_name = auth_msg.get("edge_name", "Unknown_Edge")
-        connection_key = edge_name
-        tool_prefix = edge_tool_key_prefix(edge_name)
+        owner_user_id = _owner_user_id_from_register(auth_msg)
+        connection_key = edge_connection_key(owner_user_id, edge_name)
+        tool_prefix = edge_tool_register_prefix(owner_user_id, edge_name)
 
         tools = auth_msg.get("tools", [])
         previous_peer = ACTIVE_CONNECTIONS.get(connection_key)

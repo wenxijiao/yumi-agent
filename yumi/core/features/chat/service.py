@@ -67,32 +67,38 @@ def _exclude_delay_scheduling_tools(tools: list | None) -> list | None:
     return out or None
 
 
-def _tail_assistant_tool_span(messages: list[dict]) -> tuple[int, int] | None:
-    """Find the last ``assistant`` tool-call turn and its ``tool`` replies.
+def _assistant_tool_spans(messages: list[dict]) -> list[tuple[int, int]]:
+    """Find ``assistant`` tool-call turns and their adjacent ``tool`` replies.
 
     Strict OpenAI/Gemini replay rules require us to remove this span from
     ``ephemeral_messages`` after persisting, so the next loop iteration does
     not duplicate it.
     """
-    for i in range(len(messages) - 1, -1, -1):
+    spans: list[tuple[int, int]] = []
+    i = 0
+    while i < len(messages):
         m = messages[i]
         if m.get("role") != "assistant" or not m.get("tool_calls"):
+            i += 1
             continue
         j = i + 1
         while j < len(messages) and messages[j].get("role") == "tool":
             j += 1
-        return (i, j)
-    return None
+        spans.append((i, j))
+        i = j
+    return spans
 
 
-def _persist_tool_ephemeral_tail(messages: list[dict], session_id: str, bot) -> None:
-    span = _tail_assistant_tool_span(messages)
-    if not span:
+def _persist_tool_ephemeral_spans(messages: list[dict], session_id: str, bot) -> None:
+    spans = _assistant_tool_spans(messages)
+    if not spans:
         return
-    i, j = span
-    turn = [dict(messages[k]) for k in range(i, j)]
-    bot.session_memory(session_id).persist_openai_messages(turn)
-    del messages[i:j]
+    turns = [[dict(messages[k]) for k in range(i, j)] for i, j in spans]
+    memory = bot.session_memory(session_id)
+    for turn in turns:
+        memory.persist_openai_messages(turn)
+    for i, j in reversed(spans):
+        del messages[i:j]
 
 
 class ChatTurnService:
@@ -192,7 +198,7 @@ class ChatTurnService:
 
             async for event in self._run_loops(ctx, sink, active_bot, usage, normalizer, gate, dispatcher):
                 yield event
-            _persist_tool_ephemeral_tail(ctx.ephemeral_messages, ctx.session_id, active_bot)
+            _persist_tool_ephemeral_spans(ctx.ephemeral_messages, ctx.session_id, active_bot)
         except Exception as exc:
             diag = sink.write_diagnostic("chat_pipeline_failed", error=exc, extra={"reason": "exception"})
             logger.exception("Chat pipeline failed session_id=%s diagnostic=%s", ctx.session_id, diag)
@@ -300,7 +306,7 @@ class ChatTurnService:
                 yield sink.emit(ev)
 
             if not invocations:
-                _persist_tool_ephemeral_tail(ctx.ephemeral_messages, ctx.session_id, active_bot)
+                _persist_tool_ephemeral_spans(ctx.ephemeral_messages, ctx.session_id, active_bot)
                 current_prompt = None
                 continue
 
@@ -312,7 +318,7 @@ class ChatTurnService:
                     approved.append(inv)
 
             if not approved:
-                _persist_tool_ephemeral_tail(ctx.ephemeral_messages, ctx.session_id, active_bot)
+                _persist_tool_ephemeral_spans(ctx.ephemeral_messages, ctx.session_id, active_bot)
                 current_prompt = None
                 continue
 
