@@ -107,10 +107,12 @@ def test_setup_messaging_tokens_renders_step5_menu(monkeypatch):
         "discord",
         "line",
         "skip",
+        "back",
     ]
     assert captured[0]["options"][0] == ("telegram", "Telegram", "configured")
     assert captured[0]["options"][2] == ("line", "LINE", "set channel secret and access token")
-    assert captured[0]["options"][-1] == ("skip", "Skip messaging setup", "")
+    assert captured[0]["options"][3] == ("skip", "Skip messaging setup", "")
+    assert captured[0]["options"][-1] == ("back", "← Back to previous step", "")
 
 
 def test_setup_messaging_tokens_prompts_selected_bridges(monkeypatch):

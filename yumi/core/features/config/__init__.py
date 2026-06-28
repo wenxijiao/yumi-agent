@@ -10,6 +10,7 @@ from yumi.core.features.config.credentials import (
     get_api_credentials,
     infer_chat_from_env,
     is_model_available,
+    missing_credentials,
 )
 from yumi.core.features.config.discord import (
     get_discord_allowed_user_ids,
@@ -107,6 +108,7 @@ __all__ = [
     "ensure_provider_available",
     "infer_chat_from_env",
     "get_api_credentials",
+    "missing_credentials",
     "get_legacy_memory_dir",
     "get_memory_dir",
     "get_saved_connection_code",

@@ -1,9 +1,11 @@
 """Interactive terminal wizard for chat/embedding model selection."""
 
+import contextlib
 import os
 import shutil
 import sys
 import textwrap
+from collections.abc import Callable
 
 from yumi.core.features.config.credentials import (
     _get_provider,
@@ -32,24 +34,104 @@ def _clear_screen() -> None:
     os.system("cls" if os.name == "nt" else "clear")
 
 
+_ALT_DEPTH = 0
+
+
+@contextlib.contextmanager
+def _alt_screen():
+    """Run an interactive flow on the terminal's alternate screen buffer.
+
+    Like ``vim``/``less``/``claude``: the wizard draws on a separate buffer and
+    the original terminal contents (scrollback) are restored on exit, so the
+    menus — whether cancelled or completed — don't litter the prompt. The final
+    summary is rendered *after* this context so it persists in normal
+    scrollback. No-op off an interactive TTY (pipes, CI, tests).
+    """
+    global _ALT_DEPTH
+    if not _interactive_terminal():
+        yield
+        return
+    sys.stdout.write("\033[?1049h")  # enter alternate screen
+    sys.stdout.flush()
+    _ALT_DEPTH += 1
+    try:
+        yield
+    finally:
+        _ALT_DEPTH -= 1
+        sys.stdout.write("\033[?1049l")  # restore the original screen
+        sys.stdout.flush()
+
+
+@contextlib.contextmanager
+def _normal_screen():
+    """Temporarily drop back to the normal screen for a noisy operation.
+
+    Heavy work with its own output — model downloads (tqdm progress bars), pip
+    installs — must not write onto the wizard's alternate-screen buffer, where
+    a late/threaded flush can land *after* the next redraw and stick to the
+    bottom. This leaves the alternate screen, runs the work on the normal
+    terminal (where a progress bar belongs), then restores the wizard. No-op if
+    we aren't currently on the alternate screen.
+    """
+    if _ALT_DEPTH <= 0 or not _interactive_terminal():
+        yield
+        return
+    sys.stdout.write("\033[?1049l")  # back to the normal screen
+    sys.stdout.flush()
+    try:
+        yield
+    finally:
+        sys.stdout.write("\033[?1049h")  # re-enter the (cleared) alternate screen
+        sys.stdout.flush()
+
+
 def _red(text: str) -> str:
-    if not _interactive_terminal() or os.getenv("NO_COLOR"):
-        return text
-    return f"\033[31m{text}\033[0m"
+    return _ansi("31", text)
 
 
 def _yellow(text: str) -> str:
+    return _ansi("33", text)
+
+
+def _green(text: str) -> str:
+    return _ansi("32", text)
+
+
+def _cyan(text: str) -> str:
+    return _ansi("36", text)
+
+
+def _bold_cyan(text: str) -> str:
+    return _ansi("1;36", text)
+
+
+def _bold(text: str) -> str:
+    return _ansi("1", text)
+
+
+def _dim(text: str) -> str:
+    return _ansi("2", text)
+
+
+def _ansi(code: str, text: str) -> str:
     if not _interactive_terminal() or os.getenv("NO_COLOR"):
         return text
-    return f"\033[33m{text}\033[0m"
+    return f"\033[{code}m{text}\033[0m"
 
 
-_SELECT_TEXT_PAD = "   "
+_SELECT_TEXT_PAD = "  "  # the single left gutter (column 2) that every line shares
+_DESC_INDENT = "    "  # option descriptions and wrapped detail hang at column 4
+_SELECT_FRAME_MAX_WIDTH = 88
+
+
+def _page_width() -> int:
+    columns = shutil.get_terminal_size((100, 24)).columns
+    return min(_SELECT_FRAME_MAX_WIDTH, max(52, columns - 6))
 
 
 def _select_wrap_width(prefix: str) -> int:
     columns = shutil.get_terminal_size((100, 24)).columns
-    return max(20, columns - len(prefix) - 1)
+    return max(20, min(columns - len(prefix) - 1, _page_width() - len(prefix) - 1))
 
 
 def _wrapped_select_lines(text: str, *, prefix: str) -> list[str]:
@@ -73,11 +155,134 @@ def _print_select_text(text: str = "", *, style=None) -> None:
         print(f"{_SELECT_TEXT_PAD}{style(line) if style else line}")
 
 
-def _print_select_option(marker: str, text: str) -> None:
-    first_prefix = f" {marker} "
-    for index, line in enumerate(_wrapped_select_lines(text, prefix=first_prefix)):
-        prefix = first_prefix if index == 0 else _SELECT_TEXT_PAD
-        print(f"{prefix}{line}")
+def _parse_step(step: str | None) -> tuple[int | None, int | None, str | None, str | None]:
+    """Return (current, total, name, sub) from a 'Step N/M: Name · Sub' label."""
+    if not step:
+        return None, None, None, None
+    prefix, _sep, rest = step.partition(":")
+    name, _s, sub = rest.partition("·")
+    name = name.strip() or None
+    sub = sub.strip() or None
+    if not prefix.startswith("Step "):
+        return None, None, name or step, sub
+    count = prefix.removeprefix("Step ").strip()
+    current_text, sep, total_text = count.partition("/")
+    if not sep:
+        return None, None, name or step, sub
+    try:
+        return int(current_text), int(total_text), name or step, sub
+    except ValueError:
+        return None, None, name or step, sub
+
+
+def _dot_rail(current: int | None, total: int | None) -> str:
+    """A calm '● ● ○ ○ ○' progress rail: one dot per top-level step."""
+    if not current or not total or total <= 0:
+        return ""
+    return " ".join(_cyan("●") if i <= current else _dim("○") for i in range(1, total + 1))
+
+
+def _draw_setup_header(step: str | None) -> None:
+    """One quiet rail line + a dim hairline — no box, no fuel gauge."""
+    width = _page_width()
+    current, total, name, sub = _parse_step(step)
+    rail = _dot_rail(current, total)
+    if current is not None and total is not None:
+        crumb = f"Step {current} of {total}"
+        if name:
+            crumb += f" · {name}"
+        if sub:
+            crumb += f" · {sub}"
+        head = f"{rail}   {_dim(crumb)}"
+    elif name:
+        head = _bold(name)
+    else:
+        head = _bold("Yumi setup")
+    print(f"{_SELECT_TEXT_PAD}{head}")
+    print(f"{_SELECT_TEXT_PAD}{_dim('─' * (width - 2))}")
+
+
+def _print_select_option(selected: bool, label: str, description: str) -> None:
+    bar = f"{_cyan('▌')} " if selected else "  "
+    for index, line in enumerate(_wrapped_select_lines(label, prefix="  ")):
+        prefix = bar if index == 0 else "  "
+        print(f"{prefix}{_bold_cyan(line) if selected else line}")
+    if description:
+        for line in _wrapped_select_lines(description, prefix=_DESC_INDENT):
+            print(f"{_DESC_INDENT}{_dim(line)}")
+
+
+def _print_select_notice(kind: str, text: str, *, color) -> None:
+    """A hanging marginal note ('! Warning' + a '│' tick-bar), never a box."""
+    if not text:
+        return
+    print()
+    print(f"{_SELECT_TEXT_PAD}{color('! ' + kind)}")
+    for line in _wrapped_select_lines(text, prefix="    "):
+        print(f"{_SELECT_TEXT_PAD}{color('│')} {line}")
+
+
+# Success notes are queued here and rendered on the NEXT drawn screen (under the
+# header) instead of being print()'d and then wiped by the following clear.
+_PENDING_NOTES: list[tuple[str, bool]] = []
+
+
+def _note(message: str, *, ok: bool = True) -> None:
+    """Queue a one-line note to surface on the next screen (✓ ok / ! warning)."""
+    _PENDING_NOTES.append((message, ok))
+
+
+def _flush_notes() -> None:
+    if not _PENDING_NOTES:
+        return
+    for message, ok in _PENDING_NOTES:
+        glyph = _green("✓") if ok else _yellow("!")
+        print(f"{_SELECT_TEXT_PAD}{glyph} {_dim(message)}")
+    print()
+    _PENDING_NOTES.clear()
+
+
+def _framed_prompt(
+    label: str,
+    *,
+    step: str | None = None,
+    title: str | None = None,
+    context: str | None = None,
+    hint: str | None = None,
+    secret: bool = False,
+) -> str:
+    """Read one line on a wizard-styled screen so input never appears naked.
+
+    With ``secret=True`` the entry is masked — one ``•`` per character, so a
+    pasted key is visibly received without printing the secret. Off an
+    interactive TTY (pipes, CI, tests) it falls back to a single plain
+    ``input()`` call, preserving the prompt-count/order the non-interactive
+    flow relies on.
+    """
+    if not _interactive_terminal():
+        try:
+            return input(f"{label}: ").strip()
+        except EOFError:
+            # Piped/closed stdin (CI, Docker without a TTY, `yumi --setup </dev/null`):
+            # cancel cleanly instead of dumping a traceback or looping forever.
+            raise SystemExit("  Setup cancelled.")
+    _clear_screen()
+    if step:
+        _draw_setup_header(step)
+    print()
+    _flush_notes()
+    if title:
+        _print_select_text(title, style=_bold)
+    if context:
+        _print_select_text(context, style=_dim)
+    if hint:
+        print()
+        _print_select_text(hint, style=_dim)
+    print()
+    caret = f"{_SELECT_TEXT_PAD}{_cyan('▌')} {_bold(label)}: "
+    if secret:
+        return _read_secret(caret)
+    return input(caret).strip()
 
 
 def _read_key() -> str:
@@ -129,6 +334,92 @@ def _read_key() -> str:
         termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
 
+def _read_secret(prompt: str) -> str:
+    """Read a secret, echoing one ``•`` per character so paste/typing is visible.
+
+    Unlike ``getpass`` (which shows nothing), this confirms input is landing —
+    you can see the field fill as you paste — without printing the secret. Off
+    an interactive TTY it falls back to a plain ``input()``.
+    """
+    if not _interactive_terminal():
+        return input(prompt).strip()
+
+    chars: list[str] = []
+
+    if os.name == "nt":
+        import msvcrt
+
+        sys.stdout.write(prompt)
+        sys.stdout.flush()
+        while True:
+            ch = msvcrt.getwch()
+            if ch in ("\r", "\n"):
+                break
+            if ch == "\x03":
+                raise KeyboardInterrupt
+            if ch == "\x08":  # backspace
+                if chars:
+                    chars.pop()
+                    sys.stdout.write("\b \b")
+                    sys.stdout.flush()
+                continue
+            if ch.isprintable():
+                chars.append(ch)
+                sys.stdout.write("•")
+                sys.stdout.flush()
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+        return "".join(chars).strip()
+
+    import termios
+    import tty
+
+    sys.stdout.write(prompt)
+    sys.stdout.flush()
+    fd = sys.stdin.fileno()
+    old = termios.tcgetattr(fd)
+    try:
+        tty.setraw(fd)
+        while True:
+            ch = sys.stdin.read(1)
+            if ch in ("", "\r", "\n"):
+                break
+            if ch == "\x03":  # Ctrl-C
+                raise KeyboardInterrupt
+            if ch == "\x04":  # Ctrl-D
+                if not chars:
+                    raise EOFError
+                break
+            if ch in ("\x7f", "\x08"):  # backspace / delete
+                if chars:
+                    chars.pop()
+                    sys.stdout.write("\b \b")
+                    sys.stdout.flush()
+                continue
+            if ch == "\x15":  # Ctrl-U: clear the whole line
+                while chars:
+                    chars.pop()
+                    sys.stdout.write("\b \b")
+                sys.stdout.flush()
+                continue
+            if ch == "\x1b":  # swallow a full escape sequence (arrows, bracketed paste)
+                if sys.stdin.read(1) == "[":
+                    while True:
+                        following = sys.stdin.read(1)
+                        if not following or "@" <= following <= "~":
+                            break
+                continue
+            if ch.isprintable():
+                chars.append(ch)
+                sys.stdout.write("•")
+                sys.stdout.flush()
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old)
+        sys.stdout.write("\r\n")
+        sys.stdout.flush()
+    return "".join(chars).strip()
+
+
 def _draw_select_page(
     *,
     step: str | None,
@@ -141,29 +432,25 @@ def _draw_select_page(
     footer: str | None = None,
 ) -> None:
     _clear_screen()
-    _print_select_text("Yumi setup")
-    if step:
-        _print_select_text(step)
+    _draw_setup_header(step)
     print()
-    _print_select_text(title)
+    _flush_notes()
+    _print_select_text(title, style=_bold)
     if message:
-        _print_select_text(message)
+        _print_select_text(message, style=_dim)
     if warning:
-        print()
-        _print_select_text(warning, style=_yellow)
+        _print_select_notice("Warning", warning, color=_yellow)
     if error:
-        print()
-        _print_select_text(error, style=_red)
+        _print_select_notice("Needs attention", error, color=_red)
     print()
-    label_width = max((len(label) for _value, label, _description in options), default=0)
+    spaced = any(description for _value, _label, description in options)
     for index, (_value, label, description) in enumerate(options):
-        marker = ">" if index == selected else " "
-        if description:
-            _print_select_option(marker, f"{label:<{label_width}} — {description}")
-        else:
-            _print_select_option(marker, label)
+        if spaced and index:
+            print()
+        _print_select_option(index == selected, label, description)
     print()
-    _print_select_text(footer or "Use ↑/↓ to move. Press Enter to confirm.")
+    hint = footer or f"↑/↓ move · enter confirm · 1–{min(len(options), 9)} jump"
+    _print_select_text(hint, style=_dim)
 
 
 def _select_option(
@@ -243,6 +530,120 @@ def _select_option(
                 return options[idx - 1][0]
 
 
+def _print_multi_option(checked: bool, is_cursor: bool, label: str, description: str) -> None:
+    glyph = "◉" if checked else "○"
+    bar = f"{_cyan('▌')} " if is_cursor else "  "
+    glyph_render = _cyan(glyph) if checked else _dim(glyph)
+    label_render = _bold_cyan(label) if is_cursor else label
+    print(f"{bar}{glyph_render} {label_render}")
+    if description:
+        for line in _wrapped_select_lines(description, prefix=_DESC_INDENT):
+            print(f"{_DESC_INDENT}{_dim(line)}")
+
+
+def _select_multi(
+    *,
+    title: str,
+    options: list[tuple[str, str, str]],
+    step: str | None = None,
+    message: str | None = None,
+    warning: str | None = None,
+    error: str | None = None,
+    footer: str | None = None,
+    preselected: set[str] | None = None,
+    all_value: str = "__all__",
+    all_label: str = "All",
+    all_description: str = "",
+    empty_means_all: bool = True,
+) -> list[str]:
+    """Pick 0..N options with checkboxes (space toggles, enter confirms).
+
+    Returns the chosen real values in *options* order. When ``empty_means_all``
+    is true, confirming with nothing checked returns every value. Off a TTY it
+    falls back to a single numbered prompt accepting indices or value names.
+    """
+    reals = [value for value, _label, _description in options]
+    checked: set[str] = set(preselected or set())
+
+    if not _interactive_terminal():
+        if step:
+            print(step)
+        print(title)
+        if message:
+            print(message)
+        for i, (_value, label, _description) in enumerate(options, 1):
+            print(f"  {i}. {label}")
+        example = ", ".join(reals[:2])
+        print(f"  Enter = all · comma/space separated (e.g. {example})")
+        try:
+            raw = input("> ").strip()
+        except EOFError:
+            raw = ""
+        if not raw:
+            return list(reals) if empty_means_all else []
+        picked: set[str] = set()
+        lowered = {value.lower(): value for value in reals}
+        for token in raw.replace(",", " ").split():
+            token = token.strip().lower()
+            if token.isdigit() and 1 <= int(token) <= len(reals):
+                picked.add(reals[int(token) - 1])
+            elif token in lowered:
+                picked.add(lowered[token])
+        result = [value for value in reals if value in picked]
+        return result or (list(reals) if empty_means_all else [])
+
+    rendered = [(all_value, all_label, all_description), *options]
+    cursor = 0
+    while True:
+        _clear_screen()
+        _draw_setup_header(step)
+        print()
+        _flush_notes()
+        _print_select_text(title, style=_bold)
+        if message:
+            _print_select_text(message, style=_dim)
+        if warning:
+            _print_select_notice("Warning", warning, color=_yellow)
+        if error:
+            _print_select_notice("Needs attention", error, color=_red)
+        print()
+        all_on = (not checked) or (checked == set(reals))
+        for index, (value, label, description) in enumerate(rendered):
+            is_checked = all_on if value == all_value else value in checked
+            _print_multi_option(is_checked, index == cursor, label, description)
+        print()
+        _print_select_text(footer or "↑/↓ move · space toggle · a all/none · enter confirm", style=_dim)
+        selected = [value for value in reals if value in checked]
+        if not selected or len(selected) == len(reals):
+            summary = f"Selected: {all_label.lower()}"
+        else:
+            summary = f"Selected: {', '.join(selected)}  ({len(selected)})"
+        _print_select_text(summary, style=_dim)
+
+        try:
+            key = _read_key()
+        except EOFError:
+            raise SystemExit("  Setup cancelled.")
+        if key == "up":
+            cursor = (cursor - 1) % len(rendered)
+        elif key == "down":
+            cursor = (cursor + 1) % len(rendered)
+        elif key == "enter":
+            if not checked and empty_means_all:
+                return list(reals)
+            return [value for value in reals if value in checked]
+        elif key == " ":
+            value = rendered[cursor][0]
+            if value == all_value:
+                checked = set() if (not checked or checked == set(reals)) else set(reals)
+            elif value in checked:
+                checked.discard(value)
+            else:
+                checked.add(value)
+        elif key in ("a", "A"):
+            checked = set() if (checked == set(reals) or not checked) else set(reals)
+
+
 def _api_key_target(provider_name: str) -> tuple[str, str] | None:
     if provider_name == "openai":
         return "OPENAI_API_KEY", "openai_api_key"
@@ -294,6 +695,57 @@ def _persist_cloud_api_key(provider_name: str, key: str, *, announce: bool = Tru
         print(f"  {env_var} saved to {CONFIG_PATH}.")
 
 
+# Credential fields written to disk by sub-steps (key prompts) rather than by the
+# wizard's main config object. The driver merges these back before each save so it
+# never overwrites a freshly-saved key with its stale in-memory copy.
+_CREDENTIAL_FIELDS = (
+    "openai_api_key",
+    "gemini_api_key",
+    "claude_api_key",
+    "deepseek_api_key",
+    "grok_api_key",
+    "tts_api_key",
+)
+
+# Messaging bridge credentials are saved to disk by the Step 5 messaging callback
+# (save_telegram_bot_token / save_discord_* / save_line_*), which mutate a freshly
+# loaded config — never the wizard's long-lived ``config``. The per-step save must
+# merge them back too, or it would wipe a token the user just entered.
+_MESSAGING_FIELDS = (
+    "telegram_bot_token",
+    "telegram_allowed_user_ids",
+    "discord_bot_token",
+    "discord_allowed_user_ids",
+    "line_channel_secret",
+    "line_channel_access_token",
+    "line_allowed_user_ids",
+)
+
+
+def _persist_tts_api_key(key: str) -> None:
+    """Persist the shared DashScope (tts) key to disk immediately."""
+    saved = load_saved_model_config()
+    saved.tts_api_key = key
+    save_model_config(saved)
+
+
+def _merge_persisted_credentials(config: ModelConfig) -> None:
+    """Re-apply API keys and bridge tokens that sub-steps saved to disk onto *config*.
+
+    Key/token prompts persist via a freshly-loaded config (``_persist_tts_api_key``,
+    the messaging ``save_*`` helpers, etc.), so the wizard's long-lived ``config``
+    object is stale w.r.t. them. Without this merge, the driver's per-step
+    ``save_model_config(config)`` clobbers the just-saved value with the empty
+    in-memory one — which is why a key or bridge token entered during setup could
+    vanish.
+    """
+    saved = load_saved_model_config()
+    for field in (*_CREDENTIAL_FIELDS, *_MESSAGING_FIELDS):
+        value = getattr(saved, field, None)
+        if value:
+            setattr(config, field, value)
+
+
 def _prompt_api_key(provider_name: str, *, announce_save: bool = True) -> None:
     """Prompt for API key and save to ~/.yumi/config.json."""
     target = _api_key_target(provider_name)
@@ -338,33 +790,45 @@ def _prompt_ollama_model(label: str) -> str | None:
         )
 
         action = _select_option(
-            step="Step 1/5: AI model",
+            step="Step 1/5: AI model · Ollama",
             title=f"Choose a {label} model",
             options=options,
         )
 
         if action == "installed":
-            model = _choose_installed_model(installed, label, step="Step 1/5: AI model")
+            model = _choose_installed_model(installed, label, step="Step 1/5: AI model · Ollama")
             if model:
                 return model
             continue
 
         if action == "default" and rec:
-            try:
-                return ensure_model_ready("ollama", rec)
-            except Exception as exc:
-                print(f"Failed to download {rec}: {exc}")
-                continue
+            model = None
+            with _normal_screen():
+                print(f"\n  Downloading {rec} via Ollama...\n")
+                try:
+                    model = ensure_model_ready("ollama", rec)
+                except Exception as exc:
+                    _note(f"Failed to download {rec}: {exc}", ok=False)
+            if model:
+                return model
+            continue
 
         if action == "manual":
-            name = input(f"  Enter the {label} model name: ").strip()
+            name = _framed_prompt(
+                f"{label.capitalize()} model name",
+                step="Step 1/5: AI model · Ollama · Model",
+                hint="downloads it if missing · enter to go back",
+            )
             if name:
-                try:
-                    return ensure_model_ready("ollama", name)
-                except Exception as exc:
-                    print(f"Failed to prepare {name}: {exc}")
-                    continue
-            print("  Model name cannot be empty.")
+                model = None
+                with _normal_screen():
+                    print(f"\n  Downloading {name} via Ollama...\n")
+                    try:
+                        model = ensure_model_ready("ollama", name)
+                    except Exception as exc:
+                        _note(f"Failed to prepare {name}: {exc}", ok=False)
+                if model:
+                    return model
 
         if action == "back":
             return None
@@ -375,126 +839,333 @@ def _prompt_model_name(provider_name: str, label: str) -> str | None:
     if provider_name == "ollama":
         return _prompt_ollama_model(label)
 
-    while True:
-        model = input(f"  {label.capitalize()} model name (Enter to go back): ").strip()
-        if model:
-            return model
-        return None
+    model = _framed_prompt(
+        f"{label.capitalize()} model name",
+        step=f"Step 1/5: AI model · {_provider_label(provider_name)} · Model",
+        hint="enter to go back",
+    )
+    return model or None
 
 
 _WHISPER_MODELS = ("tiny", "base", "small", "medium", "large", "turbo")
 _DEFAULT_WHISPER_MODEL_DIR = CONFIG_DIR / "models" / "whisper"
+_STT_OPENAI_MODELS = ("gpt-4o-mini-transcribe", "gpt-4o-transcribe", "whisper-1")
+_STT_GEMINI_MODELS = ("gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite")
+_STT_DASHSCOPE_MODELS = ("qwen3-asr-flash",)
+# (value, label, models) for each cloud transcription provider.
+_STT_CLOUD_PROVIDERS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
+    ("openai", "OpenAI", _STT_OPENAI_MODELS),
+    ("gemini", "Gemini", _STT_GEMINI_MODELS),
+    ("dashscope", "DashScope (Qwen)", _STT_DASHSCOPE_MODELS),
+)
 
 
-def _prompt_stt_config(config: ModelConfig) -> None:
-    """Ask for optional local STT settings and mutate *config*."""
-    choice = _select_option(
-        step="Step 3/5: Voice input (speech-to-text)",
-        title="Configure speech-to-text (STT) for voice messages?",
-        options=[
-            ("keep", "Keep existing STT settings", ""),
-            ("whisper", "Use local Whisper multilingual model", ""),
-            ("disable", "Skip / disable STT", ""),
-        ],
-    )
-    if choice == "disable":
-        config.stt_provider = "disabled"
-        config.stt_backend = "faster-whisper"
-        config.stt_model = None
+def _ensure_dashscope_key(config: ModelConfig, step: str) -> bool:
+    """Reuse-or-prompt the shared DashScope key (config.tts_api_key). False = back."""
+    existing = config.tts_api_key or os.getenv("DASHSCOPE_API_KEY")
+    title = "Connect your DashScope account"
+    if existing:
+        use_existing = _framed_prompt(
+            "Use the saved DashScope key?  (Y/n)",
+            step=step,
+            title=title,
+            context=f"A DashScope key is already saved ({_mask_secret(existing)}).",
+            hint="enter to keep it · type n then enter to replace",
+        ).lower()
+        if use_existing not in ("n", "no"):
+            os.environ["DASHSCOPE_API_KEY"] = existing
+            config.tts_api_key = existing
+            _persist_tts_api_key(existing)
+            return True
+        key = _framed_prompt(
+            "New DashScope API key",
+            step=step,
+            title=title,
+            hint="paste your key · shown as • · enter to go back",
+            secret=True,
+        )
+    else:
+        key = _framed_prompt(
+            "DashScope API key",
+            step=step,
+            title=title,
+            context="From Alibaba Cloud DashScope. Saved to ~/.yumi/config.json on this machine only.",
+            hint="paste your key · shown as • · enter to go back",
+            secret=True,
+        )
+    if not key:
+        return False
+    config.tts_api_key = key
+    os.environ["DASHSCOPE_API_KEY"] = key
+    _persist_tts_api_key(key)
+    _note(f"DashScope key saved ({_mask_secret(key)}).")
+    return True
+
+
+def _ensure_cloud_voice_key(config: ModelConfig, provider: str, label: str, step: str) -> bool:
+    """Ensure the API key for a cloud STT/TTS provider (DashScope is shared/special)."""
+    if provider == "dashscope":
+        return _ensure_dashscope_key(config, step)
+    return _ensure_api_key(provider, label, step)
+
+
+def _setup_cloud_stt(config: ModelConfig) -> bool:
+    """Pick a cloud transcription provider + model. False = go back."""
+    from yumi.core.features.config.feature_install import ensure_feature_installed
+
+    while True:
+        options = [(value, label, "") for value, label, _models in _STT_CLOUD_PROVIDERS]
+        options.append(("back", "← Back", ""))
+        provider = _select_option(
+            step="Step 3/5: Voice input (speech-to-text) · Provider",
+            title="Which cloud transcription provider?",
+            message="All reuse a key you may already have; nothing is downloaded.",
+            options=options,
+        )
+        if provider == "back":
+            return False
+        label, models = next((lab, mods) for val, lab, mods in _STT_CLOUD_PROVIDERS if val == provider)
+        if not _ensure_cloud_voice_key(config, provider, label, f"Step 3/5: Voice input · {label} · API key"):
+            continue
+        model_options = [(name, name, "") for name in models]
+        model_options.append(("back", "← Back", ""))
+        model = _select_option(
+            step=f"Step 3/5: Voice input (speech-to-text) · {label} · Model",
+            title=f"Choose a {label} transcription model",
+            options=model_options,
+        )
+        if model == "back":
+            continue
+        config.stt_provider = provider
+        config.stt_backend = ""
+        config.stt_model = model
+        config.stt_model_dir = None
         config.stt_language = "auto"
-        print("  STT disabled. You can enable it later with `yumi --setup`.")
-        return
-    if choice == "keep":
-        print(f"  Keeping STT: {config.stt_provider} / {config.stt_model or 'unset'}")
-        return
+        if provider == "dashscope":
+            with _normal_screen():
+                print("\n  Installing DashScope support...\n")
+                if not ensure_feature_installed("tts", assume_yes=True):
+                    _note("DashScope package isn't installed yet; transcription starts once it is.", ok=False)
+                    return True
+        _note(f"Voice input ready: {provider} · {model}")
+        return True
 
+
+def _setup_local_stt(config: ModelConfig) -> bool:
+    """Pick + cache a local Whisper model. False = go back."""
+    from yumi.core.features.config.feature_install import ensure_feature_installed
+
+    options = [(name, name, "") for name in _WHISPER_MODELS]
+    options.append(("back", "← Back", ""))
     model = _select_option(
-        step="Step 3/5: Voice input (speech-to-text)",
+        step="Step 3/5: Voice input (speech-to-text) · Whisper model",
         title="Choose a Whisper multilingual model",
-        options=[(name, name, "") for name in _WHISPER_MODELS],
+        message="Larger = more accurate, but slower and bigger to download.",
+        options=options,
     )
-
+    if model == "back":
+        return False
     config.stt_provider = "whisper"
     config.stt_backend = "faster-whisper"
     config.stt_model = model
     config.stt_model_dir = str(_DEFAULT_WHISPER_MODEL_DIR)
     config.stt_language = "auto"
 
-    from yumi.core.features.config.feature_install import ensure_feature_installed
+    # Install + weight download go on the normal screen (own progress output).
+    with _normal_screen():
+        print(f"\n  Preparing Whisper '{model}' — installing support and caching weights.\n")
+        if not ensure_feature_installed("stt", assume_yes=True):
+            _note(
+                "Voice input saved, but the package isn't installed yet — re-run `yumi --setup` to cache it.",
+                ok=False,
+            )
+            return True
+        try:
+            from yumi.core.features.stt.whisper_provider import ensure_whisper_weights_cached
 
-    if not ensure_feature_installed("stt", assume_yes=True):
-        print("  STT settings saved, but the package isn't installed yet — skipping model download.")
-        print("  Re-run `yumi --setup` after installing to cache the weights.")
-        return
-    try:
-        from yumi.core.features.stt.whisper_provider import ensure_whisper_weights_cached
+            ensure_whisper_weights_cached(model=model, model_dir=config.stt_model_dir)
+        except Exception as exc:
+            _note(f"Could not prepare Whisper weights: {exc} — it retries on first use.", ok=False)
+            return True
+    _note(f"Voice input ready: whisper / {model}")
+    return True
 
-        ensure_whisper_weights_cached(model=model, model_dir=config.stt_model_dir)
-    except Exception as exc:
-        print(f"  Warning: could not prepare Whisper weights: {exc}")
-        print("  Voice transcription will retry the download on first use.")
+
+def _prompt_stt_config(config: ModelConfig) -> str:
+    """Ask for optional STT settings and mutate *config*. Returns 'back'/'next'."""
+    while True:
+        # "keep" only when voice input is already configured — nothing to keep on
+        # a first run, where the option would just be confusing.
+        options: list[tuple[str, str, str]] = []
+        if config.stt_provider not in ("", "disabled"):
+            options.append(
+                ("keep", "Keep current voice input", f"{config.stt_provider} / {config.stt_model or 'unset'}")
+            )
+        options += [
+            ("cloud", "Cloud transcription", "OpenAI · Gemini · DashScope; nothing to download"),
+            ("local", "Local Whisper", "fully offline; downloads a multilingual model"),
+            ("disable", "Skip / disable voice input", ""),
+            ("back", "← Back to previous step", ""),
+        ]
+        choice = _select_option(
+            step="Step 3/5: Voice input (speech-to-text)",
+            title="Configure speech-to-text (STT) for voice messages?",
+            options=options,
+        )
+        if choice == "back":
+            return "back"
+        if choice == "keep":
+            _note(f"Kept voice input: {config.stt_provider} / {config.stt_model or 'unset'}")
+            return "next"
+        if choice == "disable":
+            config.stt_provider = "disabled"
+            config.stt_backend = "faster-whisper"
+            config.stt_model = None
+            config.stt_language = "auto"
+            _note("Voice input disabled. Re-run `yumi --setup` to enable it.")
+            return "next"
+        if choice == "cloud":
+            if _setup_cloud_stt(config):
+                return "next"
+            continue
+        if choice == "local":
+            if _setup_local_stt(config):
+                return "next"
+            continue
 
 
 # ── text-to-speech (spoken replies) ─────────────────────────────────────────
 
 # Curated voice shortlists (both backends accept more — type a name to override).
 _TTS_DASHSCOPE_VOICES = ("Cherry", "Serena", "Ethan", "Chelsie", "Dylan", "Eric", "Ryan", "Jada", "Sunny")
+_TTS_OPENAI_VOICES = ("alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer")
+# (value, label, voices, default_voice) for each cloud voice provider.
+_TTS_CLOUD_PROVIDERS: tuple[tuple[str, str, tuple[str, ...], str], ...] = (
+    ("dashscope", "Qwen3-TTS (DashScope)", _TTS_DASHSCOPE_VOICES, "Cherry"),
+    ("openai", "OpenAI", _TTS_OPENAI_VOICES, "alloy"),
+)
 
 
 def _prompt_tts_voice(label: str, voices: tuple[str, ...], default: str) -> str:
     options = [(name, name, "default" if name == default else "") for name in voices]
     options.append(("custom", "Enter a custom voice name", ""))
     selected = _select_option(
-        step="Step 4/5: Spoken replies (text-to-speech)",
+        step="Step 4/5: Spoken replies (text-to-speech) · Voice",
         title=f"Choose a {label} voice",
         options=options,
         default=voices.index(default) if default in voices else 0,
     )
     if selected == "custom":
-        custom = input("  Voice name (Enter for default): ").strip()
+        custom = _framed_prompt(
+            "Voice name",
+            step="Step 4/5: Spoken replies · Voice",
+            hint="enter for the default",
+        )
         return custom or default
     if not selected:
         return default
     return selected
 
 
-def _prompt_tts_config(config: ModelConfig) -> None:
-    """Ask for optional spoken-reply (TTS) settings and mutate *config*."""
-    choice = _select_option(
-        step="Step 4/5: Spoken replies (text-to-speech)",
-        title="Enable spoken replies (text-to-speech)?",
-        options=[
-            ("keep", "Keep current TTS settings", ""),
-            ("system", "System voice", "macOS say / Linux espeak; offline, no key, instant"),
-            ("dashscope", "Qwen3-TTS cloud", "via DashScope API; best quality; needs a key"),
-            ("disable", "Skip / disable", ""),
-        ],
-    )
-    if choice == "disable":
-        config.tts_provider = "disabled"
-        print("  Spoken replies off. Enable later with `yumi --setup`.")
-        return
-    if choice == "keep":
-        print(f"  Keeping TTS: {config.tts_provider}")
-        return
-
+def _setup_cloud_tts(config: ModelConfig) -> bool:
+    """Pick a cloud voice provider + voice. False = go back."""
     from yumi.core.features.config.feature_install import ensure_feature_installed
 
+    while True:
+        options = [(value, label, "") for value, label, _voices, _default in _TTS_CLOUD_PROVIDERS]
+        options.append(("back", "← Back", ""))
+        provider = _select_option(
+            step="Step 4/5: Spoken replies (text-to-speech) · Provider",
+            title="Which cloud voice provider?",
+            message="Both reuse a key you may already have.",
+            options=options,
+        )
+        if provider == "back":
+            return False
+        label, voices, default = next((lab, vo, df) for val, lab, vo, df in _TTS_CLOUD_PROVIDERS if val == provider)
+        if not _ensure_cloud_voice_key(config, provider, label, f"Step 4/5: Spoken replies · {label} · API key"):
+            continue
+        voice = _prompt_tts_voice(label, voices, default)
+        config.tts_provider = provider
+        config.tts_model = None
+        config.tts_voice = voice
+        if provider == "dashscope":
+            with _normal_screen():
+                print("\n  Installing DashScope support...\n")
+                if not ensure_feature_installed("tts", assume_yes=True):
+                    _note("DashScope package isn't installed yet; spoken replies start once it is.", ok=False)
+                    return True
+        _note(f"Spoken replies: {provider} · {voice}")
+        return True
+
+
+def _setup_local_tts(config: ModelConfig) -> bool:
+    """Pick a local voice backend. False = go back."""
+    from yumi.core.features.config.feature_install import ensure_feature_installed
+
+    choice = _select_option(
+        step="Step 4/5: Spoken replies (text-to-speech) · Local",
+        title="Local spoken-reply backend",
+        options=[
+            ("system", "System voice", "macOS say / Linux espeak; offline, no key, instant"),
+            ("qwen", "Local Qwen3-TTS", "highest local quality; heavy, needs a CUDA GPU"),
+            ("back", "← Back", ""),
+        ],
+    )
+    if choice == "back":
+        return False
     if choice == "system":
         config.tts_provider = "system"
         config.tts_voice = None
-    elif choice == "dashscope":
-        config.tts_provider = "dashscope"
-        config.tts_model = None
-        config.tts_voice = _prompt_tts_voice("DashScope", _TTS_DASHSCOPE_VOICES, "Cherry")
-        if not (config.tts_api_key or os.getenv("DASHSCOPE_API_KEY")):
-            key = input("  DashScope API key (or set DASHSCOPE_API_KEY): ").strip()
-            if key:
-                config.tts_api_key = key
-                os.environ["DASHSCOPE_API_KEY"] = key
-        if not ensure_feature_installed("tts", assume_yes=True):
-            print("  The dashscope package isn't installed yet; spoken replies start once it is.")
-            return
+        _note("Spoken replies: system voice.")
+        return True
+    config.tts_provider = "qwen"
+    config.tts_model = None
+    config.tts_voice = None
+    with _normal_screen():
+        print("\n  Installing local Qwen3-TTS (heavy; needs a GPU)...\n")
+        if not ensure_feature_installed("tts-local", assume_yes=True):
+            _note("Local Qwen3-TTS isn't installed yet; spoken replies start once it is.", ok=False)
+            return True
+    _note("Spoken replies: local Qwen3-TTS.")
+    return True
+
+
+def _prompt_tts_config(config: ModelConfig) -> str:
+    """Ask for optional spoken-reply (TTS) settings and mutate *config*. Returns 'back'/'next'."""
+    while True:
+        # "keep" only when spoken replies are already configured.
+        options: list[tuple[str, str, str]] = []
+        if config.tts_provider not in ("", "disabled"):
+            options.append(("keep", "Keep current spoken replies", config.tts_provider))
+        options += [
+            ("cloud", "Cloud voice", "DashScope · OpenAI; best quality, needs a key"),
+            ("local", "Local / system voice", "offline, no key"),
+            ("disable", "Skip / disable", ""),
+            ("back", "← Back to previous step", ""),
+        ]
+        choice = _select_option(
+            step="Step 4/5: Spoken replies (text-to-speech)",
+            title="Enable spoken replies (text-to-speech)?",
+            options=options,
+        )
+        if choice == "back":
+            return "back"
+        if choice == "keep":
+            _note(f"Kept spoken replies: {config.tts_provider}")
+            return "next"
+        if choice == "disable":
+            config.tts_provider = "disabled"
+            _note("Spoken replies off. Re-run `yumi --setup` to enable them.")
+            return "next"
+        if choice == "cloud":
+            if _setup_cloud_tts(config):
+                return "next"
+            continue
+        if choice == "local":
+            if _setup_local_tts(config):
+                return "next"
+            continue
 
 
 # ── top-level run-mode + cloud pickers ──────────────────────────────────────
@@ -569,7 +1240,7 @@ def _embedding_config_available(config: ModelConfig) -> bool:
 def _choose_run_mode(notice: str | None = None) -> str:
     """Return 'cloud' or 'local'. Cloud and local are presented equally."""
     return _select_option(
-        step="Step 1/5: AI model",
+        step="Step 1/5: AI model · Run mode",
         title="How do you want to run the AI model?",
         message="No chat model is configured yet. Choose one to continue.",
         error=notice,
@@ -597,6 +1268,7 @@ def _choose_chat_action(current: ModelConfig) -> str:
         options=[
             ("keep", "Keep current", ""),
             ("reconfigure", "Reconfigure", ""),
+            ("exit", "Exit setup", ""),
         ],
     )
 
@@ -615,7 +1287,7 @@ def _choose_cloud_provider() -> str | None:
     options = [(key, label, "") for key, label in _CLOUD_PROVIDERS]
     options.append(("back", "Back", ""))
     selected = _select_option(
-        step="Step 1/5: AI model",
+        step="Step 1/5: AI model · Provider",
         title="Which cloud provider do you want to use?",
         options=options,
     )
@@ -633,17 +1305,21 @@ def _choose_cloud_model(provider: str, label: str) -> str | None:
         options.append(("custom", "Enter a custom model name", ""))
         options.append(("back", "Back", ""))
         selected = _select_option(
-            step="Step 1/5: AI model",
+            step=f"Step 1/5: AI model · {_provider_label(provider)} · Model",
             title=f"Choose a {label} model for {_provider_label(provider)}",
             options=options,
         )
         if selected in models:
             return selected
         if selected == "custom":
-            name = input(f"  {label.capitalize()} model name: ").strip()
+            name = _framed_prompt(
+                f"{label.capitalize()} model name",
+                step=f"Step 1/5: AI model · {_provider_label(provider)} · Model",
+                title=f"Custom {label} model for {_provider_label(provider)}",
+                hint="enter to go back",
+            )
             if name:
                 return name
-            print("  Model name cannot be empty.")
             continue
         if selected == "back":
             return None
@@ -655,19 +1331,41 @@ def _ensure_chat_provider_api_key(provider: str) -> bool:
         return True
     env_var, _field = target
     label = _provider_label(provider)
+    step = f"Step 1/5: AI model · {label} · API key"
+    title = f"Connect your {label} account"
     existing = _existing_api_key(provider)
     if existing:
-        use_existing = input(f"  Use existing {label} API key ({_mask_secret(existing)})? (Y/n): ").strip().lower()
+        use_existing = _framed_prompt(
+            "Use the saved key?  (Y/n)",
+            step=step,
+            title=title,
+            context=f"A {label} key is already saved ({_mask_secret(existing)}).",
+            hint="enter to keep it · type n then enter to replace",
+        ).lower()
         if use_existing not in ("n", "no"):
             os.environ[env_var] = existing
             return True
-        key = input(f"  New {label} API key (Enter to go back): ").strip()
+        key = _framed_prompt(
+            f"New {label} API key",
+            step=step,
+            title=title,
+            hint="paste your key · shown as • · enter to go back",
+            secret=True,
+        )
     else:
-        key = input(f"  {label} API key (Enter to go back): ").strip()
+        key = _framed_prompt(
+            f"{label} API key",
+            step=step,
+            title=title,
+            context=f"Yumi saves it to {CONFIG_PATH} on this machine only.",
+            hint="paste your key · shown as • · enter to go back",
+            secret=True,
+        )
     if not key:
         print("  A working chat provider is required to continue.")
         return False
     _persist_cloud_api_key(provider, key, announce=False)
+    _note(f"{label} API key saved ({_mask_secret(key)}).")
     return True
 
 
@@ -694,18 +1392,31 @@ def _configure_chat_model() -> tuple[str, str]:
                 continue
             return chat_provider, chat_model
 
-        try:
-            ensure_provider_available("ollama")
-        except Exception as exc:
-            notice = (
-                "Ollama isn't reachable. Install it from https://ollama.com and start it, "
-                f"or pick a cloud API key instead.\nDetails: {exc}"
-            )
-            continue
-        chat_model = _prompt_model_name("ollama", "chat")
-        if chat_model is None:
-            continue
-        return "ollama", chat_model
+        # local (Ollama): surface connection errors inline with a Retry option,
+        # instead of bouncing the user all the way back to the run-mode screen.
+        while True:
+            try:
+                ensure_provider_available("ollama")
+            except Exception as exc:
+                choice = _select_option(
+                    step="Step 1/5: AI model · Ollama",
+                    title="Ollama isn't reachable yet",
+                    error=(
+                        "Install it from https://ollama.com and start it (run `ollama serve`), "
+                        f"then retry.\nDetails: {exc}"
+                    ),
+                    options=[
+                        ("retry", "Retry connection", ""),
+                        ("runmode", "← Back to run mode", ""),
+                    ],
+                )
+                if choice == "retry":
+                    continue
+                break
+            chat_model = _prompt_model_name("ollama", "chat")
+            if chat_model is None:
+                break
+            return "ollama", chat_model
 
 
 def _cloud_embedding_options(chat_provider: str) -> list[tuple[str, str]]:
@@ -715,24 +1426,50 @@ def _cloud_embedding_options(chat_provider: str) -> list[tuple[str, str]]:
     return options
 
 
-def _ensure_cloud_embedding_key(provider: str, label: str) -> bool:
+def _ensure_api_key(provider: str, label: str, step: str) -> bool:
+    """Reuse-or-prompt a cloud provider's API key (masked). False = go back."""
     target = _api_key_target(provider)
     if target is None:
         return False
     env_var, _field = target
+    title = f"Connect your {label} account"
     existing = _existing_api_key(provider)
     if existing:
-        use_existing = input(f"  Use existing {label} API key ({_mask_secret(existing)})? (Y/n): ").strip().lower()
+        use_existing = _framed_prompt(
+            "Use the saved key?  (Y/n)",
+            step=step,
+            title=title,
+            context=f"A {label} key is already saved ({_mask_secret(existing)}).",
+            hint="enter to keep it · type n then enter to replace",
+        ).lower()
         if use_existing not in ("n", "no"):
             os.environ[env_var] = existing
             return True
-        key = input(f"  New {label} API key (Enter to go back): ").strip()
+        key = _framed_prompt(
+            f"New {label} API key",
+            step=step,
+            title=title,
+            hint="paste your key · shown as • · enter to go back",
+            secret=True,
+        )
     else:
-        key = input(f"  {label} API key (Enter to go back): ").strip()
+        key = _framed_prompt(
+            f"{label} API key",
+            step=step,
+            title=title,
+            context=f"Yumi saves it to {CONFIG_PATH} on this machine only.",
+            hint="paste your key · shown as • · enter to go back",
+            secret=True,
+        )
     if not key:
         return False
     _persist_cloud_api_key(provider, key, announce=False)
+    _note(f"{label} API key saved ({_mask_secret(key)}).")
     return True
+
+
+def _ensure_cloud_embedding_key(provider: str, label: str) -> bool:
+    return _ensure_api_key(provider, label, f"Step 2/5: Memory · {label} · API key")
 
 
 def _setup_cloud_embeddings(config: ModelConfig, chat_provider: str) -> bool:
@@ -752,27 +1489,28 @@ def _setup_cloud_embeddings(config: ModelConfig, chat_provider: str) -> bool:
             continue
         config.embedding_provider = provider
         config.embedding_model = RECOMMENDED_EMBEDDING_MODELS[provider]
-        print(f"  Cloud embeddings configured with {label}.")
+        _note(f"Cloud embeddings configured with {label}.")
         return True
 
 
 def _prepare_fastembed_model(model: str, size_label: str) -> bool:
     from yumi.core.features.config.feature_install import ensure_feature_installed
 
-    print()
-    print("  Installing local embedding support if needed...")
-    if not ensure_feature_installed("embed", assume_yes=True):
-        print("  Local embeddings are not ready. Choose another backend or retry later.")
-        return False
-
-    print(f"  Preparing local embedding model ({size_label}).")
-    print("  This may take a few minutes the first time; download progress will be shown below.")
-    try:
-        _get_provider("fastembed").pull_model(model)
-    except Exception as exc:
-        print(f"  Could not prepare local embedding model: {exc}")
-        return False
-    print("  Local embedding model is ready.")
+    # Drop to the normal screen: the pip install + download progress bar belong
+    # there, not on the wizard's alternate screen where a late flush would stick.
+    with _normal_screen():
+        print()
+        print(f"  Installing local embedding support and downloading {model} ({size_label}).")
+        print("  This can take a few minutes the first time.\n")
+        if not ensure_feature_installed("embed", assume_yes=True):
+            _note("Local embeddings aren't ready — choose another backend or retry later.", ok=False)
+            return False
+        try:
+            _get_provider("fastembed").pull_model(model)
+        except Exception as exc:
+            _note(f"Could not prepare local embedding model: {exc}", ok=False)
+            return False
+    _note("Local embedding model is ready.")
     return True
 
 
@@ -836,13 +1574,21 @@ def _setup_ollama_embeddings(config: ModelConfig) -> bool:
             config.embedding_model = model
             return True
         if choice == "manual":
-            model_name = input("  Ollama embedding model name (Enter to go back): ").strip()
+            model_name = _framed_prompt(
+                "Ollama embedding model name",
+                step="Step 2/5: Memory · Ollama · Model",
+                hint="downloads it if missing · enter to go back",
+            )
             if not model_name:
                 continue
-            try:
-                model = ensure_model_ready("ollama", model_name)
-            except Exception as exc:
-                notice = f"Failed to prepare Ollama embedding model {model_name!r}.\nDetails: {exc}"
+            model = None
+            with _normal_screen():
+                print(f"\n  Downloading {model_name} via Ollama...\n")
+                try:
+                    model = ensure_model_ready("ollama", model_name)
+                except Exception as exc:
+                    notice = f"Failed to prepare Ollama embedding model {model_name!r}.\nDetails: {exc}"
+            if not model:
                 continue
             config.embedding_provider = "ollama"
             config.embedding_model = model
@@ -869,15 +1615,16 @@ def _choose_embedding_action(config: ModelConfig) -> str:
         options=[
             ("keep", "Keep current", ""),
             ("reconfigure", "Reconfigure", ""),
+            ("back", "← Back to previous step", ""),
         ],
     )
 
 
-def _configure_embeddings(config: ModelConfig, chat_provider: str) -> None:
-    """Embedding backend selection with backtracking submenus."""
+def _configure_embeddings(config: ModelConfig, chat_provider: str) -> str:
+    """Embedding backend selection with backtracking submenus. Returns 'back'/'next'."""
     while True:
         choice = _select_option(
-            step="Step 2/5: Memory (text embeddings)",
+            step="Step 2/5: Memory (text embeddings) · Backend",
             title="Choose an embedding backend",
             message="Embeddings improve memory search and Edge tool routing.",
             warning=_EMBEDDING_STABILITY_WARNING,
@@ -886,32 +1633,39 @@ def _configure_embeddings(config: ModelConfig, chat_provider: str) -> None:
                 ("local", "Local embeddings", "Yumi installs and downloads everything from the CLI"),
                 ("ollama", "Ollama embeddings", "requires Ollama already installed and running"),
                 ("skip", "Skip embeddings for now", "memory and tool-routing quality will be reduced"),
+                ("back", "← Back to previous step", ""),
             ],
         )
         if choice == "cloud":
             if _setup_cloud_embeddings(config, chat_provider):
-                return
+                return "next"
             continue
         if choice == "local":
             if _setup_fastembed_embeddings(config):
-                return
+                return "next"
             continue
         if choice == "ollama":
             if _setup_ollama_embeddings(config):
-                return
+                return "next"
             continue
         if choice == "skip":
             config.embedding_provider = "disabled"
             config.embedding_model = None
-            print("  Embeddings skipped for now. Enable later with `yumi --setup`.")
-            return
+            _note("Memory embeddings skipped. Re-run `yumi --setup` to enable them.")
+            return "next"
+        if choice == "back":
+            return "back"
 
 
-def _setup_embeddings(config: ModelConfig, chat_provider: str) -> None:
+def _setup_embeddings(config: ModelConfig, chat_provider: str) -> str:
+    """Returns 'back' (to previous step) or 'next'."""
     action = _choose_embedding_action(config)
+    if action == "back":
+        return "back"
     if action == "keep":
-        return
-    _configure_embeddings(config, chat_provider)
+        _note(f"Kept memory: {config.embedding_provider} / {config.embedding_model}")
+        return "next"
+    return _configure_embeddings(config, chat_provider)
 
 
 def configure_models_noninteractive(
@@ -972,49 +1726,140 @@ def configure_models_noninteractive(
     return config
 
 
-def run_model_setup(force: bool = False) -> ModelConfig:
+def _bridges_label() -> str:
+    """Names of any messaging bridges that already have credentials, else 'none'."""
+    try:
+        from yumi.core.features.config import (
+            get_discord_bot_token,
+            get_line_channel_access_token,
+            get_line_channel_secret,
+            get_telegram_bot_token,
+        )
+    except Exception:
+        return "none"
+    active = []
+    if get_telegram_bot_token():
+        active.append("Telegram")
+    if get_discord_bot_token():
+        active.append("Discord")
+    if get_line_channel_secret() and get_line_channel_access_token():
+        active.append("LINE")
+    return " · ".join(active) if active else "none"
+
+
+def _summary_rows(config: ModelConfig) -> list[tuple[str, str]]:
+    memory = f"{config.embedding_provider} · {config.embedding_model}" if config.embedding_model else "off"
+    if config.stt_model and config.stt_provider not in ("", "disabled"):
+        voice_in = f"{config.stt_provider} · {config.stt_model}"
+    else:
+        voice_in = "off"
+    replies = config.tts_provider if config.tts_provider not in ("", "disabled") else "off"
+    if config.tts_voice and replies != "off":
+        replies = f"{replies} · {config.tts_voice}"
+    return [
+        ("Chat", f"{config.chat_provider} · {config.chat_model}"),
+        ("Memory", memory),
+        ("Voice in", voice_in),
+        ("Replies", replies),
+        ("Bridges", _bridges_label()),
+    ]
+
+
+def _render_setup_summary(config: ModelConfig) -> None:
+    """The closing screen: a calm completion lockup, not a stack of prints."""
+    rows = _summary_rows(config)
+    if not _interactive_terminal():
+        _flush_notes()
+        print()
+        print(f"Saved Yumi model config to {CONFIG_PATH}.")
+        for key, value in rows:
+            print(f"{key}: {value}")
+        return
+
+    # No _clear_screen(): this renders after the alternate screen is torn down,
+    # so it stays in the normal scrollback as a lasting record of the config.
+    print()
+    width = _page_width()
+    rail = " ".join(_cyan("●") for _ in range(5))
+    print(f"{_SELECT_TEXT_PAD}{rail}   {_dim('Setup complete')}")
+    print(f"{_SELECT_TEXT_PAD}{_dim('─' * (width - 2))}")
+    print()
+    _flush_notes()
+    print(f"{_SELECT_TEXT_PAD}{_green('✓')} {_bold('Yumi is ready.')}")
+    print(f"{_SELECT_TEXT_PAD}{_dim('Saved to ' + str(CONFIG_PATH))}")
+    print()
+    key_width = max(len(key) for key, _ in rows)
+    for key, value in rows:
+        rendered = _dim(value) if value in ("off", "none") else value
+        print(f"{_SELECT_TEXT_PAD}{_dim(key.ljust(key_width))}   {rendered}")
+    print()
+    print(
+        f"{_SELECT_TEXT_PAD}{_dim('Start anytime with')} {_bold('yumi')}"
+        f"   {_dim('·  change settings with')} {_bold('yumi --setup')}"
+    )
+
+
+def _step_chat(config: ModelConfig, current: ModelConfig) -> str:
+    chat_action = _choose_chat_action(current)
+    if chat_action == "exit":
+        return "exit"
+    if chat_action == "keep":
+        _note(f"Kept chat model: {config.chat_provider} / {config.chat_model}")
+        return "next"
+    chat_provider, chat_model = _configure_chat_model()  # raises SystemExit on run-mode exit
+    config.chat_provider = chat_provider
+    config.chat_model = chat_model
+    return "next"
+
+
+def _step_embeddings(config: ModelConfig) -> str:
+    return _setup_embeddings(config, config.chat_provider)
+
+
+def _step_messaging(messaging) -> str:
+    result = messaging()
+    return result if result in ("back", "next") else "next"
+
+
+def run_model_setup(force: bool = False, *, messaging=None) -> ModelConfig:
     current = load_saved_model_config()
     if current.chat_model and not force:
         return load_model_config()
+
+    _PENDING_NOTES.clear()
+    config = load_saved_model_config()
+    config.system_prompt = current.system_prompt
 
     if not _interactive_terminal():
         print("Welcome to Yumi.")
         print("Let's set you up — first choose a working chat model; the remaining steps are optional.\n")
 
-    if not _interactive_terminal():
-        print("── Step 1/5: AI model ──")
-    config = load_saved_model_config()
-    chat_action = _choose_chat_action(current)
-    if chat_action == "keep":
-        chat_provider = config.chat_provider
-    else:
-        chat_provider, chat_model = _configure_chat_model()
-        config.chat_provider = chat_provider
-        config.chat_model = chat_model
-    config.system_prompt = current.system_prompt
-    save_model_config(config)
+    # Steps form a navigable sequence: each returns "next" / "back" / "exit", so a
+    # mistake in an early step no longer forces a full re-run.
+    steps: list[tuple[str, Callable[[], str]]] = [
+        ("Step 1/5: AI model", lambda: _step_chat(config, current)),
+        ("Step 2/5: Memory (text embeddings)", lambda: _step_embeddings(config)),
+        ("Step 3/5: Voice input (speech-to-text)", lambda: _prompt_stt_config(config)),
+        ("Step 4/5: Spoken replies (text-to-speech)", lambda: _prompt_tts_config(config)),
+    ]
+    if messaging is not None:
+        steps.append(("Step 5/5: Messaging bridges", lambda: _step_messaging(messaging)))
 
-    if not _interactive_terminal():
-        print("\n── Step 2/5: Memory (text embeddings) ──")
-    _setup_embeddings(config, chat_provider)
-    save_model_config(config)
-    if not _interactive_terminal():
-        print("\n── Step 3/5: Voice input (speech-to-text) ──")
-    _prompt_stt_config(config)
-    save_model_config(config)
-    if not _interactive_terminal():
-        print("\n── Step 4/5: Spoken replies (text-to-speech) ──")
-    _prompt_tts_config(config)
-    save_model_config(config)
+    with _alt_screen():
+        idx = 0
+        while idx < len(steps):
+            label, run_step = steps[idx]
+            if not _interactive_terminal():
+                print(f"\n── {label} ──")
+            status = run_step()
+            if status == "back":
+                idx = max(0, idx - 1)
+                continue
+            if status == "exit":
+                raise SystemExit("  Setup cancelled.")
+            _merge_persisted_credentials(config)
+            save_model_config(config)
+            idx += 1
 
-    print()
-    print(f"Saved Yumi model config to {CONFIG_PATH}.")
-    print(f"Chat: {config.chat_provider} / {config.chat_model}")
-    emb = f"{config.embedding_provider} / {config.embedding_model}" if config.embedding_model else "off"
-    print(f"Embedding: {emb}")
-    print(f"STT: {config.stt_provider} / {config.stt_model or 'disabled'}")
-    tts = config.tts_provider if config.tts_provider not in ("", "disabled") else "off"
-    if config.tts_voice and tts != "off":
-        tts = f"{tts} / {config.tts_voice}"
-    print(f"TTS: {tts}")
+    _render_setup_summary(config)
     return config

@@ -367,8 +367,7 @@ class SetupCommand(Command):
 
         from yumi.cli import run_model_setup, setup_messaging_tokens
 
-        run_model_setup(force=True)
-        setup_messaging_tokens()
+        run_model_setup(force=True, messaging=setup_messaging_tokens)
 
 
 class ConfigCommand(Command):

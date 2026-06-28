@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-06-28
+
+### Added
+
+- **Cloud speech-to-text providers.** Alongside local Whisper, `stt_provider` now
+  accepts three no-download cloud backends that reuse your existing provider API
+  keys: `openai` (OpenAI transcription — `gpt-4o-mini-transcribe`,
+  `gpt-4o-transcribe`, `whisper-1`; honors `openai_base_url` for OpenAI-compatible
+  proxy / Azure endpoints), `gemini` (Gemini 2.5 models transcribe inline audio
+  via `gemini_api_key`), and `dashscope` (Qwen3-ASR `qwen3-asr-flash` via the
+  shared DashScope key). `yumi --setup` configures them; `YUMI_STT_PROVIDER`
+  accepts the new values.
+- **OpenAI text-to-speech.** `tts_provider = openai` speaks replies through the
+  OpenAI speech API (`gpt-4o-mini-tts` / `tts-1` / `tts-1-hd`) using
+  `openai_api_key`, joining `system` / `dashscope` / `qwen`. Output is WAV so it
+  plays through the same zero-config local backends (`winsound` / `aplay` /
+  `afplay`) as the other providers.
+- **Redesigned setup wizard.** `yumi --setup` is now a navigable,
+  alternate-screen step flow (AI model → memory → voice input → spoken replies →
+  messaging) with back/next navigation, a calm progress rail, an immediate test
+  line per feature, and on-demand extra installs. Non-interactive / piped
+  invocations degrade gracefully and cancel cleanly on closed stdin.
+- **Missing-credential preflight.** Launching the server or a bridge surfaces any
+  configured cloud feature whose API key is absent — fatally for the chat model,
+  as a non-blocking warning for memory / voice — via `missing_credentials()`.
+- **TTS environment overrides**: `YUMI_TTS_PROVIDER`, `YUMI_TTS_VOICE`,
+  `YUMI_TTS_MODEL`, `YUMI_TTS_LANGUAGE`, mirroring the existing `YUMI_STT_*`.
+
+### Changed
+
+- `rich` is now a base dependency (used for the redesigned wizard rendering).
+
 ## [0.3.0] - 2026-06-19
 
 ### Changed
@@ -128,6 +160,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `build` to the development extras and documented a local pre-release smoke check for maintainers.
 - Added `yumi --cleanup-memory` to clear persisted memory without deleting saved config, prompts, profiles, or connection codes.
 
+[0.4.0]: https://github.com/wenxijiao/yumi-agent/releases/tag/v0.4.0
 [0.3.0]: https://github.com/wenxijiao/yumi-agent/releases/tag/v0.3.0
 [0.2.0]: https://github.com/wenxijiao/yumi-agent/releases/tag/v0.2.0
 

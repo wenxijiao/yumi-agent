@@ -94,10 +94,10 @@ Proactive messaging fields:
 
 Speech-to-text fields:
 
-- `stt_provider`: Speech-to-text provider. `disabled` by default; `whisper` enables local Whisper.
-- `stt_backend`: STT backend. Default: `faster-whisper`.
-- `stt_model`: Whisper model name, for example `base`, `small`, or `turbo`.
-- `stt_model_dir`: Optional model cache directory. `null` uses Yumi's default.
+- `stt_provider`: Speech-to-text provider. `disabled` by default. `whisper` runs locally; `openai`, `gemini`, and `dashscope` are no-download cloud backends that reuse the matching provider API key (`openai_api_key`, `gemini_api_key`, and the shared DashScope `tts_api_key` / `DASHSCOPE_API_KEY` respectively).
+- `stt_backend`: Whisper backend (only used when `stt_provider = whisper`). Default: `faster-whisper`.
+- `stt_model`: Model name. Whisper: `base`, `small`, `turbo`, … ; OpenAI: `gpt-4o-mini-transcribe` (default), `gpt-4o-transcribe`, `whisper-1`; Gemini: `gemini-2.5-flash` (default); DashScope: `qwen3-asr-flash`.
+- `stt_model_dir`: Optional Whisper model cache directory. `null` uses Yumi's default (cloud providers ignore it).
 - `stt_language`: Language hint. Default: `auto`.
 
 Voice (microphone wake-word) fields — only consulted when running `yumi --server --voice`:
@@ -190,7 +190,7 @@ For a more frequent companion-style setup, prefer editing the same keys in `~/.y
 
 | Variable | Description |
 |---|---|
-| `YUMI_STT_PROVIDER` | STT provider (`disabled` or `whisper`; default `disabled`) |
+| `YUMI_STT_PROVIDER` | STT provider (`disabled`, `whisper`, `openai`, `gemini`, or `dashscope`; default `disabled`) |
 | `YUMI_STT_BACKEND` | Whisper backend (`faster-whisper`; default) |
 | `YUMI_STT_MODEL` | Multilingual Whisper model (`tiny`, `base`, `small`, `medium`, `large`, or `turbo`) |
 | `YUMI_STT_MODEL_DIR` | Model cache directory (default `~/.yumi/models/whisper`) |
@@ -202,6 +202,8 @@ Put `HF_TOKEN=hf_...` in **`~/.yumi/.env`** or **`./.env`** if you want; Yumi lo
 Speech-to-text is optional and disabled by default. Run `yumi --setup` to enable local multilingual Whisper for Telegram voice/audio, LINE audio, audio uploads in the web UI, or `/transcribe <path>` in `yumi --chat`.
 
 **Install the `[stt]` extra** before enabling Whisper: `pip install 'yumi-agent[stt]'`. (As of 0.2.x, faster-whisper is no longer bundled with the default install — only the optional extra ships it.) **Model weight files** are large and are not in the git repository; when you pick an STT model in `yumi --setup`, Yumi **downloads the weights to** `~/.yumi/models/whisper` (or your chosen directory) so the first real voice message is not stuck waiting on the network.
+
+The **cloud STT providers** (`openai`, `gemini`, `dashscope`) need no extra and no model download — they ship in the base install and reuse the API key you already configured for that provider. Pick one in `yumi --setup` when you want transcription without local model weights; `openai` additionally honors `openai_base_url` (`OPENAI_BASE_URL`) for OpenAI-compatible proxy / Azure endpoints.
 
 The setup wizard exposes only multilingual Whisper models: `tiny`, `base`, `small`, `medium`, `large`, and `turbo`. `base` is the recommended starter choice; `tiny` is lighter, while `small` and above trade more disk/CPU/GPU resources for better accuracy.
 
@@ -402,20 +404,21 @@ Yumi can speak its replies. In voice mode (`--server --voice`) replies are spoke
 | `tts_provider` | What it is | Needs |
 |---|---|---|
 | `system` | OS speech command (macOS `say`, Linux `espeak`/`espeak-ng`) | nothing (zero-dependency default) |
+| `openai` | OpenAI TTS (`gpt-4o-mini-tts` / `tts-1` / `tts-1-hd`) | `openai_api_key` (no extra; in the base install) |
 | `dashscope` | Qwen3-TTS via the Alibaba Cloud DashScope API | `DASHSCOPE_API_KEY`; `pip install yumi-agent[tts]` |
 | `qwen` | Qwen3-TTS run locally | a GPU + PyTorch (see note); `pip install yumi-agent[tts-local]` |
 
-For `system` and `dashscope`, `yumi --setup` installs anything needed on demand — `pip install yumi-agent` "just works" with no GPU. **Local `qwen` is the one exception**: it runs on PyTorch, and the CUDA build is multi-GB and version-specific, so it cannot be auto-installed (this is true of every local-GPU model, not a Yumi limitation). Install PyTorch for your GPU from <https://pytorch.org/get-started/locally/> **first**; then `yumi --setup` will install `qwen-tts` on top. The provider auto-detects the device (CUDA → Apple MPS → CPU), and the first synthesis downloads the model weights (~GBs, with a progress bar).
+For `system`, `openai`, and `dashscope`, `yumi --setup` installs anything needed on demand — `pip install yumi-agent` "just works" with no GPU. **Local `qwen` is the one exception**: it runs on PyTorch, and the CUDA build is multi-GB and version-specific, so it cannot be auto-installed (this is true of every local-GPU model, not a Yumi limitation). Install PyTorch for your GPU from <https://pytorch.org/get-started/locally/> **first**; then `yumi --setup` will install `qwen-tts` on top. The provider auto-detects the device (CUDA → Apple MPS → CPU), and the first synthesis downloads the model weights (~GBs, with a progress bar).
 
 ### Config keys
 
-- `tts_provider` — `disabled` (default) / `system` / `dashscope` / `qwen`.
-- `tts_voice` — voice/speaker name. DashScope: `Cherry`, `Serena`, `Ethan`, … ; local qwen: `Ryan`, `Vivian`, `Serena`, … ; `system` uses the OS default unless set.
-- `tts_model` — backend model id. DashScope defaults to `qwen3-tts-flash`; local qwen to `Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice`.
-- `tts_api_key` — DashScope key (or set `DASHSCOPE_API_KEY`).
+- `tts_provider` — `disabled` (default) / `system` / `openai` / `dashscope` / `qwen`.
+- `tts_voice` — voice/speaker name. OpenAI: `alloy` (default), `nova`, `shimmer`, … ; DashScope: `Cherry`, `Serena`, `Ethan`, … ; local qwen: `Ryan`, `Vivian`, `Serena`, … ; `system` uses the OS default unless set.
+- `tts_model` — backend model id. OpenAI defaults to `gpt-4o-mini-tts`; DashScope to `qwen3-tts-flash`; local qwen to `Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice`.
+- `tts_api_key` — DashScope key (or set `DASHSCOPE_API_KEY`). OpenAI TTS reuses `openai_api_key`, not this field.
 - `tts_language` — `auto` (default) or a language name (`English`, `Chinese`, …).
 
-Environment: `DASHSCOPE_API_KEY`, `DASHSCOPE_BASE_URL` (defaults to the international endpoint; set the Beijing endpoint for China).
+Environment: `YUMI_TTS_PROVIDER`, `YUMI_TTS_VOICE`, `YUMI_TTS_MODEL`, `YUMI_TTS_LANGUAGE` override the config keys above; `DASHSCOPE_API_KEY`, `DASHSCOPE_BASE_URL` (defaults to the international endpoint; set the Beijing endpoint for China) supply the DashScope credentials.
 
 ### Bridge replies
 

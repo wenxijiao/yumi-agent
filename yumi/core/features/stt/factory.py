@@ -8,7 +8,7 @@ from yumi.core.features.stt.base import SpeechToTextProvider, SttError, SttNotCo
 from yumi.core.features.stt.types import TranscriptionResult
 from yumi.core.features.stt.whisper_provider import WhisperSttProvider
 
-_PROVIDER_CACHE: tuple[tuple[str, str, str, str, str], SpeechToTextProvider] | None = None
+_PROVIDER_CACHE: tuple[tuple[str, str, str, str, str, str], SpeechToTextProvider] | None = None
 
 
 def create_stt_provider(config: ModelConfig | None = None) -> SpeechToTextProvider:
@@ -16,6 +16,28 @@ def create_stt_provider(config: ModelConfig | None = None) -> SpeechToTextProvid
     provider = (cfg.stt_provider or "disabled").strip().lower()
     if provider in ("", "disabled", "none", "off"):
         raise SttNotConfiguredError("STT is not enabled. Run `yumi --setup` to enable voice transcription.")
+    if provider == "openai":
+        from yumi.core.features.stt.openai_provider import DEFAULT_OPENAI_STT_MODEL, OpenAiSttProvider
+
+        return OpenAiSttProvider(
+            model=cfg.stt_model or DEFAULT_OPENAI_STT_MODEL,
+            language=cfg.stt_language or "auto",
+        )
+    if provider == "gemini":
+        from yumi.core.features.stt.gemini_provider import DEFAULT_GEMINI_STT_MODEL, GeminiSttProvider
+
+        return GeminiSttProvider(
+            model=cfg.stt_model or DEFAULT_GEMINI_STT_MODEL,
+            language=cfg.stt_language or "auto",
+        )
+    if provider == "dashscope":
+        from yumi.core.features.stt.dashscope_provider import DEFAULT_DASHSCOPE_STT_MODEL, DashScopeSttProvider
+
+        return DashScopeSttProvider(
+            model=cfg.stt_model or DEFAULT_DASHSCOPE_STT_MODEL,
+            api_key=cfg.tts_api_key,  # the shared DashScope account key
+            language=cfg.stt_language or "auto",
+        )
     if provider != "whisper":
         raise SttError(f"Unsupported STT provider: {cfg.stt_provider!r}")
     backend = (cfg.stt_backend or "faster-whisper").strip().lower()
@@ -28,13 +50,16 @@ def create_stt_provider(config: ModelConfig | None = None) -> SpeechToTextProvid
     )
 
 
-def _cache_key(config: ModelConfig) -> tuple[str, str, str, str, str]:
+def _cache_key(config: ModelConfig) -> tuple[str, str, str, str, str, str]:
     return (
         config.stt_provider or "disabled",
         config.stt_backend or "faster-whisper",
         config.stt_model or "",
         config.stt_model_dir or "",
         config.stt_language or "auto",
+        # DashScope STT captures tts_api_key at construction, so rotating the key
+        # must invalidate the cached provider (openai/gemini read it lazily).
+        config.tts_api_key or "",
     )
 
 

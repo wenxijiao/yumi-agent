@@ -17,6 +17,10 @@ def create_tts_provider(config: ModelConfig | None = None) -> TextToSpeechProvid
         raise TtsNotConfiguredError("TTS is not enabled. Run `yumi --setup` to enable spoken replies.")
     if provider == "system":
         return SystemTtsProvider(voice=cfg.tts_voice)
+    if provider == "openai":
+        from yumi.core.features.tts.openai_provider import OpenAiTtsProvider
+
+        return OpenAiTtsProvider(model=cfg.tts_model, voice=cfg.tts_voice, language=cfg.tts_language)
     if provider == "dashscope":
         from yumi.core.features.tts.dashscope_provider import DashScopeTtsProvider
 

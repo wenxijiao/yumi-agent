@@ -31,6 +31,7 @@ from yumi.core.features.config import (
     get_telegram_bot_token,
     load_model_config,
     load_saved_model_config,
+    missing_credentials,
     run_model_setup,  # noqa: F401 — re-exported for `yumi.cli.commands.SetupCommand`
     save_connection_code,
     save_discord_bot_token,
@@ -77,9 +78,9 @@ def _wait_for_server_health(base_url: str, timeout: float = 90) -> bool:
     return False
 
 
-def _prompt_telegram_bot_token_if_missing() -> bool:
+def _prompt_telegram_bot_token_if_missing(force: bool = False) -> bool:
     """If no token in env/config, prompt on TTY and save to ~/.yumi/config.json."""
-    if get_telegram_bot_token():
+    if not force and get_telegram_bot_token():
         return True
     if not sys.stdin.isatty() or not sys.stdout.isatty():
         print(f"\n  Telegram bot token required. Set TELEGRAM_BOT_TOKEN or add telegram_bot_token to {CONFIG_PATH}\n")
@@ -109,9 +110,9 @@ def _prompt_telegram_bot_token_if_missing() -> bool:
         return True
 
 
-def _prompt_discord_bot_token_if_missing() -> bool:
+def _prompt_discord_bot_token_if_missing(force: bool = False) -> bool:
     """If no token in env/config, prompt on TTY and save to ~/.yumi/config.json."""
-    if get_discord_bot_token():
+    if not force and get_discord_bot_token():
         return True
     if not sys.stdin.isatty() or not sys.stdout.isatty():
         print(f"\n  Discord bot token required. Set DISCORD_BOT_TOKEN or add discord_bot_token to {CONFIG_PATH}\n")
@@ -139,9 +140,9 @@ def _prompt_discord_bot_token_if_missing() -> bool:
         return True
 
 
-def _prompt_line_credentials_if_missing() -> bool:
+def _prompt_line_credentials_if_missing(force: bool = False) -> bool:
     """If LINE secret/token missing, prompt on TTY and save to ~/.yumi/config.json."""
-    if get_line_channel_secret() and get_line_channel_access_token():
+    if not force and get_line_channel_secret() and get_line_channel_access_token():
         return True
     if not sys.stdin.isatty() or not sys.stdout.isatty():
         print(
@@ -179,10 +180,46 @@ def _prompt_line_credentials_if_missing() -> bool:
     return True
 
 
-def setup_messaging_tokens() -> None:
-    """Optional Step 5 of ``yumi --setup`` for messaging bridge credentials."""
-    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+def _line_secret_or_none() -> str | None:
+    """The LINE channel secret, but only when BOTH secret and token are set."""
+    secret = get_line_channel_secret()
+    return secret if (secret and get_line_channel_access_token()) else None
+
+
+def _wizard_bridge(name: str, current_value, prompt_if_missing) -> None:
+    """One bridge in the setup wizard: masked Keep/Replace when set, else prompt.
+
+    ``prompt_if_missing(force=...)`` is the shared standalone prompt; ``force=True``
+    re-asks even when credentials already exist (for Replace).
+    """
+    from yumi.core.features.config.setup_wizard import _mask_secret, _note, _select_option
+
+    value = current_value()
+    if value:
+        masked = _mask_secret(value) if isinstance(value, str) else "saved"
+        action = _select_option(
+            step=f"Step 5/5: Messaging bridges · {name}",
+            title=f"{name} is already connected.",
+            message=f"Saved credentials: {masked}",
+            options=[
+                ("keep", "Keep current credentials", ""),
+                ("replace", "Replace credentials", ""),
+                ("back", "← Back", ""),
+            ],
+        )
+        if action != "replace":
+            return
+        if prompt_if_missing(force=True):
+            _note(f"{name} credentials updated.")
         return
+    if prompt_if_missing():
+        _note(f"{name} bridge connected.")
+
+
+def setup_messaging_tokens() -> str:
+    """Optional Step 5 of ``yumi --setup``. Returns 'back'/'next' for the wizard driver."""
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+        return "next"
 
     from yumi.core.features.config.setup_wizard import _select_option
 
@@ -206,6 +243,7 @@ def setup_messaging_tokens() -> None:
                 else "set channel secret and access token",
             ),
             ("skip", "Skip messaging setup", ""),
+            ("back", "← Back to previous step", ""),
         ]
         choice = _select_option(
             step="Step 5/5: Messaging bridges",
@@ -217,15 +255,17 @@ def setup_messaging_tokens() -> None:
             options=options,
         )
         if choice == "telegram":
-            _prompt_telegram_bot_token_if_missing()
+            _wizard_bridge("Telegram", get_telegram_bot_token, _prompt_telegram_bot_token_if_missing)
             continue
         if choice == "discord":
-            _prompt_discord_bot_token_if_missing()
+            _wizard_bridge("Discord", get_discord_bot_token, _prompt_discord_bot_token_if_missing)
             continue
         if choice == "line":
-            _prompt_line_credentials_if_missing()
+            _wizard_bridge("LINE", _line_secret_or_none, _prompt_line_credentials_if_missing)
             continue
-        return
+        if choice == "back":
+            return "back"
+        return "next"
 
 
 # ── connection code prompt ──
@@ -379,10 +419,13 @@ def _preflight_models():
         print()
         print(f"  Cannot start: chat provider '{config.chat_provider}' is not ready.")
         print(f"  {exc}")
+        hint = getattr(exc, "hint", None)
+        if hint:
+            print(f"  {hint}")
         if config.chat_provider == "ollama":
             print("  Tip: install/start Ollama (https://ollama.com), or run `yumi --setup` to use a cloud API key.")
         else:
-            print("  Tip: run `yumi --setup` to set the API key, or export it (e.g. OPENAI_API_KEY).")
+            print("  Tip: run `yumi --setup` to (re)enter the key.")
         sys.exit(1)
 
     if embeddings_enabled(config) and config.embedding_provider != config.chat_provider:
@@ -391,6 +434,20 @@ def _preflight_models():
         except Exception as exc:
             print(f"  Warning: embedding provider '{config.embedding_provider}' not available: {exc}")
             print("  Long-term memory search stays degraded until it's reachable.")
+
+    # Optional voice features (STT/TTS) — warn (don't block) if a configured cloud
+    # provider has no key yet; they degrade gracefully until one is added.
+    voice_issues = [
+        issue
+        for issue in missing_credentials(config)
+        if issue["feature"] in ("voice input (STT)", "spoken replies (TTS)")
+    ]
+    if voice_issues:
+        print()
+        print("  Heads up — these voice features are configured but missing their API key:")
+        for issue in voice_issues:
+            print(f"    • {issue['feature']}: needs {issue['env_var']}  (provider: {issue['provider']})")
+        print("  They stay off until you add the key — run `yumi --setup`, or export the variable(s) above.")
     return config
 
 
@@ -664,19 +721,37 @@ def _read_env_connection_code(env_path: str) -> str:
     return ""
 
 
-_EDGE_LANG_CHOICES = (
-    "python",
-    "swift",
-    "typescript",
-    "cpp",
-    "ue5",
-    "go",
-    "java",
-    "csharp",
-    "rust",
-    "kotlin",
-    "dart",
-)
+_EDGE_LANG_LABELS: dict[str, str] = {
+    "python": "Python",
+    "swift": "Swift",
+    "typescript": "TypeScript / JavaScript",
+    "cpp": "C / C++",
+    "ue5": "Unreal Engine 5",
+    "go": "Go",
+    "java": "Java",
+    "csharp": "C#",
+    "rust": "Rust",
+    "kotlin": "Kotlin",
+    "dart": "Dart",
+}
+
+# One compact next-step line per language (replaces the old wall of prints). The
+# language order and the set of supported languages both derive from this table.
+_EDGE_NEXT_STEPS: dict[str, str] = {
+    "python": "cd yumi_tools/python · read README.md · register tools in yumi_setup.py · call init_yumi()",
+    "swift": "yumi_tools/swift · add the local SwiftPM package · set code/name in YumiSetup.swift · call initYumi()",
+    "typescript": "cd yumi_tools/typescript/yumi_sdk · npm install · set code/name in yumiSetup.ts · call initYumi()",
+    "cpp": "yumi_tools/cpp · add_subdirectory(YumiSDK) in CMake · set code/name in yumi_setup.cpp · call initYumi()",
+    "ue5": "yumi_tools/ue5 · copy YumiSDK into Source/ · add YumiSDK to .Build.cs · edit YumiSetup.cpp",
+    "go": "cd yumi_tools/go · go.mod replace yumi_sdk · set code/name in yumi_setup.go · call InitYumi()",
+    "java": "cd yumi_tools/java/yumi_sdk · mvn install · set code/name in YumiSetup.java · call initYumi()",
+    "csharp": "cd yumi_tools/csharp · read README.md · dotnet run · set code/name in YumiSetup.cs · call InitYumi()",
+    "rust": "cd yumi_tools/rust · cargo run · register tools in src/yumi_setup.rs · set name/code",
+    "kotlin": "cd yumi_tools/kotlin · gradle run · edit YumiSetup.kt under io.yumi.edge",
+    "dart": "cd yumi_tools/dart · dart pub get && dart run · edit lib/yumi_setup.dart",
+}
+
+_EDGE_LANG_CHOICES = tuple(_EDGE_NEXT_STEPS)
 
 
 def _set_env_var(env_path: str, key: str, value: str) -> None:
@@ -697,181 +772,232 @@ def _set_env_var(env_path: str, key: str, value: str) -> None:
 
 
 def _prompt_edge_languages() -> list[str] | None:
-    """Interactive language picker. Returns a normalized list, or None for all."""
-    print("  Which language(s) for this edge?")
-    print("  Options: " + ", ".join(_EDGE_LANG_CHOICES))
-    raw = input("  Languages (comma-separated, Enter = all): ").strip()
-    return _parse_edge_langs([raw]) if raw else None
+    """Interactive multi-select language picker. Returns a list, or None for all."""
+    from yumi.core.features.config.setup_wizard import _select_multi
+
+    chosen = _select_multi(
+        step="Step 1/3: Languages",
+        title="Which language(s) for this edge?",
+        message="Pick the SDKs to scaffold. Space toggles; leave empty for all.",
+        options=[(key, _EDGE_LANG_LABELS[key], "") for key in _EDGE_LANG_CHOICES],
+        all_label="All languages",
+        all_description="every SDK below",
+    )
+    # Collapse "all selected" back to None so init_workspace scaffolds everything.
+    if not chosen or len(chosen) == len(_EDGE_LANG_CHOICES):
+        return None
+    return chosen
 
 
 def _prompt_edge_name() -> str:
     """Ask for a unique edge name (defaults to the hostname)."""
+    from yumi.core.features.config.setup_wizard import _framed_prompt
+
     default = socket.gethostname() or "my-edge"
-    print("  Each edge needs a UNIQUE name — it routes tools to this device.")
-    raw = input(f"  Edge name [{default}]: ").strip()
-    return raw or default
+    name = _framed_prompt(
+        "Edge name",
+        step="Step 2/3: Edge identity · Name",
+        title="Name this edge",
+        context=f"A UNIQUE name routes tools to this device. Default: {default}",
+        hint="enter to accept the default",
+    )
+    return name or default
+
+
+def _read_env_value(env_path: str, key: str) -> str:
+    """Read ``KEY=value`` from a .env file (empty string if unset)."""
+    if not os.path.isfile(env_path):
+        return ""
+    with open(env_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith(f"{key}="):
+                return line.split("=", 1)[1].strip()
+    return ""
+
+
+def _edge_connection_label(code: str) -> str:
+    if _is_lan_code(code):
+        try:
+            return f"LAN → {parse_lan_code(code)}"
+        except ValueError:
+            return "set"
+    return "set"
+
+
+def _edge_connection_step(env_path: str, interactive: bool) -> str:
+    """Step 3: connect this edge. Returns a label for the summary."""
+    from yumi.core.features.config.setup_wizard import _framed_prompt, _note, _select_option
+
+    existing = _read_env_connection_code(env_path)
+    if existing and interactive:
+        masked = existing[:8] + "..." + existing[-4:] if len(existing) > 12 else existing
+        action = _select_option(
+            step="Step 3/3: Connection",
+            title="A connection code is already set.",
+            message=f"Saved code: {masked}",
+            options=[
+                ("keep", "Keep saved code", ""),
+                ("replace", "Replace it", "enter a new LAN code"),
+            ],
+        )
+        if action == "keep":
+            return _edge_connection_label(existing)
+    elif existing:
+        return _edge_connection_label(existing)
+
+    if not interactive:
+        return "not set"
+
+    code = _framed_prompt(
+        "Connection code",
+        step="Step 3/3: Connection · Code",
+        title="Connect this edge to Yumi",
+        context="Paste a LAN code (yumi-lan_…) from `yumi --server`, or leave blank to skip.",
+        hint="enter to skip",
+    )
+    if not code:
+        _note("Connection skipped — set YUMI_CONNECTION_CODE in yumi_tools/.env later.")
+        return "not set"
+    _write_connection_code(env_path, code)
+    if _is_lan_code(code):
+        try:
+            server_url = parse_lan_code(code)
+            _note(f"Connection code saved (LAN → {server_url}).")
+            return f"LAN → {server_url}"
+        except ValueError as exc:
+            _note(f"Saved, but the code looks invalid: {exc}")
+            return "set (unverified)"
+    _note("Connection code saved.")
+    return "set"
+
+
+def _render_edge_summary(*, workspace: str, lang, edge_name: str, connection: str) -> None:
+    """The closing card for ``yumi --edge`` — mirrors the setup wizard summary."""
+    from yumi.core.features.config.setup_wizard import (
+        _SELECT_TEXT_PAD,
+        _bold,
+        _cyan,
+        _dim,
+        _flush_notes,
+        _green,
+        _interactive_terminal,
+        _page_width,
+        _print_select_notice,
+        _wrapped_select_lines,
+    )
+
+    if lang is None:
+        selected = list(_EDGE_LANG_CHOICES)
+        languages = f"all ({len(selected)})"
+    else:
+        wanted = {lang} if isinstance(lang, str) else set(lang)
+        selected = [key for key in _EDGE_LANG_CHOICES if key in wanted]
+        languages = ", ".join(selected)
+    runnable = any(key in _RUN_EDGE_COMMANDS for key in selected)
+    rows = [
+        ("Workspace", workspace),
+        ("Languages", languages),
+        ("Edge name", edge_name or "not set"),
+        ("Connection", connection),
+        ("Run with", "yumi --run-edge" if runnable else "embed the SDK in your app"),
+    ]
+
+    if not _interactive_terminal():
+        _flush_notes()
+        for key, value in rows:
+            print(f"{key}: {value}")
+        print()
+        print("  Next steps:")
+        for key in selected:
+            print(f"  [{key}] {_EDGE_NEXT_STEPS[key]}")
+        return
+
+    # No clear: renders after the alternate screen is torn down, so it persists.
+    gap = _SELECT_TEXT_PAD
+    width = _page_width()
+    print()
+    rail = " ".join(_cyan("●") for _ in range(3))
+    print(f"{gap}{rail}   {_dim('Workspace ready')}")
+    print(f"{gap}{_dim('─' * (width - 2))}")
+    print()
+    _flush_notes()
+    print(f"{gap}{_green('✓')} {_bold('Edge workspace ready.')}")
+    print()
+    key_width = max(len(key) for key, _ in rows)
+    for key, value in rows:
+        rendered = _dim(value) if value in ("not set", "embed the SDK in your app") else value
+        print(f"{gap}{_dim(key.ljust(key_width))}   {rendered}")
+    print()
+    print(f"{gap}{_dim('─' * (width - 2))}")
+    if lang is None:
+        _print_select_notice("Tip", "Open yumi_tools/<lang>/README.md for the full per-language setup.", color=_cyan)
+    print()
+    name_width = max(len(key) for key in selected)
+    indent = gap + " " * (name_width + 3)
+    for key in selected:
+        lines = _wrapped_select_lines(_EDGE_NEXT_STEPS[key], prefix=indent)
+        for i, line in enumerate(lines):
+            if i == 0:
+                print(f"{gap}{_cyan(key.ljust(name_width))}   {_dim(line)}")
+            else:
+                print(f"{indent}{_dim(line)}")
+    print()
+    print(
+        f"{gap}{_dim('Run it with')} {_bold('yumi --run-edge')}   {_dim('·  re-scaffold with')} {_bold('yumi --edge')}"
+    )
 
 
 def run_edge(lang: str | list[str] | None = None, edge_name: str | None = None):
+    """Scaffold a Yumi Edge workspace as a short, editorial-minimal wizard."""
+    from yumi.core.features.config.setup_wizard import _alt_screen, _note
+
     workspace = os.getcwd()
-    interactive = sys.stdin.isatty()
-
-    # When --lang wasn't given, let an interactive user pick the language(s).
-    if lang is None and interactive:
-        lang = _prompt_edge_languages()
-
-    rows = [("Workspace:", workspace)]
-    if lang:
-        if isinstance(lang, list):
-            rows.append(("Languages:", ", ".join(lang)))
-        else:
-            rows.append(("Language:", lang))
-    else:
-        rows.append(
-            (
-                "Language:",
-                "all (python, swift, typescript, cpp, ue5, go, java, csharp, rust, kotlin, dart)",
-            )
-        )
-    _print_banner("Yumi Edge", rows)
-
-    try:
-        created = init_workspace(workspace, lang=lang)
-    except ValueError as exc:
-        print(f"  Error: {exc}\n")
-        return
-
-    if created:
-        print("  Workspace initialized.\n")
-    else:
-        print("  Workspace OK.\n")
-
+    interactive = sys.stdin.isatty() and sys.stdout.isatty()
     env_path = os.path.join(workspace, "yumi_tools", ".env")
 
-    # Edge name (its unique identity). Prompt when not given and interactive,
-    # then persist as EDGE_NAME so the scaffolded edge defaults to a unique name.
-    if edge_name is None and interactive:
-        edge_name = _prompt_edge_name()
-    if edge_name:
-        _set_env_var(env_path, "EDGE_NAME", edge_name)
-        print(f"  Edge name: {edge_name}  (saved as EDGE_NAME in yumi_tools/.env)")
+    # Validate an explicit --lang up front so a typo fails cleanly, not half-built.
+    if lang is not None:
+        requested = _parse_edge_langs([lang] if isinstance(lang, str) else lang)
+        unknown = [item for item in (requested or []) if item not in _EDGE_LANG_CHOICES]
+        if unknown:
+            print(f"  Unknown language(s): {', '.join(unknown)}")
+            print(f"  Choose from: {', '.join(_EDGE_LANG_CHOICES)}")
+            return
+        lang = requested or None
 
-    existing_code = _read_env_connection_code(env_path)
-
-    if existing_code:
-        masked = existing_code[:8] + "..." + existing_code[-4:] if len(existing_code) > 12 else existing_code
-        print(f"  Connection code: {masked}")
-    else:
-        code = input("  Enter a connection code (LAN yumi-lan_...), or press Enter to skip: ").strip()
-        if code:
-            _write_connection_code(env_path, code)
-            if _is_lan_code(code):
-                try:
-                    server_url = parse_lan_code(code)
-                    print(f"  Connection code saved (LAN -> {server_url})")
-                except ValueError as exc:
-                    print(f"  Invalid connection code: {exc}")
+    # The interactive steps run on the alternate screen, so they vanish on exit;
+    # the scaffold error or the completion card below render on the normal screen.
+    scaffold_error: str | None = None
+    connection = "not set"
+    try:
+        with _alt_screen():
+            if lang is None and interactive:
+                lang = _prompt_edge_languages()
+            try:
+                created = init_workspace(workspace, lang=lang)
+            except ValueError as exc:
+                scaffold_error = str(exc)
             else:
-                print("  Connection code saved.")
-        else:
-            print("  Skipped. Set YUMI_CONNECTION_CODE in yumi_tools/.env later.")
+                _note("Workspace initialized." if created else "Workspace already up to date.")
+                if edge_name is None and interactive:
+                    edge_name = _prompt_edge_name()
+                if edge_name:
+                    _set_env_var(env_path, "EDGE_NAME", edge_name)
+                connection = _edge_connection_step(env_path, interactive)
+    except (KeyboardInterrupt, EOFError):
+        raise SystemExit("  Edge setup cancelled.")
 
-    if lang is None:
-        effective: set[str] | None = None
-    elif isinstance(lang, str):
-        effective = {lang.lower().strip()}
-    else:
-        effective = set(lang)
+    if scaffold_error:
+        print(f"  Could not scaffold workspace: {scaffold_error}")
+        return
 
-    print()
-    print("  -- Next steps --")
-    print()
-
-    if effective is None or "python" in effective:
-        print("  [Python]")
-        print("  1. Read yumi_tools/python/README.md")
-        print("  2. pip install websockets")
-        print("  3. Edit yumi_tools/python/yumi_setup.py")
-        print("     Import your functions and register them with agent.register()")
-        print("  4. In your main program:")
-        print("     from yumi_tools.python.yumi_setup import init_yumi")
-        print("     init_yumi()")
-        print()
-
-    if effective is None or "swift" in effective:
-        print("  [Swift]")
-        print("  1. Read yumi_tools/swift/README.md (local package vs same-target)")
-        print("  2. Add local package: yumi_tools/swift/YumiSDK (has Package.swift)")
-        print("  3. Edit YumiSetup.swift: set yumiConnectionCode / yumiEdgeName, call initYumi()")
-        print()
-
-    if effective is None or "typescript" in effective:
-        print("  [TypeScript / JavaScript]")
-        print("  1. Read yumi_tools/typescript/README.md")
-        print("  2. cd yumi_tools/typescript/yumi_sdk && npm install")
-        print("  3. Edit yumiSetup.ts: set YUMI_CONNECTION_CODE / YUMI_EDGE_NAME")
-        print("  4. In your app:")
-        print('     import { initYumi } from "./yumi_tools/typescript/yumiSetup";')
-        print("     initYumi();")
-        print()
-
-    if effective is None or "cpp" in effective:
-        print("  [C / C++]")
-        print("  1. Read yumi_tools/cpp/README.md")
-        print("  2. In your CMakeLists.txt:")
-        print("     add_subdirectory(yumi_tools/cpp/YumiSDK)")
-        print("     target_link_libraries(your_app PRIVATE yumi_sdk)")
-        print("  3. Edit yumi_setup.cpp: set YUMI_CONNECTION_CODE / YUMI_EDGE_NAME")
-        print("  4. Call initYumi() in your main()")
-        print()
-
-    if effective is None or "ue5" in effective:
-        print("  [Unreal Engine 5]")
-        print("  1. Read yumi_tools/ue5/README.md")
-        print("  2. Copy YumiSDK/ module into your project's Source/ directory")
-        print('  3. Add "YumiSDK" to your .Build.cs PublicDependencyModuleNames')
-        print("  4. Edit YumiSetup.cpp: set connection code / edge name")
-        print()
-
-    if effective is None or "go" in effective:
-        print("  [Go]")
-        print("  1. Read yumi_tools/go/README.md")
-        print("  2. Add to your go.mod:")
-        print("     require yumi_sdk v0.0.0")
-        print("     replace yumi_sdk => ./yumi_tools/go/yumi_sdk")
-        print("  3. Edit yumi_setup.go: set yumiConnectionCode / yumiEdgeName")
-        print("  4. Call InitYumi() in your main()")
-        print()
-
-    if effective is None or "java" in effective:
-        print("  [Java]")
-        print("  1. Read yumi_tools/java/README.md")
-        print("  2. cd yumi_tools/java/yumi_sdk && mvn install")
-        print("     (or copy io.yumi sources into your project)")
-        print("  3. Edit YumiSetup.java: set YUMI_CONNECTION_CODE / YUMI_EDGE_NAME")
-        print("  4. Call YumiSetup.initYumi() in your main()")
-        print()
-
-    if effective is None or "rust" in effective:
-        print("  [Rust]")
-        print("  1. Read yumi_tools/rust/README.md")
-        print("  2. cd yumi_tools/rust && cargo run")
-        print("  3. Edit src/yumi_setup.rs: register tools, set edge name / connection code")
-        print()
-
-    if effective is None or "kotlin" in effective:
-        print("  [Kotlin]")
-        print("  1. Read yumi_tools/kotlin/README.md")
-        print("  2. cd yumi_tools/kotlin && gradle run (or ./gradlew run)")
-        print("  3. Edit YumiSetup.kt under io.yumi.edge")
-        print()
-
-    if effective is None or "dart" in effective:
-        print("  [Dart]")
-        print("  1. Read yumi_tools/dart/README.md")
-        print("  2. cd yumi_tools/dart && dart pub get && dart run")
-        print("  3. Edit lib/yumi_setup.dart")
-        print()
+    _render_edge_summary(
+        workspace=workspace,
+        lang=lang,
+        edge_name=edge_name or _read_env_value(env_path, "EDGE_NAME"),
+        connection=connection,
+    )
 
 
 _RUN_EDGE_COMMANDS: dict[str, tuple[list[str], str, str, str]] = {
@@ -923,13 +1049,15 @@ def _available_run_edge_langs(workspace: str) -> list[str]:
 
 
 def _prompt_run_edge_language(available: list[str]) -> str:
-    print("  Which standalone edge should run?")
-    print("  Options: " + ", ".join(available))
-    while True:
-        raw = input("  Language: ").strip().lower()
-        if raw in available:
-            return raw
-        print("  Pick one of: " + ", ".join(available))
+    from yumi.core.features.config.setup_wizard import _alt_screen, _select_option
+
+    with _alt_screen():
+        return _select_option(
+            step="Run edge",
+            title="Which standalone edge should run?",
+            message="Pick the generated template to launch.",
+            options=[(key, _EDGE_LANG_LABELS.get(key, key), "") for key in available],
+        )
 
 
 def run_edge_standalone(lang: str | list[str] | None = None) -> None:

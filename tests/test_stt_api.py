@@ -124,3 +124,48 @@ def test_ensure_whisper_weights_cached_skips_when_local(monkeypatch, tmp_path) -
     ensure_whisper_weights_cached(model="base", model_dir=str(tmp_path))
     assert snapshot_calls == []
     assert model_calls == []
+
+
+def test_create_stt_provider_returns_openai_cloud():
+    from yumi.core.features.config.model import ModelConfig
+    from yumi.core.features.stt.factory import create_stt_provider
+    from yumi.core.features.stt.openai_provider import OpenAiSttProvider
+
+    provider = create_stt_provider(ModelConfig(stt_provider="openai", stt_model="whisper-1"))
+    assert isinstance(provider, OpenAiSttProvider)
+
+
+def test_openai_stt_provider_transcribes(monkeypatch):
+    from yumi.core.features.stt.openai_provider import OpenAiSttProvider
+
+    captured: dict = {}
+
+    class _FakeTranscriptions:
+        async def create(self, **kwargs):
+            captured.update(kwargs)
+            return SimpleNamespace(text="  hello world  ")
+
+    class _FakeClient:
+        def __init__(self, **kwargs):
+            captured["client_kwargs"] = kwargs
+            self.audio = SimpleNamespace(transcriptions=_FakeTranscriptions())
+
+        async def close(self):
+            captured["closed"] = True
+
+    monkeypatch.setitem(sys.modules, "openai", SimpleNamespace(AsyncOpenAI=_FakeClient))
+    monkeypatch.setattr(
+        "yumi.core.features.config.credentials.get_api_credentials",
+        lambda: {"openai_api_key": "sk-test"},
+    )
+
+    provider = OpenAiSttProvider(model="whisper-1", language="en")
+    result = asyncio.run(provider.transcribe(b"audio-bytes", filename="voice.ogg", language=None))
+
+    assert result.text == "hello world"
+    assert result.language == "en"
+    assert captured["model"] == "whisper-1"
+    assert captured["file"] == ("voice.ogg", b"audio-bytes")
+    assert captured["language"] == "en"
+    assert captured["client_kwargs"]["api_key"] == "sk-test"
+    assert captured.get("closed") is True

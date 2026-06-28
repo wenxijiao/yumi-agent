@@ -40,6 +40,24 @@ def test_model_config_stt_env_overrides(monkeypatch, tmp_path):
     assert cfg.stt_language == "auto"
 
 
+def test_model_config_tts_env_overrides(monkeypatch, tmp_path):
+    p = tmp_path / "config.json"
+    p.write_text(json.dumps({"chat_model": "m"}), encoding="utf-8")
+    monkeypatch.setattr("yumi.core.features.config.paths.CONFIG_PATH", p)
+    monkeypatch.setattr("yumi.core.features.config.store.CONFIG_PATH", p)
+    monkeypatch.setenv("YUMI_TTS_PROVIDER", "openai")
+    monkeypatch.setenv("YUMI_TTS_VOICE", "nova")
+    monkeypatch.setenv("YUMI_TTS_MODEL", "gpt-4o-mini-tts")
+    monkeypatch.setenv("YUMI_TTS_LANGUAGE", "en")
+
+    cfg = load_model_config()
+
+    assert cfg.tts_provider == "openai"
+    assert cfg.tts_voice == "nova"
+    assert cfg.tts_model == "gpt-4o-mini-tts"
+    assert cfg.tts_language == "en"
+
+
 def test_model_config_migrates_legacy_proactive_timezone_json_key():
     cfg = ModelConfig.model_validate({"proactive_quiet_hours_timezone": "Pacific/Auckland"})
     assert cfg.local_timezone == "Pacific/Auckland"

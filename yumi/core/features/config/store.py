@@ -284,6 +284,19 @@ def load_model_config() -> ModelConfig:
     if stt_language:
         config.stt_language = stt_language.strip() or config.stt_language
 
+    tts_provider = os.getenv("YUMI_TTS_PROVIDER")
+    if tts_provider:
+        config.tts_provider = tts_provider.strip() or config.tts_provider
+    tts_voice = os.getenv("YUMI_TTS_VOICE")
+    if tts_voice:
+        config.tts_voice = tts_voice.strip() or config.tts_voice
+    tts_model = os.getenv("YUMI_TTS_MODEL")
+    if tts_model:
+        config.tts_model = tts_model.strip() or config.tts_model
+    tts_language = os.getenv("YUMI_TTS_LANGUAGE")
+    if tts_language:
+        config.tts_language = tts_language.strip() or config.tts_language
+
     config.proactive_enabled = config.proactive_mode != "off"
 
     return config

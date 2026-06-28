@@ -115,6 +115,57 @@ def ensure_provider_available(provider_name: str) -> None:
         )
 
 
+# Cloud providers that need an API key, with the env var + config field that supply it.
+_KEYED_PROVIDERS: dict[str, tuple[str, str]] = {
+    "openai": ("OPENAI_API_KEY", "openai_api_key"),
+    "gemini": ("GEMINI_API_KEY", "gemini_api_key"),
+    "claude": ("ANTHROPIC_API_KEY", "claude_api_key"),
+    "deepseek": ("DEEPSEEK_API_KEY", "deepseek_api_key"),
+    "grok": ("XAI_API_KEY", "grok_api_key"),
+    "dashscope": ("DASHSCOPE_API_KEY", "tts_api_key"),  # shared STT/TTS key
+}
+
+
+def _provider_key_present(provider_name: str, config) -> bool:
+    """True if the API key for *provider_name* is available (env or config)."""
+    name = (provider_name or "").strip().lower()
+    pair = _KEYED_PROVIDERS.get(name)
+    if pair is None:
+        return True  # provider needs no key (ollama / fastembed / system / whisper / qwen)
+    env_var, field = pair
+    if os.getenv(env_var):
+        return True
+    if name == "grok" and os.getenv("GROK_API_KEY"):  # XAI_API_KEY is primary; GROK_API_KEY also accepted
+        return True
+    return bool((getattr(config, field, None) or "").strip())
+
+
+def missing_credentials(config) -> list[dict]:
+    """List configured cloud features whose API key is missing.
+
+    Each entry: ``{feature, provider, env_var, config_field, fatal}``. ``fatal``
+    marks the chat model (the server can't run without it); memory/voice features
+    are non-fatal — they degrade until the key is added. Local/no-key providers
+    (ollama, fastembed, system, whisper, qwen) never appear here.
+    """
+    features = [
+        ("chat model", config.chat_provider, True),
+        ("memory embeddings", config.embedding_provider, False),
+        ("voice input (STT)", config.stt_provider, False),
+        ("spoken replies (TTS)", config.tts_provider, False),
+    ]
+    issues: list[dict] = []
+    for feature, provider, fatal in features:
+        name = (provider or "").strip().lower()
+        if name in ("", "disabled", "none", "off") or name not in _KEYED_PROVIDERS:
+            continue
+        if _provider_key_present(name, config):
+            continue
+        env_var, field = _KEYED_PROVIDERS[name]
+        issues.append({"feature": feature, "provider": name, "env_var": env_var, "config_field": field, "fatal": fatal})
+    return issues
+
+
 def is_model_available(provider_name: str, model_name: str) -> bool:
     if not model_name:
         return False

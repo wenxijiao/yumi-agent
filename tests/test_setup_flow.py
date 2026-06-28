@@ -76,6 +76,66 @@ def test_infer_none_when_nothing_set(isolated_config):
     assert credentials.infer_chat_from_env() is None
 
 
+# ── missing_credentials pre-flight ───────────────────────────────────────────
+
+
+def test_missing_credentials_flags_cloud_chat_without_key(isolated_config):
+    cfg = ModelConfig(chat_provider="gemini", chat_model="gemini-3.5-flash")
+    issues = credentials.missing_credentials(cfg)
+    chat = [i for i in issues if i["feature"] == "chat model"]
+    assert chat == [
+        {
+            "feature": "chat model",
+            "provider": "gemini",
+            "env_var": "GEMINI_API_KEY",
+            "config_field": "gemini_api_key",
+            "fatal": True,
+        }
+    ]
+
+
+def test_missing_credentials_satisfied_by_env(isolated_config):
+    os.environ["GEMINI_API_KEY"] = "g-key"
+    cfg = ModelConfig(chat_provider="gemini", chat_model="x")
+    assert credentials.missing_credentials(cfg) == []
+
+
+def test_missing_credentials_satisfied_by_config_field(isolated_config):
+    cfg = ModelConfig(chat_provider="openai", chat_model="x", openai_api_key="sk-x")
+    assert credentials.missing_credentials(cfg) == []
+
+
+def test_missing_credentials_local_providers_never_flagged(isolated_config):
+    cfg = ModelConfig(
+        chat_provider="ollama",
+        chat_model="m",
+        embedding_provider="fastembed",
+        embedding_model="e",
+        stt_provider="whisper",
+        stt_model="base",
+        tts_provider="system",
+    )
+    assert credentials.missing_credentials(cfg) == []
+
+
+def test_missing_credentials_flags_voice_features_non_fatal(isolated_config):
+    cfg = ModelConfig(
+        chat_provider="openai",
+        chat_model="x",
+        openai_api_key="sk-x",  # chat satisfied
+        stt_provider="dashscope",
+        stt_model="qwen3-asr-flash",
+        tts_provider="dashscope",
+        tts_voice="Cherry",
+    )
+    issues = credentials.missing_credentials(cfg)
+    voice = {i["feature"]: i for i in issues}
+    assert "chat model" not in voice  # chat key present
+    assert voice["voice input (STT)"]["env_var"] == "DASHSCOPE_API_KEY"
+    assert voice["voice input (STT)"]["fatal"] is False
+    assert voice["spoken replies (TTS)"]["provider"] == "dashscope"
+
+
 def test_ensure_chat_model_autodetects_and_persists(isolated_config):
     os.environ["GEMINI_API_KEY"] = "g-test"
     cfg = credentials.ensure_chat_model_configured(interactive=False)
@@ -193,15 +253,19 @@ def test_select_page_aligns_all_text_to_content_column(monkeypatch, capsys):
 
     lines = [line for line in capsys.readouterr().out.splitlines() if line]
 
-    assert "   Yumi setup" in lines
-    assert "   Step 1/5: AI model" in lines
-    assert "   How do you want to run the AI model?" in lines
-    assert "   Ollama isn't reachable." in lines
-    assert "   Details: missing service" in lines
-    assert "   Use up/down to move. Press Enter to confirm." in lines
-    assert any(line.startswith("   Cloud API key") for line in lines)
-    assert any(line.startswith(" > Local (Ollama)") for line in lines)
-    assert any(line.startswith("   Exit setup") for line in lines)
+    # Header is a dot-rail + breadcrumb, not a boxed title with a gauge bar.
+    assert any("Step 1 of 5" in line and "AI model" in line for line in lines)
+    assert any("●" in line and "○" in line for line in lines)
+    # Everything shares the single column-2 gutter ("  ").
+    assert "  How do you want to run the AI model?" in lines
+    assert "  ! Needs attention" in lines
+    assert "  │ Ollama isn't reachable." in lines
+    assert "  │ Details: missing service" in lines
+    assert "  Use up/down to move. Press Enter to confirm." in lines
+    # Options carry no number/">" — selection is the "▌" accent bar alone.
+    assert "  Cloud API key" in lines
+    assert "▌ Local (Ollama)" in lines
+    assert "  Exit setup" in lines
 
 
 def test_select_page_wraps_continuation_lines_to_content_column(monkeypatch, capsys):
@@ -229,12 +293,15 @@ def test_select_page_wraps_continuation_lines_to_content_column(monkeypatch, cap
 
     lines = [line for line in capsys.readouterr().out.splitlines() if line]
 
-    assert "   Important: keep the same embedding" in lines
-    assert "   provider/model once Yumi starts saving" in lines
-    assert "   memory. Changing it later can make old" in lines
-    assert any(line.startswith("   Local embeddings") for line in lines)
-    assert "   downloads everything from the CLI before" in lines
-    assert "   continuing" in lines
+    # Notice body hangs off a "│" tick-bar on the gutter and wraps cleanly.
+    assert "  ! Warning" in lines
+    assert "  │ Important: keep the same embedding" in lines
+    assert "  │ provider/model once Yumi starts saving" in lines
+    assert "  │ memory. Changing it later can make old" in lines
+    # Unselected option label at the gutter; description hangs at column 4.
+    assert "  Local embeddings" in lines
+    assert "    Yumi installs and downloads everything" in lines
+    assert "    from the CLI before continuing" in lines
     assert all(not line.startswith("provider/model") for line in lines)
     assert all(not line.startswith("downloads everything") for line in lines)
     assert all(not line.startswith("continuing") for line in lines)
@@ -483,25 +550,56 @@ def test_setup_embeddings_ollama_uses_installed_model(isolated_config, monkeypat
     assert cfg.embedding_model == "my-embed-model"
 
 
-def test_prompt_stt_config_orders_keep_before_disable(monkeypatch):
+def test_prompt_stt_config_hides_keep_when_unconfigured(monkeypatch):
     captured = []
 
     def fake_select_option(**kwargs):
         captured.append(kwargs)
-        return "keep"
+        return "disable"
 
     cfg = ModelConfig(stt_provider="disabled", stt_model=None)
     monkeypatch.setattr(setup_wizard, "_select_option", fake_select_option)
 
     setup_wizard._prompt_stt_config(cfg)
 
-    options = captured[0]["options"]
-    assert [value for value, _label, _description in options] == ["keep", "whisper", "disable"]
-    assert options[1] == ("whisper", "Use local Whisper multilingual model", "")
+    values = [value for value, _label, _description in captured[0]["options"]]
+    assert "keep" not in values  # nothing to keep on a first run
+    assert values == ["cloud", "local", "disable", "back"]
 
 
-def test_prompt_stt_config_whisper_models_have_no_recommendation(monkeypatch):
-    selections = iter(["whisper", "small"])
+def test_prompt_stt_config_offers_keep_when_configured(monkeypatch):
+    captured = []
+
+    def fake_select_option(**kwargs):
+        captured.append(kwargs)
+        return "keep"
+
+    cfg = ModelConfig(stt_provider="whisper", stt_model="base")
+    monkeypatch.setattr(setup_wizard, "_select_option", fake_select_option)
+
+    assert setup_wizard._prompt_stt_config(cfg) == "next"
+
+    values = [value for value, _label, _description in captured[0]["options"]]
+    assert values == ["keep", "cloud", "local", "disable", "back"]
+
+
+def test_prompt_stt_config_cloud_picks_provider_then_model(isolated_config, monkeypatch):
+    isolated_config.write_text(json.dumps({"gemini_api_key": "g-existing"}), encoding="utf-8")
+    # top menu → cloud, provider → gemini, model → gemini-2.5-flash
+    selections = iter(["cloud", "gemini", "gemini-2.5-flash"])
+    cfg = ModelConfig()
+    monkeypatch.setattr(setup_wizard, "_select_option", lambda **_k: next(selections))
+    monkeypatch.setattr("builtins.input", lambda _prompt="": "")  # reuse the saved key
+
+    assert setup_wizard._prompt_stt_config(cfg) == "next"
+
+    assert cfg.stt_provider == "gemini"
+    assert cfg.stt_model == "gemini-2.5-flash"
+    assert cfg.stt_model_dir is None
+
+
+def test_prompt_stt_config_local_whisper_caches_model(monkeypatch):
+    selections = iter(["local", "small"])  # top menu → local, then a Whisper model
     captured = []
     installed_features = []
 
@@ -522,16 +620,16 @@ def test_prompt_stt_config_whisper_models_have_no_recommendation(monkeypatch):
 
     setup_wizard._prompt_stt_config(cfg)
 
-    assert "default" not in captured[0]["options"][1][2].lower()
-    assert captured[1]["options"] == [(name, name, "") for name in setup_wizard._WHISPER_MODELS]
-    assert "default" not in captured[1]
+    # The Whisper-model menu lists the bare models (no "(default)" recommendation).
+    whisper_values = [value for value, _label, _description in captured[1]["options"] if value != "back"]
+    assert whisper_values == list(setup_wizard._WHISPER_MODELS)
     assert cfg.stt_provider == "whisper"
     assert cfg.stt_model == "small"
     assert cfg.stt_model_dir == str(setup_wizard._DEFAULT_WHISPER_MODEL_DIR)
     assert installed_features == [("stt", True)]
 
 
-def test_prompt_tts_config_does_not_offer_local_qwen(monkeypatch):
+def test_prompt_tts_config_top_menu_is_cloud_local(monkeypatch):
     captured = []
 
     def fake_select_option(**kwargs):
@@ -543,37 +641,50 @@ def test_prompt_tts_config_does_not_offer_local_qwen(monkeypatch):
 
     setup_wizard._prompt_tts_config(cfg)
 
-    options = captured[0]["options"]
-    assert [value for value, _label, _description in options] == ["keep", "system", "dashscope", "disable"]
-    assert all(value != "qwen" for value, _label, _description in options)
+    values = [value for value, _label, _description in captured[0]["options"]]
+    # No "keep" on a first run; system/dashscope/qwen are nested under cloud/local.
+    assert values == ["cloud", "local", "disable", "back"]
+    assert all(value not in ("system", "dashscope", "qwen") for value, _l, _d in captured[0]["options"])
 
 
-def test_prompt_tts_config_system_voice_does_not_prompt_for_test(monkeypatch):
-    def fake_select_option(**_kwargs):
-        return "system"
+def test_prompt_tts_config_offers_keep_when_configured(monkeypatch):
+    captured = []
 
-    cfg = ModelConfig()
+    def fake_select_option(**kwargs):
+        captured.append(kwargs)
+        return "keep"
+
+    cfg = ModelConfig(tts_provider="system")
     monkeypatch.setattr(setup_wizard, "_select_option", fake_select_option)
+
+    assert setup_wizard._prompt_tts_config(cfg) == "next"
+
+    values = [value for value, _label, _description in captured[0]["options"]]
+    assert values == ["keep", "cloud", "local", "disable", "back"]
+
+
+def test_prompt_tts_config_local_system_voice_does_not_prompt(monkeypatch):
+    selections = iter(["local", "system"])  # top menu → local, then system voice
+    monkeypatch.setattr(setup_wizard, "_select_option", lambda **_k: next(selections))
     monkeypatch.setattr("builtins.input", lambda _prompt="": pytest.fail("TTS setup should not ask to test playback"))
 
+    cfg = ModelConfig()
     setup_wizard._prompt_tts_config(cfg)
 
     assert cfg.tts_provider == "system"
 
 
-def test_prompt_tts_config_auto_installs_dashscope(monkeypatch):
-    selections = iter(["dashscope", "Cherry"])
+def test_prompt_tts_config_cloud_dashscope_installs(isolated_config, monkeypatch):
+    selections = iter(["cloud", "dashscope", "Cherry"])  # cloud → dashscope → voice
     installed_features = []
-
-    def fake_select_option(**_kwargs):
-        return next(selections)
 
     def fake_ensure_feature_installed(feature, *, assume_yes=False):
         installed_features.append((feature, assume_yes))
         return False
 
-    cfg = ModelConfig(tts_api_key="dashscope-key")
-    monkeypatch.setattr(setup_wizard, "_select_option", fake_select_option)
+    cfg = ModelConfig(tts_api_key="dashscope-key")  # key already saved → no prompt
+    monkeypatch.setattr(setup_wizard, "_select_option", lambda **_k: next(selections))
+    monkeypatch.setattr("builtins.input", lambda _prompt="": "")  # reuse saved DashScope key
     monkeypatch.setattr(
         "yumi.core.features.config.feature_install.ensure_feature_installed", fake_ensure_feature_installed
     )
@@ -624,3 +735,107 @@ def test_run_model_setup_saves_embeddings_before_voice_step(isolated_config, mon
     saved = json.loads(isolated_config.read_text(encoding="utf-8"))
     assert saved["embedding_provider"] == "fastembed"
     assert saved["embedding_model"] == "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+
+
+def test_run_model_setup_back_revisits_previous_step(isolated_config, monkeypatch):
+    """A 'back' from a step re-runs the previous step instead of forcing a re-run."""
+    isolated_config.write_text(json.dumps({"chat_provider": "openai", "chat_model": "gpt-5.5"}), encoding="utf-8")
+    monkeypatch.setattr(setup_wizard, "_interactive_terminal", lambda: True)
+    monkeypatch.setattr(setup_wizard, "_clear_screen", lambda: None)
+    monkeypatch.setattr(setup_wizard, "_render_setup_summary", lambda _config: None)
+    monkeypatch.setattr(setup_wizard, "_choose_chat_action", lambda _current: "keep")
+
+    calls: list[str] = []
+    stt_results = iter(["back", "next"])  # first STT visit goes back to embeddings
+    monkeypatch.setattr(setup_wizard, "_setup_embeddings", lambda _c, _p: calls.append("emb") or "next")
+    monkeypatch.setattr(setup_wizard, "_prompt_stt_config", lambda _c: calls.append("stt") or next(stt_results))
+    monkeypatch.setattr(setup_wizard, "_prompt_tts_config", lambda _c: calls.append("tts") or "next")
+
+    setup_wizard.run_model_setup(force=True)
+
+    assert calls == ["emb", "stt", "emb", "stt", "tts"]
+
+
+def test_run_model_setup_exit_from_keep_menu_cancels(isolated_config, monkeypatch):
+    isolated_config.write_text(json.dumps({"chat_provider": "openai", "chat_model": "gpt-5.5"}), encoding="utf-8")
+    monkeypatch.setattr(setup_wizard, "_interactive_terminal", lambda: True)
+    monkeypatch.setattr(setup_wizard, "_clear_screen", lambda: None)
+    monkeypatch.setattr(setup_wizard, "_choose_chat_action", lambda _current: "exit")
+
+    with pytest.raises(SystemExit):
+        setup_wizard.run_model_setup(force=True)
+
+
+def test_run_model_setup_preserves_provider_api_key(isolated_config, monkeypatch):
+    """A cloud key saved during the chat step must survive the per-step saves.
+
+    Regression: the driver's long-lived config object was stale w.r.t. the key
+    that `_persist_cloud_api_key` wrote to disk, so the next save overwrote it —
+    a key entered during setup then vanished (server: 'API key is required').
+    """
+    monkeypatch.setattr(setup_wizard, "_interactive_terminal", lambda: True)
+    monkeypatch.setattr(setup_wizard, "_clear_screen", lambda: None)
+    monkeypatch.setattr(setup_wizard, "_render_setup_summary", lambda _config: None)
+    monkeypatch.setattr(setup_wizard, "_choose_chat_action", lambda _current: "reconfigure")
+
+    def fake_configure_chat_model():
+        setup_wizard._persist_cloud_api_key("gemini", "g-secret", announce=False)
+        return ("gemini", "gemini-3.5-flash")
+
+    monkeypatch.setattr(setup_wizard, "_configure_chat_model", fake_configure_chat_model)
+    monkeypatch.setattr(setup_wizard, "_setup_embeddings", lambda _c, _p: "next")
+    monkeypatch.setattr(setup_wizard, "_prompt_stt_config", lambda _c: "next")
+    monkeypatch.setattr(setup_wizard, "_prompt_tts_config", lambda _c: "next")
+
+    setup_wizard.run_model_setup(force=True)
+
+    saved = json.loads(isolated_config.read_text(encoding="utf-8"))
+    assert saved["chat_provider"] == "gemini"
+    assert saved["chat_model"] == "gemini-3.5-flash"
+    assert saved["gemini_api_key"] == "g-secret"
+
+
+def test_run_model_setup_preserves_messaging_token(isolated_config, monkeypatch):
+    """A bridge token saved by the Step 5 messaging callback must survive the
+    wizard's per-step save.
+
+    Regression: messaging save_* helpers write to a freshly-loaded config, so the
+    driver's long-lived config object stayed stale (token=None) and the post-step
+    save_model_config wiped the token the user just entered.
+    """
+    from yumi.core.features.config.telegram import save_telegram_bot_token
+
+    isolated_config.write_text(
+        json.dumps({"chat_provider": "openai", "chat_model": "gpt-5.5"}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(setup_wizard, "_interactive_terminal", lambda: True)
+    monkeypatch.setattr(setup_wizard, "_clear_screen", lambda: None)
+    monkeypatch.setattr(setup_wizard, "_render_setup_summary", lambda _config: None)
+    monkeypatch.setattr(setup_wizard, "_choose_chat_action", lambda _current: "keep")
+    monkeypatch.setattr(setup_wizard, "_setup_embeddings", lambda _c, _p: "next")
+    monkeypatch.setattr(setup_wizard, "_prompt_stt_config", lambda _c: "next")
+    monkeypatch.setattr(setup_wizard, "_prompt_tts_config", lambda _c: "next")
+
+    def fake_messaging():
+        save_telegram_bot_token("tg-secret")
+
+    setup_wizard.run_model_setup(force=True, messaging=fake_messaging)
+
+    saved = json.loads(isolated_config.read_text(encoding="utf-8"))
+    assert saved["telegram_bot_token"] == "tg-secret"
+    # The chat config the user kept must still be intact alongside the token.
+    assert saved["chat_provider"] == "openai"
+
+
+def test_framed_prompt_eof_cancels_cleanly(monkeypatch):
+    """Non-interactive _framed_prompt on closed stdin cancels via SystemExit
+    instead of letting an EOFError traceback escape (CI / Docker / `</dev/null`)."""
+    monkeypatch.setattr(setup_wizard, "_interactive_terminal", lambda: False)
+
+    def _raise_eof(_prompt=""):
+        raise EOFError
+
+    monkeypatch.setattr("builtins.input", _raise_eof)
+    with pytest.raises(SystemExit):
+        setup_wizard._framed_prompt("OpenAI API key", secret=True)
