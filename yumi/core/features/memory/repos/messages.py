@@ -314,6 +314,15 @@ class MessageRepository:
             return None
         return self.serialize(rows[0])
 
+    def count(self) -> int:
+        """Row count of the LanceDB message index (O(1)); -1 if it can't be read."""
+        if not self.table_exists():
+            return 0
+        try:
+            return int(self.open_table().count_rows())
+        except Exception:
+            return -1
+
     def list(
         self,
         session_id: str | None = None,

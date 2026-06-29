@@ -92,6 +92,17 @@ async def lifespan(app: FastAPI):
     else:
         set_embed_provider(None)
 
+    # Verify the LanceDB query index against SQLite (the source of truth) once at
+    # startup; if it has drifted, rebuild it in the background. Cheap when in sync.
+    try:
+        from yumi.core.features.memory.store import get_memory_store
+
+        index_status = get_memory_store().verify_and_repair_index(background=True)
+        if not index_status.get("ok"):
+            logger.warning("Memory index out of sync with SQLite, repairing: %s", index_status)
+    except Exception:
+        logger.debug("Memory index startup check skipped", exc_info=True)
+
     _state.set_bot(YumiBot(provider=chat_provider, model_name=config.chat_model, think=False))
     await _state.get_bot().warm_up()
 

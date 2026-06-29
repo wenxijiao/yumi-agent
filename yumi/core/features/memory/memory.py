@@ -199,6 +199,41 @@ class Memory:
         self.messages.init_table()
         return self._rebuild_messages_from_sqlite()
 
+    def verify_index(self) -> dict:
+        """Cheap (O(1)) integrity check of the LanceDB index against SQLite.
+
+        Compares the non-deleted SQLite message count with the LanceDB row count.
+        ``ok`` is False when they diverge (index missing rows / out of sync) or
+        the LanceDB table can't be read.
+        """
+        sqlite_n = self.sqlite.active_event_count()
+        lance_n = self.messages.count()
+        return {"sqlite": sqlite_n, "lancedb": lance_n, "ok": lance_n == sqlite_n}
+
+    def verify_and_repair_index(self, *, background: bool = True) -> dict:
+        """Run :meth:`verify_index`; if the index has drifted, rebuild it from
+        SQLite (the source of truth). The rebuild re-embeds every message, which
+        can be slow with a cloud embedding model, so by default it runs on a
+        daemon thread and this returns immediately with ``repaired='scheduled'``.
+        """
+        status = self.verify_index()
+        if status["ok"]:
+            return {**status, "repaired": False}
+        if background:
+            import threading
+
+            threading.Thread(target=self._safe_rebuild_index, daemon=True, name="yumi-index-repair").start()
+            return {**status, "repaired": "scheduled"}
+        self._safe_rebuild_index()
+        return {**status, "repaired": True}
+
+    def _safe_rebuild_index(self) -> None:
+        try:
+            n = self.rebuild_index_from_sqlite()
+            logger.info("Rebuilt LanceDB index from SQLite (%s messages).", n)
+        except Exception:
+            logger.warning("LanceDB index rebuild failed", exc_info=True)
+
     # ── shims still consumed by external collaborators ─────────────────────
     #
     # ``context.py`` / ``storage.py`` / ``retrieval.py`` reach into Memory via
@@ -300,11 +335,12 @@ class Memory:
             logger.debug("SQLite clear_session skipped: %s", exc)
 
     def delete_message(self, message_id: str) -> bool:
-        deleted = self.messages.delete(message_id)
+        # SQLite is authoritative; the LanceDB index is a derived best-effort mirror.
+        deleted = self.sqlite.delete_message(message_id)
         try:
-            deleted = self.sqlite.delete_message(message_id) or deleted
+            self.messages.delete(message_id)
         except Exception as exc:
-            logger.debug("SQLite delete_message skipped: %s", exc)
+            logger.warning("LanceDB index delete failed (rebuildable from SQLite): %s", exc)
         return deleted
 
     def list_messages(

@@ -367,6 +367,18 @@ class SQLiteStore:
                 row = conn.execute("SELECT COUNT(*) AS n FROM events WHERE session_id=?", (session_id,)).fetchone()
             return int(row["n"] if row else 0)
 
+    def active_event_count(self, session_id: str | None = None) -> int:
+        """Non-deleted events — the rows that should exist in the LanceDB index."""
+        with self.connect() as conn:
+            if session_id is None:
+                row = conn.execute("SELECT COUNT(*) AS n FROM events WHERE deleted_at IS NULL").fetchone()
+            else:
+                row = conn.execute(
+                    "SELECT COUNT(*) AS n FROM events WHERE session_id=? AND deleted_at IS NULL",
+                    (session_id,),
+                ).fetchone()
+            return int(row["n"] if row else 0)
+
     # ------------------------------------------------------------------
     # Token usage (analytics for the stats dashboard)
 

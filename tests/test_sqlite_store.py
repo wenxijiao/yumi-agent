@@ -109,6 +109,23 @@ def test_rebuild_index_from_sqlite_realigns_lancedb(tmp_path):
     assert [r["content"] for r in rebuilt] == ["first", "second"]
 
 
+def test_verify_index_detects_and_repairs_drift(tmp_path):
+    m = Memory(session_id="s", storage_dir=tmp_path, max_recent=50)
+    m.add_message("user", "a")
+    m.add_message("assistant", "b")
+    assert m.verify_index()["ok"] is True
+
+    # Simulate index drift/loss while SQLite (the source of truth) is intact.
+    m.db.drop_table("chat_history", ignore_missing=True)
+    status = m.verify_index()
+    assert status["ok"] is False
+    assert status["sqlite"] == 2
+
+    repaired = m.verify_and_repair_index(background=False)
+    assert repaired["repaired"] is True
+    assert m.verify_index()["ok"] is True
+
+
 def test_upload_metadata_is_recorded_in_sqlite(tmp_path, monkeypatch):
     uploads = tmp_path / "uploads"
     monkeypatch.setattr(upload_service, "uploads_root", lambda: uploads)
