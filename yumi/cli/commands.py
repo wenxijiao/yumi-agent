@@ -172,13 +172,6 @@ class UICommand(Command):
         return bool(args.ui)
 
     def run(self, args):
-        from yumi.cli.runners import _ensure_ui_node_runtime
-        from yumi.core.features.config.feature_install import ensure_feature_installed
-
-        if not _ensure_ui_node_runtime():
-            return
-        if not ensure_feature_installed("ui"):
-            return
         from yumi.cli import run_ui
 
         run_ui()

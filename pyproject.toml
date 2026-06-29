@@ -66,6 +66,7 @@ exclude = ["_enterprise_seed*"]
 
 [tool.setuptools.package-data]
 yumi = [
+    "ui/static/**/*",
     "edge/template/**/*",
     "edge/template/*",
     "sdk/AGENTS.md",
@@ -108,8 +109,8 @@ yumi = [
     "sdk/java/target/**/*",
     "sdk/csharp/bin/**/*",
     "sdk/csharp/obj/**/*",
-    "ui/.web/**/*",
-    "ui/.states/**/*",
+    "ui/frontend/node_modules/**/*",
+    "ui/frontend/dist/**/*",
 ]
 
 [project.scripts]
@@ -130,14 +131,13 @@ dev = [
     "pyright>=1.1",
     "twine>=6.0",
 ]
-# Only UI and local-GPU Qwen TTS stay out of the base install. Base
-# `pip install yumi-agent` includes STT, microphone voice deps, cloud TTS/STT,
-# and local FastEmbed support; model/embedding weights are still downloaded on
-# demand by setup/runtime.
-ui = ["reflex>=0.9"]
+# The web UI now ships pre-built (static assets served by the core server), so
+# it needs no extra install or Node. Only local-GPU Qwen TTS stays out of the
+# base install. Base `pip install yumi-agent` includes STT, microphone voice
+# deps, cloud TTS/STT, and local FastEmbed support; model/embedding weights are
+# still downloaded on demand by setup/runtime.
 tts-local = ["qwen-tts"]
 all = [
-    "reflex>=0.9",
     "qwen-tts",
 ]
 
@@ -169,7 +169,7 @@ reportAssignmentType = "none"
 reportReturnType = "none"
 reportOptionalSubscript = "none"
 reportMissingModuleSource = "none"
-# Reflex UI is highly dynamic; static typing for yumi/ui is not enforced in CI.
+# yumi/ui is the JS/TS web frontend (built separately with Vite), not Python.
 # Edge templates ship multi-language scaffolds; analysis targets the runtime packages only.
 exclude = [
     "_enterprise_seed",

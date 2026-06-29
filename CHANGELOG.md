@@ -7,12 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.0.1] - Unreleased
 
+### Added
+
+- **Brand-new web UI** — a custom React + Vite + TypeScript + Tailwind
+  single-page app (`yumi/ui/frontend/`) replacing the old Reflex UI. It ships
+  pre-built as static assets served by the core server under `/app`, so end
+  users need **no Node and no extra install** (`yumi --ui` just opens the
+  browser). Pages: Chat (streaming, tool-call cards, tool-confirmation,
+  file upload, mic input + spoken replies, sessions with pin/rename/search),
+  Tools, a Stats dashboard, tabbed Settings, Schedules, Memory search, a
+  first-run setup wizard, and a ⌘K command palette.
+- **Persistent token-usage tracking** — each assistant turn's prompt/completion
+  tokens are recorded to SQLite (`token_usage` table) and survive restarts.
+- **`GET /stats`** — aggregated tool, token, session, and tool-call metrics for
+  the dashboard.
+- **`POST /tts/synthesize`** — text-to-speech for in-browser spoken replies
+  (reuses the configured TTS provider).
+
 ### Changed
 
 - `pip install yumi-agent` now includes local FastEmbed, Whisper STT,
-  microphone wake-word dependencies, and DashScope cloud STT/TTS. Only the
-  Reflex web UI (`[ui]`) and local-GPU Qwen TTS (`[tts-local]`) remain optional
-  extras; model weights and embedding assets are still downloaded on demand.
+  microphone wake-word dependencies, DashScope cloud STT/TTS, and the pre-built
+  web UI. Only local-GPU Qwen TTS (`[tts-local]`) remains an optional extra;
+  model weights and embedding assets are still downloaded on demand.
+- `yumi --ui` no longer requires Node.js or a Reflex dev server; it verifies the
+  core server is running and opens the browser at its `/app` page.
+
+### Removed
+
+- The Reflex web UI and the `[ui]` optional dependency extra.
 - Windows `system` TTS now uses the built-in SAPI voice through PowerShell,
   matching the zero-dependency spoken-reply path already available on macOS and
   Linux.

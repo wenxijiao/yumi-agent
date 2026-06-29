@@ -1,7 +1,6 @@
 """CLI environment selection tests without launching subprocesses."""
 
 import json
-import os
 import sys
 from types import SimpleNamespace
 
@@ -31,63 +30,31 @@ def test_prepare_client_environment_prefers_reachable_direct_server(monkeypatch)
     assert env["YUMI_SERVER_URL"] == "http://127.0.0.1:8000"
 
 
-def test_reflex_ui_root_points_at_rxconfig():
-    """Regression: UI lives under ``yumi/ui``, not ``yumi/cli/ui`` (see ``_reflex_ui_root``)."""
-    root = cli._reflex_ui_root()
-    assert os.path.isfile(os.path.join(root, "rxconfig.py"))
+def test_run_ui_opens_browser_when_server_up(monkeypatch):
+    import webbrowser
 
-
-def test_ui_node_runtime_reports_missing_node(monkeypatch, capsys):
-    monkeypatch.setattr(cli_runners.shutil, "which", lambda _name: None)
-    monkeypatch.setattr(cli_runners.sys, "platform", "win32")
-
-    assert cli_runners._ensure_ui_node_runtime() is False
-
-    out = capsys.readouterr().out
-    assert "Node.js 22.12.0 or newer" in out
-    assert "Detected Node: not found" in out
-    assert "Detected platform: Windows" in out
-    assert "winget install OpenJS.NodeJS.LTS" in out
-
-
-def test_platform_label_is_user_facing():
-    assert cli_runners._platform_label("win32") == "Windows"
-    assert cli_runners._platform_label("darwin") == "macOS"
-    assert cli_runners._platform_label("linux") == "Linux"
-    assert cli_runners._platform_label("freebsd") == "freebsd"
-
-
-def test_ui_node_install_help_lines_cover_desktop_platforms():
-    assert "winget install OpenJS.NodeJS.LTS" in "\n".join(cli_runners._node_install_help_lines("win32"))
-    assert "brew install node" in "\n".join(cli_runners._node_install_help_lines("darwin"))
-    linux_help = "\n".join(cli_runners._node_install_help_lines("linux"))
-    assert "nvm install 22.12.0" in linux_help
-    assert "deb.nodesource.com/setup_22.x" in linux_help
-
-
-def test_ui_node_runtime_rejects_old_node(monkeypatch, capsys):
-    monkeypatch.setattr(cli_runners.shutil, "which", lambda _name: "node")
+    opened: list[str] = []
     monkeypatch.setattr(
-        cli_runners.subprocess,
-        "run",
-        lambda *_args, **_kwargs: SimpleNamespace(stdout="v20.11.1\n", stderr=""),
+        cli_runners, "prepare_client_environment", lambda _role: {"YUMI_SERVER_URL": "http://127.0.0.1:8000"}
     )
+    monkeypatch.setattr(cli_runners, "is_server_running", lambda url: True)
+    monkeypatch.setattr(cli_runners, "_get_lan_ip", lambda: None)
+    monkeypatch.setattr(cli_runners, "_print_banner", lambda *args, **kwargs: None)
+    monkeypatch.setattr(webbrowser, "open", lambda url: opened.append(url) or True)
 
-    assert cli_runners._ensure_ui_node_runtime() is False
+    cli_runners.run_ui()
 
-    out = capsys.readouterr().out
-    assert "Detected Node: v20.11.1" in out
+    assert opened == ["http://127.0.0.1:8000/app/"]
 
 
-def test_ui_node_runtime_accepts_required_node(monkeypatch):
-    monkeypatch.setattr(cli_runners.shutil, "which", lambda _name: "node")
+def test_run_ui_exits_when_server_down(monkeypatch):
     monkeypatch.setattr(
-        cli_runners.subprocess,
-        "run",
-        lambda *_args, **_kwargs: SimpleNamespace(stdout="v22.12.0\n", stderr=""),
+        cli_runners, "prepare_client_environment", lambda _role: {"YUMI_SERVER_URL": "http://127.0.0.1:8000"}
     )
+    monkeypatch.setattr(cli_runners, "is_server_running", lambda url: False)
 
-    assert cli_runners._ensure_ui_node_runtime() is True
+    with pytest.raises(SystemExit):
+        cli_runners.run_ui()
 
 
 def test_main_dispatches_cleanup_memory(monkeypatch):

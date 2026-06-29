@@ -2,12 +2,12 @@
 
 The base ``pip install yumi-agent`` is intentionally batteries-included for
 chat providers, messaging bridges, STT, microphone voice mode, cloud TTS/STT,
-local FastEmbed embeddings, and file ingestion. Only the large UI stack and
-local-GPU Qwen TTS stay out of the base install.
+local FastEmbed embeddings, and file ingestion. The web UI now ships pre-built
+and is served by the core server (no extra install). Only local-GPU Qwen TTS
+stays out of the base install.
 
-This module lets the setup wizard and the CLI offer those two extras the moment
-a user turns the feature on, instead of failing later with a missing-package
-error.
+This module lets the setup wizard and the CLI offer that extra the moment a user
+turns the feature on, instead of failing later with a missing-package error.
 """
 
 from __future__ import annotations
@@ -23,7 +23,6 @@ _DIST = "yumi-agent"
 
 # feature -> (extra name, module to probe for "already installed?", label)
 _FEATURES: dict[str, tuple[str, str, str]] = {
-    "ui": ("ui", "reflex", "the Reflex web UI"),
     "tts-local": ("tts-local", "qwen_tts", "Qwen3-TTS running locally (GPU)"),
 }
 

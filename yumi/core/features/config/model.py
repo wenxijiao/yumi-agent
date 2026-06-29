@@ -28,9 +28,9 @@ class ModelConfig(BaseModel):
     local_tools_always_allow: list[str] = Field(default_factory=list)
     local_tools_force_confirm: list[str] = Field(default_factory=list)
     # Chat context: last N messages in the current session (user + assistant rows).
-    memory_max_recent_messages: int = Field(default=10, ge=1, le=500)
+    memory_max_recent_messages: int = Field(default=30, ge=1, le=500)
     # Cross-session RAG snippets injected as a system block (0 = off).
-    memory_max_related_messages: int = Field(default=5, ge=0, le=100)
+    memory_max_related_messages: int = Field(default=15, ge=0, le=100)
     # Appended to the system message each chat request (can disable to save tokens / avoid English policy text).
     chat_append_current_time: bool = True
     chat_append_tool_use_instruction: bool = True

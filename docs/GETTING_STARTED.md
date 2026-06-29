@@ -82,20 +82,21 @@ You can mix providers — for example OpenAI for chat and Ollama for embeddings.
 ## Web UI
 
 ```bash
-yumi --ui
+yumi --server      # in one terminal
+yumi --ui          # opens the web UI in your browser
 ```
 
-The web UI is the one large user-facing extra. Install it first if needed:
-
-```bash
-pip install "yumi-agent[ui]"
-```
+The web UI ships pre-built and is served by the core server itself (no Node, no
+extra install). `yumi --ui` just opens your browser at the running server's
+`/app` page.
 
 The UI includes:
 
-- **Chat**: session management, search, pinning, streaming replies
-- **Tools**: server tools and connected edge devices
-- **Settings**: models, prompts, appearance, runtime config
+- **Chat**: session management, search, pinning, streaming replies, file upload, and voice (mic input + spoken replies)
+- **Tools**: enable/disable server tools and connected edge devices, with per-tool confirmation gating
+- **Stats**: a dashboard of token usage, tool-call counts, and conversation activity
+- **Settings**: models, API keys, prompts, memory, voice, appearance, and edge-routing config
+- **Schedules**, **Memory search**, a first-run **setup wizard**, and a **⌘K command palette**
 
 ## Terminal Chat
 

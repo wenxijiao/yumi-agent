@@ -376,6 +376,152 @@ class SQLiteStore:
                 row = conn.execute("SELECT COUNT(*) AS n FROM events WHERE session_id=?", (session_id,)).fetchone()
             return int(row["n"] if row else 0)
 
+    # ------------------------------------------------------------------
+    # Token usage (analytics for the stats dashboard)
+
+    def record_token_usage(
+        self,
+        *,
+        session_id: str,
+        turn_id: str = "",
+        owner_user_id: str = "",
+        provider: str = "",
+        model: str = "",
+        prompt_tokens: int = 0,
+        completion_tokens: int = 0,
+    ) -> dict[str, Any]:
+        """Persist one row of token usage for a completed assistant turn."""
+        prompt = max(0, int(prompt_tokens or 0))
+        completion = max(0, int(completion_tokens or 0))
+        total = prompt + completion
+        now = _utc_now()
+        now_num = int(datetime.now(timezone.utc).timestamp() * 1000)
+        row = {
+            "id": uuid.uuid4().hex,
+            "session_id": session_id or "",
+            "turn_id": turn_id or "",
+            "owner_user_id": owner_user_id or "",
+            "provider": provider or "",
+            "model": model or "",
+            "prompt_tokens": prompt,
+            "completion_tokens": completion,
+            "total_tokens": total,
+            "created_at": now,
+            "created_at_num": now_num,
+        }
+        with self.connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO token_usage(
+                  id, session_id, turn_id, owner_user_id, provider, model,
+                  prompt_tokens, completion_tokens, total_tokens, created_at, created_at_num
+                ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    row["id"],
+                    row["session_id"],
+                    row["turn_id"],
+                    row["owner_user_id"],
+                    row["provider"],
+                    row["model"],
+                    prompt,
+                    completion,
+                    total,
+                    now,
+                    now_num,
+                ),
+            )
+        return row
+
+    def token_usage_summary(self, *, session_id: str | None = None) -> dict[str, Any]:
+        """Totals + per-model breakdown across all (or one session's) turns."""
+        where = "WHERE session_id=?" if session_id else ""
+        params: tuple[Any, ...] = (session_id,) if session_id else ()
+        with self.connect() as conn:
+            totals = conn.execute(
+                f"""
+                SELECT COUNT(*) AS turns,
+                       COALESCE(SUM(prompt_tokens), 0) AS prompt_tokens,
+                       COALESCE(SUM(completion_tokens), 0) AS completion_tokens,
+                       COALESCE(SUM(total_tokens), 0) AS total_tokens
+                FROM token_usage {where}
+                """,
+                params,
+            ).fetchone()
+            by_model = conn.execute(
+                f"""
+                SELECT CASE WHEN model='' THEN 'unknown' ELSE model END AS model,
+                       COUNT(*) AS turns,
+                       COALESCE(SUM(prompt_tokens), 0) AS prompt_tokens,
+                       COALESCE(SUM(completion_tokens), 0) AS completion_tokens,
+                       COALESCE(SUM(total_tokens), 0) AS total_tokens
+                FROM token_usage {where}
+                GROUP BY model
+                ORDER BY total_tokens DESC
+                """,
+                params,
+            ).fetchall()
+        return {
+            "turns": int(totals["turns"] or 0) if totals else 0,
+            "prompt_tokens": int(totals["prompt_tokens"] or 0) if totals else 0,
+            "completion_tokens": int(totals["completion_tokens"] or 0) if totals else 0,
+            "total_tokens": int(totals["total_tokens"] or 0) if totals else 0,
+            "by_model": [
+                {
+                    "model": r["model"],
+                    "turns": int(r["turns"] or 0),
+                    "prompt_tokens": int(r["prompt_tokens"] or 0),
+                    "completion_tokens": int(r["completion_tokens"] or 0),
+                    "total_tokens": int(r["total_tokens"] or 0),
+                }
+                for r in by_model
+            ],
+        }
+
+    def token_usage_timeseries(self, *, days: int = 14) -> list[dict[str, Any]]:
+        """Per-day token totals for the most recent *days* (UTC, oldest first)."""
+        limit = max(1, min(120, int(days)))
+        with self.connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT substr(created_at, 1, 10) AS day,
+                       COALESCE(SUM(prompt_tokens), 0) AS prompt_tokens,
+                       COALESCE(SUM(completion_tokens), 0) AS completion_tokens,
+                       COALESCE(SUM(total_tokens), 0) AS total_tokens,
+                       COUNT(*) AS turns
+                FROM token_usage
+                GROUP BY day
+                ORDER BY day DESC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+        out = [
+            {
+                "day": r["day"],
+                "prompt_tokens": int(r["prompt_tokens"] or 0),
+                "completion_tokens": int(r["completion_tokens"] or 0),
+                "total_tokens": int(r["total_tokens"] or 0),
+                "turns": int(r["turns"] or 0),
+            }
+            for r in rows
+        ]
+        out.reverse()
+        return out
+
+    def session_turn_counts(self) -> dict[str, int]:
+        """Assistant-message count per session — a proxy for conversation turns."""
+        with self.connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT session_id, COUNT(*) AS n
+                FROM events
+                WHERE event_type='assistant_message' AND deleted_at IS NULL
+                GROUP BY session_id
+                """
+            ).fetchall()
+        return {r["session_id"]: int(r["n"] or 0) for r in rows}
+
     def import_messages(self, rows: list[dict[str, Any]]) -> None:
         for row in sorted(rows, key=lambda r: int(r.get("timestamp_num") or 0)):
             self.upsert_event_from_message(row, create_job=False)
@@ -1114,6 +1260,23 @@ _SCHEMA_SQL = [
     "CREATE INDEX IF NOT EXISTS idx_events_session_seq ON events(session_id, seq)",
     "CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type)",
     "CREATE INDEX IF NOT EXISTS idx_events_deleted ON events(deleted_at)",
+    """
+    CREATE TABLE IF NOT EXISTS token_usage (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL DEFAULT '',
+      turn_id TEXT NOT NULL DEFAULT '',
+      owner_user_id TEXT NOT NULL DEFAULT '',
+      provider TEXT NOT NULL DEFAULT '',
+      model TEXT NOT NULL DEFAULT '',
+      prompt_tokens INTEGER NOT NULL DEFAULT 0,
+      completion_tokens INTEGER NOT NULL DEFAULT 0,
+      total_tokens INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      created_at_num INTEGER NOT NULL DEFAULT 0
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_token_usage_session ON token_usage(session_id)",
+    "CREATE INDEX IF NOT EXISTS idx_token_usage_created ON token_usage(created_at_num)",
     """
     CREATE TABLE IF NOT EXISTS memories (
       id TEXT PRIMARY KEY,

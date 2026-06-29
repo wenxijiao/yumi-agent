@@ -38,7 +38,7 @@ flowchart LR
   Bot --> Prov
 ```
 
-Yumi is **local-first**: it ships a runnable server, terminal UI, Reflex web UI, and first-class edge-tool hosts so your game, app, or device can expose tools from its own process. The same FastAPI app accepts traffic from local clients (loopback HTTP) and the LINE/Telegram bridges.
+Yumi is **local-first**: it ships a runnable server, terminal UI, React web UI, and first-class edge-tool hosts so your game, app, or device can expose tools from its own process. The same FastAPI app accepts traffic from local clients (loopback HTTP) and the LINE/Telegram bridges.
 
 ## Module Layout (platform / features / api)
 
@@ -77,14 +77,16 @@ plus `context.py`, `debug_trace.py`, `trace_sink.py`).
 > See [`MIGRATION_PLATFORM_FEATURES.md`](MIGRATION_PLATFORM_FEATURES.md) for the
 > full old→new map.
 
-## Web UI direction
+## Web UI
 
-The current web UI (`yumi/ui/`) is built with Reflex (Python→React). It talks to
-the server **only** over the HTTP/NDJSON API (no in-process imports of core), so
-the recommended direction is to migrate it to a standalone React app: that
-decouples UI releases from the Python package, removes Reflex from the
-`pip install yumi-agent` dependency surface, and lets the UI ship as a static
-artifact. `yumi/ui/` is otherwise frozen pending that migration.
+The web UI is a standalone **React + Vite + TypeScript + Tailwind** single-page
+app under `yumi/ui/frontend/`. It talks to the server **only** over the
+HTTP/NDJSON API (no in-process imports of core). It is built to static assets in
+`yumi/ui/static/` (`npm run build`, output `outDir: ../static`) which are shipped
+in the Python package and served by the core server under `/app` (see
+`_mount_spa` in `app_factory.py`). End users need no Node — `yumi --ui` just opens
+the browser at the running server. Maintainers rebuild the bundle after UI
+changes; see `yumi/ui/frontend/README.md`.
 
 ## HTTP Entry Layer
 

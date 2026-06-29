@@ -149,6 +149,19 @@ Legacy string-only `detail` values still appear for older routes. Validation err
 
 Traces may be mirrored to `~/.yumi/tool_traces.jsonl` on disk (append-only); the in-memory buffer is also bounded.
 
+### Statistics
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/stats` | Aggregated metrics for the dashboard: `tools` (server/edge counts), `sessions` (active, messages, turns), `tool_calls` (totals, by-status, top tools), and `tokens` (totals, by-model, 14-day `daily` series). Token usage is persisted per assistant turn in SQLite (`token_usage`), so it survives restarts. |
+
+### Speech
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/stt/transcribe` | Transcribe audio to text. JSON body: `session_id`, `filename`, `content_base64`, optional `language`. Returns `{ text, language, duration_seconds }`. |
+| `POST` | `/tts/synthesize` | Synthesize speech from text using the configured TTS provider. JSON body: `text` (required), optional `session_id`, `voice`, `language`. Returns audio bytes (`audio/wav`) for a browser `<audio>` element. `400` if TTS is not configured, `503` on provider error. |
+
 ### Timer events (NDJSON stream)
 
 - `GET /timer-events` — long-lived stream, `application/x-ndjson`, for timer pushes (includes `heartbeat`).

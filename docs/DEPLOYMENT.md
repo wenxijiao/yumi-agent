@@ -7,17 +7,16 @@ runnable local-first agent server, CLI, HTTP API, and Edge SDK templates.
 
 ```bash
 pip install yumi-agent              # batteries-included: chat/embedding providers,
-                                    # messaging bridges, voice/STT/TTS, HTTP API, and CLI
-pip install "yumi-agent[ui]"        # optional: Reflex web UI
+                                    # messaging bridges, voice/STT/TTS, the web UI,
+                                    # HTTP API, and CLI
 pip install "yumi-agent[tts-local]" # optional: local GPU Qwen3-TTS
-pip install "yumi-agent[all]"       # optional: UI + local GPU Qwen3-TTS
 ```
 
-Optional extras are intentionally limited to `ui` (Reflex web UI), `tts-local`
-(on-GPU Qwen3-TTS), and `all` (both). Cloud providers, messaging bridges,
-FastEmbed, Whisper STT, microphone wake-word dependencies, and DashScope TTS/STT
-are in the base install. Model weights and embedding assets are still downloaded
-on demand.
+The web UI now ships **pre-built** (a static React app served by the core
+server), so it needs no extra install and no Node. Optional extras are limited to
+`tts-local` (on-GPU Qwen3-TTS). Cloud providers, messaging bridges, FastEmbed,
+Whisper STT, microphone wake-word dependencies, and DashScope TTS/STT are in the
+base install. Model weights and embedding assets are still downloaded on demand.
 
 Python 3.10+.
 
@@ -27,7 +26,7 @@ Python 3.10+.
 yumi --setup        # interactive: pick chat/embedding provider + credentials
 yumi --server       # start the FastAPI server (default 127.0.0.1:8000)
 yumi --chat         # terminal chat against a running server
-yumi --ui           # launch the Reflex web UI (needs the [ui] extra)
+yumi --ui           # open the web UI in your browser (served by the running server)
 ```
 
 `python -m yumi.core.api` also starts the server. It binds `127.0.0.1:8000` by

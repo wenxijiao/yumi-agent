@@ -7,7 +7,6 @@ dedicated module so ``yumi/cli/__init__.py`` stays a thin entry point.
 """
 
 import os
-import re
 import shutil
 import socket
 import subprocess
@@ -54,9 +53,6 @@ from yumi.core.platform.security.connection import (
 from yumi.edge.client import init_workspace
 
 SERVER_URL = os.getenv("YUMI_SERVER_URL", "http://127.0.0.1:8000")
-UI_FRONTEND_PORT = 3000
-UI_BACKEND_PORT = 8001
-MIN_UI_NODE_VERSION = (22, 12, 0)
 
 
 def server_health_url(base_url: str | None = None) -> str:
@@ -671,121 +667,40 @@ def run_line_standalone() -> None:
 # ── ui ──
 
 
-def _reflex_ui_root() -> str:
-    """Directory of the Reflex app (``yumi/ui``, contains ``rxconfig.py``)."""
-    return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "ui")
-
-
-def _parse_node_version(raw: str) -> tuple[int, int, int] | None:
-    match = re.search(r"v?(\d+)\.(\d+)\.(\d+)", raw)
-    if not match:
-        return None
-    return tuple(int(part) for part in match.groups())
-
-
-def _format_version(version: tuple[int, int, int]) -> str:
-    return ".".join(str(part) for part in version)
-
-
-def _platform_label(platform: str | None = None) -> str:
-    target = platform or sys.platform
-    if target == "win32":
-        return "Windows"
-    if target == "darwin":
-        return "macOS"
-    if target.startswith("linux"):
-        return "Linux"
-    return target
-
-
-def _node_install_help_lines(platform: str | None = None) -> list[str]:
-    required = _format_version(MIN_UI_NODE_VERSION)
-    target = platform or sys.platform
-    if target == "win32":
-        return [
-            "  Windows:",
-            "    winget install OpenJS.NodeJS.LTS",
-            "  Or use nvm-windows:",
-            f"    nvm install {required}",
-            f"    nvm use {required}",
-        ]
-    if target == "darwin":
-        return [
-            "  macOS with Homebrew:",
-            "    brew install node",
-            "  Or use nvm:",
-            f"    nvm install {required}",
-            f"    nvm use {required}",
-        ]
-    return [
-        "  Linux with nvm:",
-        f"    nvm install {required}",
-        f"    nvm use {required}",
-        "  Debian/Ubuntu alternative:",
-        "    curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -",
-        "    sudo apt-get install -y nodejs",
-    ]
-
-
-def _print_node_install_help(detected: str) -> None:
-    required = _format_version(MIN_UI_NODE_VERSION)
-    print()
-    print(f"  Yumi UI needs Node.js {required} or newer because Reflex runs the frontend dev server.")
-    print(f"  Detected Node: {detected}")
-    print(f"  Detected platform: {_platform_label()}")
-    print()
-    print("  Install/update Node.js, then open a new terminal and run `yumi --ui` again:")
-    for line in _node_install_help_lines():
-        print(line)
-    print()
-    print("  Check it with: node --version")
-    print()
-
-
-def _ensure_ui_node_runtime() -> bool:
-    node = shutil.which("node")
-    if not node:
-        _print_node_install_help("not found")
-        return False
-    try:
-        result = subprocess.run([node, "--version"], check=False, capture_output=True, text=True)
-    except OSError as exc:
-        _print_node_install_help(f"error running node: {exc}")
-        return False
-    raw = (result.stdout or result.stderr or "").strip()
-    version = _parse_node_version(raw)
-    if version is None:
-        _print_node_install_help(raw or "unknown")
-        return False
-    if version < MIN_UI_NODE_VERSION:
-        _print_node_install_help(raw)
-        return False
-    return True
+def _ui_url(base_url: str | None = None) -> str:
+    """The SPA is served by the core server itself, under ``/app``."""
+    base = (base_url or SERVER_URL).rstrip("/")
+    return f"{base}/app/"
 
 
 def run_ui():
+    """Open the web UI in the default browser.
+
+    The UI is a pre-built single-page app served by the core server (no Node, no
+    second process). We just verify the server is up and open the browser at it.
+    """
+    import webbrowser
+
     env = prepare_client_environment("ui")
+    base = env.get("YUMI_SERVER_URL", SERVER_URL)
 
-    if not _ensure_ui_node_runtime():
-        return
-
-    if not is_server_running(server_health_url(env.get("YUMI_SERVER_URL"))):
+    if not is_server_running(server_health_url(base)):
         print("\n  Yumi server is not running. Start it first with: yumi --server\n")
         sys.exit(1)
 
+    url = _ui_url(base)
     lan_ip = _get_lan_ip()
-
-    rows: list[tuple[str, str]] = [
-        ("Local:", f"http://localhost:{UI_FRONTEND_PORT}"),
-    ]
+    rows: list[tuple[str, str]] = [("Local:", url)]
     if lan_ip:
-        rows.append(("Network:", f"http://{lan_ip}:{UI_FRONTEND_PORT}"))
-        env["YUMI_UI_API_HOST"] = lan_ip
-    rows.append(("Backend:", env.get("YUMI_SERVER_URL", SERVER_URL)))
-
+        rows.append(("Network:", _ui_url(f"http://{lan_ip}:8000")))
+    rows.append(("Backend:", base))
     _print_banner("Yumi UI", rows)
 
-    subprocess.run([sys.executable, "-m", "reflex", "run"], cwd=_reflex_ui_root(), env=env)
+    try:
+        webbrowser.open(url)
+        print(f"  Opening {url} in your browser…\n")
+    except Exception:
+        print(f"  Open this URL in your browser: {url}\n")
 
 
 # ── chat ──

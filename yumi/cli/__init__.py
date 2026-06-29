@@ -19,7 +19,6 @@ from importlib.metadata import PackageNotFoundError, version
 
 from yumi.cli.runners import (
     _parse_edge_langs,
-    _reflex_ui_root,
     _run_demo,
     prepare_client_environment,
     run_chat,
@@ -185,7 +184,6 @@ class _YumiArgumentParser(argparse.ArgumentParser):
 
 __all__ = [
     "_parse_edge_langs",
-    "_reflex_ui_root",
     "_run_demo",
     "main",
     "prepare_client_environment",

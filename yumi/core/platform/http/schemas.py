@@ -28,6 +28,15 @@ class TranscribeRequest(BaseModel):
     language: str | None = None
 
 
+class TtsRequest(BaseModel):
+    """JSON body for ``POST /tts/synthesize`` (returns audio bytes)."""
+
+    text: str
+    session_id: str = "default"
+    voice: str | None = None
+    language: str | None = None
+
+
 class SystemPromptUpdateRequest(BaseModel):
     system_prompt: str
 

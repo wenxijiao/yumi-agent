@@ -38,12 +38,13 @@ class UsageRecorder:
         return self
 
     def __exit__(self, exc_type, exc, tb) -> None:
+        model = self.usage_model or (self.bot.model_name if self.bot is not None else "")
         try:
             record_tool_routing_usage(
                 session_id=self.ctx.session_id,
                 prompt_tokens=self.total_prompt_tokens,
                 completion_tokens=self.total_completion_tokens,
-                model=self.usage_model or (self.bot.model_name if self.bot is not None else ""),
+                model=model,
             )
             if self.bot is not None:
                 ident = get_current_identity()
@@ -56,3 +57,47 @@ class UsageRecorder:
                     )
         except Exception:
             logger.debug("record_chat_tokens skipped", exc_info=True)
+
+        # Persist per-turn token usage to SQLite so the stats dashboard survives
+        # restarts (the routing recorder above is in-memory only). Isolated in its
+        # own guard so a storage hiccup never affects the turn or quota accounting.
+        if self.total_prompt_tokens or self.total_completion_tokens:
+            try:
+                _persist_token_usage(
+                    session_id=self.ctx.session_id,
+                    owner_user_id=self.owner_uid or "",
+                    model=model,
+                    prompt_tokens=self.total_prompt_tokens,
+                    completion_tokens=self.total_completion_tokens,
+                )
+            except Exception:
+                logger.debug("token usage persistence skipped", exc_info=True)
+
+
+def _persist_token_usage(
+    *,
+    session_id: str,
+    owner_user_id: str,
+    model: str,
+    prompt_tokens: int,
+    completion_tokens: int,
+) -> None:
+    """Write one ``token_usage`` row to the default memory store (best effort)."""
+    from yumi.core.features.memory.store import get_memory_store
+
+    provider = ""
+    try:
+        from yumi.core.features.config import load_model_config
+
+        provider = (load_model_config().chat_provider or "").strip()
+    except Exception:
+        provider = ""
+
+    get_memory_store().sqlite.record_token_usage(
+        session_id=session_id,
+        owner_user_id=owner_user_id,
+        provider=provider,
+        model=model,
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+    )

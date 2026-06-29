@@ -1,8 +1,9 @@
 include assets/social-preview.png
-prune yumi/ui/.web
-prune yumi/ui/.states
+# Ship the pre-built web UI; exclude its source/build toolchain.
+graft yumi/ui/static
+prune yumi/ui/frontend/node_modules
+prune yumi/ui/frontend/dist
 prune yumi/ui/__pycache__
-prune yumi/ui/ui/__pycache__
 prune yumi/sdk/typescript/node_modules
 prune yumi/sdk/typescript/dist
 prune yumi/sdk/swift/.build

@@ -34,8 +34,10 @@ from yumi.core.features.monitor.router import router as monitor_router
 from yumi.core.features.proactive.router import router as timers_router
 from yumi.core.features.proactive.scheduler import cancel_timer, schedule_timer
 from yumi.core.features.proactive.timer_tools import restore_schedules, set_timer_callbacks
+from yumi.core.features.stats.router import router as stats_router
 from yumi.core.features.stt.router import router as stt_router
 from yumi.core.features.tools.router import router as tools_router
+from yumi.core.features.tts.router import router as tts_router
 from yumi.core.features.uploads.router import router as uploads_router
 from yumi.core.platform.http.docs_middleware import DocsAccessMiddleware
 from yumi.core.platform.http.task_logging import log_task_exc_on_done
@@ -196,6 +198,44 @@ def _include_core_routers(app: FastAPI) -> None:
     app.include_router(health_router)
     app.include_router(monitor_router)
     app.include_router(tools_router)
+    app.include_router(tts_router)
+    app.include_router(stats_router)
+
+
+def _mount_spa(app: FastAPI) -> None:
+    """Serve the pre-built web UI under ``/app`` when bundled assets exist.
+
+    The HTTP API owns the server root (``/chat``, ``/tools`` … are the public
+    contract), so the SPA lives under ``/app`` to avoid any path collision and
+    falls back to ``index.html`` for client-side routes (deep links / refresh).
+    Absent a build (``yumi/ui/static``), this is a no-op so the server still runs.
+    """
+    from pathlib import Path
+
+    from fastapi.responses import FileResponse, RedirectResponse, Response
+    from fastapi.staticfiles import StaticFiles
+
+    static_dir = (Path(__file__).resolve().parents[2] / "ui" / "static").resolve()
+    index_file = static_dir / "index.html"
+    if not index_file.is_file():
+        return
+
+    assets_dir = static_dir / "assets"
+    if assets_dir.is_dir():
+        app.mount("/app/assets", StaticFiles(directory=str(assets_dir)), name="spa-assets")
+
+    @app.get("/", include_in_schema=False)
+    async def _spa_root() -> Response:
+        return RedirectResponse(url="/app/")
+
+    @app.get("/app", include_in_schema=False)
+    @app.get("/app/{spa_path:path}", include_in_schema=False)
+    async def _spa(spa_path: str = "") -> Response:
+        if spa_path:
+            candidate = (static_dir / spa_path).resolve()
+            if candidate.is_file() and str(candidate).startswith(str(static_dir)):
+                return FileResponse(candidate)
+        return FileResponse(index_file)
 
 
 def _build_app() -> FastAPI:
@@ -218,6 +258,7 @@ def _build_app() -> FastAPI:
 
     get_route_extender().mount(fastapi_app)
     _include_core_routers(fastapi_app)
+    _mount_spa(fastapi_app)
     return fastapi_app
 
 

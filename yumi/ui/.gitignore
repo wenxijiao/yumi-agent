@@ -1,6 +1,8 @@
-*.py[cod]
-.states
-.web
-assets/external/
+# Stale Reflex build artifacts (the UI is now a Vite SPA under frontend/).
+.web/
+.states/
 __pycache__/
-*.db
+
+# Frontend dev artifacts.
+frontend/node_modules/
+frontend/dist/
