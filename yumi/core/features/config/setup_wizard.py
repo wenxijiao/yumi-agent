@@ -1301,6 +1301,7 @@ _FASTEMBED_MODELS: tuple[tuple[str, str, str], ...] = (
     ),
 )
 
+
 def _chat_config_available(config: ModelConfig) -> bool:
     if not config.chat_provider or not config.chat_model:
         return False
@@ -1772,7 +1773,7 @@ def _configure_embeddings(config: ModelConfig, chat_provider: str) -> str:
             step="Step 2/5: Memory (text embeddings) · Backend",
             title="Choose an embedding backend",
             message="Embeddings improve memory search and Edge tool routing.",
-                options=[
+            options=[
                 ("cloud", "Cloud embeddings", ""),
                 ("local", "Local embeddings", "Yumi downloads the embedding model from the CLI"),
                 ("ollama", "Ollama embeddings", "requires Ollama already installed and running"),

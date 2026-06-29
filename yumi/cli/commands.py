@@ -146,10 +146,7 @@ class VoiceModifierCommand(Command):
         parser.add_argument(
             "--voice",
             action="store_true",
-            help=(
-                "With --server: open a microphone wake-word session (say 'hi yumi'). "
-                "Needs a Picovoice access key."
-            ),
+            help=("With --server: open a microphone wake-word session (say 'hi yumi'). Needs a Picovoice access key."),
         )
 
     def matches(self, args):

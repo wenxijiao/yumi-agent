@@ -148,8 +148,7 @@ class WhisperSttProvider(SpeechToTextProvider):
                 from huggingface_hub import get_token
             except ImportError as exc:
                 raise SttError(
-                    "faster-whisper is not importable. Reinstall with: "
-                    "pip install --force-reinstall yumi-agent"
+                    "faster-whisper is not importable. Reinstall with: pip install --force-reinstall yumi-agent"
                 ) from exc
             self.model_dir.mkdir(parents=True, exist_ok=True)
             try:

@@ -14,12 +14,7 @@ def test_sqlite_schema_creates_canonical_tables(tmp_path):
     SQLiteStore(db_path)
 
     with sqlite3.connect(db_path) as conn:
-        names = {
-            row[0]
-            for row in conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            ).fetchall()
-        }
+        names = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
 
     assert {
         "db_meta",
@@ -193,9 +188,7 @@ def test_proactive_state_is_recorded_in_sqlite(tmp_path):
     store.record_user_message("s")
 
     with sqlite3.connect(tmp_path / "yumi.db") as conn:
-        row = conn.execute(
-            "SELECT value_json FROM settings WHERE namespace='proactive_state' AND key='s'"
-        ).fetchone()
+        row = conn.execute("SELECT value_json FROM settings WHERE namespace='proactive_state' AND key='s'").fetchone()
 
     assert row is not None
     restored = ProactiveStateStore(path=path).get("s")

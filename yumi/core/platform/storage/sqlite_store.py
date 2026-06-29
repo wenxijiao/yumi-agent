@@ -213,9 +213,7 @@ class SQLiteStore:
 
             always = [
                 row["tool_name"]
-                for row in conn.execute(
-                    "SELECT tool_name FROM tool_policies WHERE always_allow=1 ORDER BY tool_name"
-                )
+                for row in conn.execute("SELECT tool_name FROM tool_policies WHERE always_allow=1 ORDER BY tool_name")
             ]
             force = [
                 row["tool_name"]
@@ -276,7 +274,12 @@ class SQLiteStore:
 
             conn.execute("DELETE FROM settings WHERE namespace='model_config'")
             for key, value in data.items():
-                if key in MODEL_PROFILE_FIELDS or key in SECRET_FIELDS or key in PROMPT_FIELDS or key in TOOL_POLICY_FIELDS:
+                if (
+                    key in MODEL_PROFILE_FIELDS
+                    or key in SECRET_FIELDS
+                    or key in PROMPT_FIELDS
+                    or key in TOOL_POLICY_FIELDS
+                ):
                     continue
                 conn.execute(
                     """
@@ -674,14 +677,19 @@ class SQLiteStore:
             existing = conn.execute("SELECT session_id, revision FROM events WHERE id=?", (message_id,)).fetchone()
             if existing is None:
                 return False
-            conn.execute("UPDATE events SET deleted_at=?, updated_at=?, revision=revision+1 WHERE id=?", (now, now, message_id))
+            conn.execute(
+                "UPDATE events SET deleted_at=?, updated_at=?, revision=revision+1 WHERE id=?", (now, now, message_id)
+            )
             self._refresh_session_stats(conn, existing["session_id"], now)
             return True
 
     def clear_session(self, session_id: str) -> None:
         now = _utc_now()
         with self.connect() as conn:
-            conn.execute("UPDATE events SET deleted_at=?, updated_at=?, revision=revision+1 WHERE session_id=? AND deleted_at IS NULL", (now, now, session_id))
+            conn.execute(
+                "UPDATE events SET deleted_at=?, updated_at=?, revision=revision+1 WHERE session_id=? AND deleted_at IS NULL",
+                (now, now, session_id),
+            )
             self._refresh_session_stats(conn, session_id, now)
 
     def upsert_session(self, session: dict[str, Any]) -> None:
@@ -729,7 +737,9 @@ class SQLiteStore:
             row = conn.execute("SELECT * FROM sessions WHERE session_id=?", (session_id,)).fetchone()
         return _session_row(row) if row is not None else None
 
-    def list_sessions(self, *, status: str = ACTIVE_SESSION_STATUS, session_id_prefix: str | None = None) -> list[dict[str, Any]]:
+    def list_sessions(
+        self, *, status: str = ACTIVE_SESSION_STATUS, session_id_prefix: str | None = None
+    ) -> list[dict[str, Any]]:
         clauses: list[str] = []
         params: list[Any] = []
         if status != "all":
@@ -958,9 +968,7 @@ class SQLiteStore:
 
     def load_proactive_state(self) -> dict[str, Any]:
         with self.connect() as conn:
-            rows = conn.execute(
-                "SELECT key, value_json FROM settings WHERE namespace='proactive_state'"
-            ).fetchall()
+            rows = conn.execute("SELECT key, value_json FROM settings WHERE namespace='proactive_state'").fetchall()
         return {str(row["key"]): _json_loads(row["value_json"], {}) for row in rows}
 
     def save_proactive_state(self, data: dict[str, Any]) -> None:

@@ -172,7 +172,9 @@ def test_noninteractive_with_embeddings_fills_default_model(isolated_config):
 
 def test_noninteractive_fastembed_fills_default_model(isolated_config, monkeypatch):
     prepared: list[tuple[str, str]] = []
-    monkeypatch.setattr(setup_wizard, "ensure_model_ready", lambda provider, model: prepared.append((provider, model)) or model)
+    monkeypatch.setattr(
+        setup_wizard, "ensure_model_ready", lambda provider, model: prepared.append((provider, model)) or model
+    )
 
     cfg = configure_models_noninteractive(provider="claude", embedding_provider="fastembed")
 
@@ -443,7 +445,9 @@ def test_setup_embeddings_keep_available_current(monkeypatch):
     )
     prepared: list[tuple[str, str]] = []
     monkeypatch.setattr(setup_wizard, "ensure_provider_available", lambda provider: None)
-    monkeypatch.setattr(setup_wizard, "ensure_model_ready", lambda provider, model: prepared.append((provider, model)) or model)
+    monkeypatch.setattr(
+        setup_wizard, "ensure_model_ready", lambda provider, model: prepared.append((provider, model)) or model
+    )
     monkeypatch.setattr("builtins.input", lambda _prompt="": "")
 
     setup_wizard._setup_embeddings(cfg, "claude")
@@ -511,7 +515,9 @@ def test_setup_embeddings_local_prepares_fastembed(isolated_config, monkeypatch)
 
     monkeypatch.setattr("builtins.input", lambda _prompt="": next(answers))
     monkeypatch.setattr("yumi.core.features.config.feature_install.ensure_feature_installed", lambda *a, **k: True)
-    monkeypatch.setattr(setup_wizard, "ensure_model_ready", lambda provider, model: prepared.append((provider, model)) or model)
+    monkeypatch.setattr(
+        setup_wizard, "ensure_model_ready", lambda provider, model: prepared.append((provider, model)) or model
+    )
     monkeypatch.setattr(setup_wizard, "_clear_screen", lambda: cleared.append(True))
 
     setup_wizard._setup_embeddings(cfg, "claude")
@@ -833,7 +839,9 @@ def test_prompt_tts_config_local_qwen_does_not_install_without_cuda_torch(monkey
 
     monkeypatch.setattr(setup_wizard, "_select_option", fake_select_option)
     monkeypatch.setattr(setup_wizard, "_qwen_tts_torch_status", lambda: (False, "PyTorch is CPU-only."))
-    monkeypatch.setattr(setup_wizard, "_note", lambda *_args, **_kwargs: pytest.fail("failed Qwen setup should not complete"))
+    monkeypatch.setattr(
+        setup_wizard, "_note", lambda *_args, **_kwargs: pytest.fail("failed Qwen setup should not complete")
+    )
     monkeypatch.setattr(
         "yumi.core.features.config.feature_install.ensure_feature_installed",
         lambda *_args, **_kwargs: pytest.fail("qwen-tts should not install before CUDA PyTorch is ready"),

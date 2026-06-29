@@ -450,9 +450,7 @@ class Memory:
             "content": normalized_content,
             "thought": thought_val,
             "timestamp": timestamp or self.backend.format_timestamp(),
-            "timestamp_num": (
-                timestamp_num if timestamp_num is not None else self.backend.current_timestamp_num()
-            ),
+            "timestamp_num": (timestamp_num if timestamp_num is not None else self.backend.current_timestamp_num()),
         }
 
         # 1) Authoritative write — propagate failures (the message is not accepted).
