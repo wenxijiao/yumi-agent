@@ -5,7 +5,7 @@ generated with `yumi --edge`. The Yumi source tree is often not available in
 that project, so this guide explains how to use the generated SDK scaffold
 without reading Yumi internals.
 
-Canonical source: `yumi/sdk/AGENTS.md` in the `yumi-agent` package. When
+Canonical source: `yumi/sdk/AGENTS.md` in the `yumi` package. When
 `yumi --edge` runs, Yumi copies this file to the edge project root as
 `AGENTS.md`.
 
@@ -571,7 +571,7 @@ Inside a generated edge project:
 - `yumi_tools/<lang>/*setup*`: file to edit for tool registration
 - `yumi_tools/.env`: connection settings
 
-Inside the `yumi-agent` source tree, if available:
+Inside the `yumi` source tree, if available:
 
 - `docs/EDGE_TOOLS.md`: full edge guide
 - `docs/TOOL_REGISTRATION.md`: registration flags and safety reference

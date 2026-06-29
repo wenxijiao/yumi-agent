@@ -15,7 +15,7 @@ Register a function. AI calls it. Python, Rust, Kotlin, Dart, C++, Swift, TypeSc
 ## Quick Start
 
 ```bash
-pip install yumi-agent       # or, from source: git clone … && pip install .
+pip install yumi       # or, from source: git clone … && pip install .
 yumi --server                # first run walks you through provider/model setup
 yumi --demo                  # in another terminal: launches Smart Home + Planner
 yumi --chat                  # ask AI to control them in natural language
@@ -210,7 +210,7 @@ Yumi is **not** another Python-only LLM chaining library. It ships a runnable se
 
 ## Core Scope
 
-This package (`yumi-agent`) is the **open-source, self-hosted core** — run your own server at home. You chat with it remotely through **Telegram, LINE, or Discord** bridges, while edge devices register tools on the **same machine or your LAN**. No account scoping, no quotas — a complete single-user agent on your own hardware.
+This package (`yumi`) is the **open-source, self-hosted core** — run your own server at home. You chat with it remotely through **Telegram, LINE, or Discord** bridges, while edge devices register tools on the **same machine or your LAN**. No account scoping, no quotas — a complete single-user agent on your own hardware.
 
 Use it locally through the terminal chat or web UI, connect messaging bridges when you want remote chat, and add your own apps/devices through Edge SDKs. The API is local-first and single-user by default, so keep it on localhost or a trusted network unless you put your own access controls in front.
 

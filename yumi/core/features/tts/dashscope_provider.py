@@ -83,8 +83,8 @@ class DashScopeTtsProvider(TextToSpeechProvider):
             import dashscope
         except ImportError as exc:
             raise TtsError(
-                "The 'dashscope' package is required for the DashScope TTS provider and ships with yumi-agent. "
-                "Reinstall with: pip install --force-reinstall yumi-agent"
+                "The 'dashscope' package is required for the DashScope TTS provider and ships with yumi. "
+                "Reinstall with: pip install --force-reinstall yumi"
             ) from exc
 
         dashscope.base_http_api_url = self._base_url

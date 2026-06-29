@@ -1,15 +1,15 @@
 # Deployment
 
-Yumi ships as a standalone Python package. `pip install yumi-agent` gives you a
+Yumi ships as a standalone Python package. `pip install yumi` gives you a
 runnable local-first agent server, CLI, HTTP API, and Edge SDK templates.
 
 ## Install
 
 ```bash
-pip install yumi-agent              # batteries-included: chat/embedding providers,
+pip install yumi              # batteries-included: chat/embedding providers,
                                     # messaging bridges, voice/STT/TTS, the web UI,
                                     # HTTP API, and CLI
-pip install "yumi-agent[tts-local]" # optional: local GPU Qwen3-TTS
+pip install "yumi[tts-local]" # optional: local GPU Qwen3-TTS
 ```
 
 The web UI now ships **pre-built** (a static React app served by the core
@@ -69,7 +69,7 @@ across container restarts. Expose `8000` for the HTTP API.
 
 ```bash
 python -m build --wheel
-python -m venv /tmp/venv && /tmp/venv/bin/pip install dist/yumi_agent-*.whl
+python -m venv /tmp/venv && /tmp/venv/bin/pip install dist/yumi-*.whl
 /tmp/venv/bin/python -c "import yumi; print('ok')"
 /tmp/venv/bin/yumi --help
 ```

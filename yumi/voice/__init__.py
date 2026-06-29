@@ -8,7 +8,7 @@ Submodules:
 * :mod:`yumi.voice.runtime` – the asyncio loop wiring everything together.
 * :mod:`yumi.voice.dispatch` – send transcribed prompts into ``generate_chat_events``.
 
-Python dependencies ship with ``pip install yumi-agent``; a Picovoice access
+Python dependencies ship with ``pip install yumi``; a Picovoice access
 key, a wake-word file, microphone permission, and STT configuration are still
 runtime setup steps.
 """

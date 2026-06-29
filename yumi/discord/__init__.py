@@ -1,4 +1,4 @@
-"""Discord bridge for Yumi (discord.py ships with yumi-agent)."""
+"""Discord bridge for Yumi (discord.py ships with yumi)."""
 
 from yumi.discord.bot import build_client, run_discord_bot_sync
 from yumi.discord.notify import send_timer_result_to_discord

@@ -113,8 +113,8 @@ class DashScopeSttProvider(SpeechToTextProvider):
             import dashscope
         except ImportError as exc:
             raise SttError(
-                "The 'dashscope' package is required for DashScope transcription and ships with yumi-agent. "
-                "Reinstall with: pip install --force-reinstall yumi-agent"
+                "The 'dashscope' package is required for DashScope transcription and ships with yumi. "
+                "Reinstall with: pip install --force-reinstall yumi"
             ) from exc
 
         if not self._api_key:

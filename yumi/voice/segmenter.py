@@ -21,7 +21,7 @@ class _VadBackend:
             import webrtcvad  # noqa: F401
         except ImportError as exc:  # pragma: no cover - import-time guard
             raise RuntimeError(
-                "webrtcvad is not importable. Reinstall with: pip install --force-reinstall yumi-agent"
+                "webrtcvad is not importable. Reinstall with: pip install --force-reinstall yumi"
             ) from exc
         import webrtcvad
 

@@ -74,7 +74,7 @@ jobs:
       - name: Install wheel into a clean venv and smoke-test
         run: |
           python -m venv /tmp/clean
-          /tmp/clean/bin/pip install dist/yumi_agent-*.whl
+          /tmp/clean/bin/pip install dist/yumi-*.whl
           /tmp/clean/bin/python -c "import yumi; from yumi.core.platform.runtime import get_default_runtime; from yumi.core.features.chat.service import ChatTurnService; print('standalone import OK')"
           /tmp/clean/bin/yumi --help
 

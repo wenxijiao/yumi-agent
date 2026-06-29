@@ -1,4 +1,4 @@
-"""Telegram bridge for Yumi (dependencies bundled with yumi-agent)."""
+"""Telegram bridge for Yumi (dependencies bundled with yumi)."""
 
 from yumi.telegram.bot import build_application, run_telegram_bot_sync
 from yumi.telegram.notify import send_timer_result_to_telegram

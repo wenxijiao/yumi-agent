@@ -47,7 +47,7 @@ class PorcupineWake:
             import pvporcupine  # noqa: F401
         except ImportError as exc:  # pragma: no cover - import-time guard
             raise RuntimeError(
-                "pvporcupine is not importable. Reinstall with: pip install --force-reinstall yumi-agent"
+                "pvporcupine is not importable. Reinstall with: pip install --force-reinstall yumi"
             ) from exc
         import pvporcupine
 

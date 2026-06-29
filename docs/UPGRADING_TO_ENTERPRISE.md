@@ -1,6 +1,6 @@
-# Upgrading from `yumi-agent` (OSS) to `yumi-enterprise`
+# Upgrading from `yumi` (OSS) to `yumi-enterprise`
 
-The OSS `yumi-agent` package is a complete, single-user / LAN agent. You
+The OSS `yumi` package is a complete, single-user / LAN agent. You
 do not need anything else to chat with an agent, register tools across
 eleven languages, or run a personal Telegram / LINE bot.
 
@@ -51,7 +51,7 @@ This means:
    docker pull ${REGISTRY_URL}/yumi-enterprise:latest
 
    # Or, on a Python host (private wheel)
-   pip install yumi-agent                  # OSS, from PyPI
+   pip install yumi                  # OSS, from PyPI
    pip install /path/to/yumi_enterprise-*.whl --no-deps
    ```
 
@@ -100,7 +100,7 @@ mode at any time.
 
 ## Compatibility promise
 
-`yumi-enterprise` pins a narrow OSS range (`yumi-agent>=0.3,<0.4`).
+`yumi-enterprise` pins a narrow OSS range (`yumi>=0.3,<0.4`).
 Within that range the OSS team commits to:
 
 - not removing or renaming any class in `yumi.core.platform.plugins`

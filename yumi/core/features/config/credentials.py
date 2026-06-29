@@ -103,7 +103,7 @@ def ensure_provider_available(provider_name: str) -> None:
             raise ProviderNotReadyError(
                 "YUMI_MISSING_FASTEMBED",
                 "FastEmbed is required for local embeddings.",
-                hint="FastEmbed ships with yumi-agent. Reinstall with `pip install --force-reinstall yumi-agent`.",
+                hint="FastEmbed ships with yumi. Reinstall with `pip install --force-reinstall yumi`.",
             )
     else:
         from yumi.core.platform.providers import ALL_PROVIDER_NAMES

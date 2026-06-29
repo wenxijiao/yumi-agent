@@ -23,7 +23,7 @@ We aim to acknowledge reports within a few business days and coordinate disclosu
 
 ## Threat model (short)
 
-`yumi-agent` is a **complete single-user, self-hosted agent**: it runs on your own machine for one user, so by design it does not authenticate requests or scope data per user — there is one user. That is appropriate for a personal local tool, not a missing feature. Accordingly, the local HTTP API is intended for **trusted networks** and binds `127.0.0.1` by default; expose it on a LAN only on a network you trust (`yumi --server --host 0.0.0.0`), and never expose the unauthenticated admin API to the public Internet.
+`yumi` is a **complete single-user, self-hosted agent**: it runs on your own machine for one user, so by design it does not authenticate requests or scope data per user — there is one user. That is appropriate for a personal local tool, not a missing feature. Accordingly, the local HTTP API is intended for **trusted networks** and binds `127.0.0.1` by default; expose it on a LAN only on a network you trust (`yumi --server --host 0.0.0.0`), and never expose the unauthenticated admin API to the public Internet.
 
 Identity, authorization, and quotas are resolved through the plugin ports under `yumi.core.platform.plugins`, so the same routes can carry per-user authorization in other deployment models without changing route code — but none of that is required to run yumi-agent for yourself. Relay mode and browser CORS have additional considerations; see [docs/HTTP_API.md](docs/HTTP_API.md) and [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 

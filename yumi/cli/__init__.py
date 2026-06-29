@@ -91,7 +91,7 @@ def __getattr__(name: str):
 def _package_version() -> str:
     """Return the installed package version, with a source-tree fallback."""
     try:
-        return version("yumi-agent")
+        return version("yumi")
     except PackageNotFoundError:
         from yumi import __version__
 

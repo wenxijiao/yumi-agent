@@ -201,7 +201,7 @@ Put `HF_TOKEN=hf_...` in **`~/.yumi/.env`** or **`./.env`** if you want; Yumi lo
 
 Speech-to-text is optional and disabled by default. Run `yumi --setup` to enable local multilingual Whisper for Telegram voice/audio, LINE audio, audio uploads in the web UI, or `/transcribe <path>` in `yumi --chat`.
 
-`pip install yumi-agent` includes the Whisper runtime, but **model weight files** are large and are not in the git repository or wheel. When you pick an STT model in `yumi --setup`, Yumi **downloads the weights to** `~/.yumi/models/whisper` (or your chosen directory) so the first real voice message is not stuck waiting on the network.
+`pip install yumi` includes the Whisper runtime, but **model weight files** are large and are not in the git repository or wheel. When you pick an STT model in `yumi --setup`, Yumi **downloads the weights to** `~/.yumi/models/whisper` (or your chosen directory) so the first real voice message is not stuck waiting on the network.
 
 The **cloud STT providers** (`openai`, `gemini`, `dashscope`) need no extra and no model download — they ship in the base install and reuse the API key you already configured for that provider. Pick one in `yumi --setup` when you want transcription without local model weights; `openai` additionally honors `openai_base_url` (`OPENAI_BASE_URL`) for OpenAI-compatible proxy / Azure endpoints.
 
@@ -301,7 +301,7 @@ When a timer fires for a Telegram session (`tg_<user_id>`), the **API process** 
 
 ## Discord
 
-Discord works out of the box — `discord.py` ships with `yumi-agent` (no extra needed). The bot keeps an outbound gateway connection — no public webhook or URL is needed, the same self-hosted spirit as Telegram polling. Sessions are keyed by `dc_<user_id>`, and chat flows through the same `POST /chat` NDJSON stream as Telegram.
+Discord works out of the box — `discord.py` ships with `yumi` (no extra needed). The bot keeps an outbound gateway connection — no public webhook or URL is needed, the same self-hosted spirit as Telegram polling. Sessions are keyed by `dc_<user_id>`, and chat flows through the same `POST /chat` NDJSON stream as Telegram.
 
 ### Setup
 
@@ -356,7 +356,7 @@ Yumi exposes `POST /line/webhook`, verifies `X-Line-Signature`, and forwards cha
 
 ### Install
 
-`pip install yumi-agent` includes `sounddevice` (mic capture), `webrtcvad-wheels` (voice activity detection), `pvporcupine` (wake-word), and `faster-whisper` (transcription). Whisper weights are downloaded the first time you run `yumi --setup` and pick a model.
+`pip install yumi` includes `sounddevice` (mic capture), `webrtcvad-wheels` (voice activity detection), `pvporcupine` (wake-word), and `faster-whisper` (transcription). Whisper weights are downloaded the first time you run `yumi --setup` and pick a model.
 
 ### Setup
 
@@ -402,9 +402,9 @@ Yumi can speak its replies. In voice mode (`--server --voice`) replies are spoke
 | `system` | OS speech command (Windows SAPI, macOS `say`, Linux `espeak`/`espeak-ng`) | nothing (zero-dependency default) |
 | `openai` | OpenAI TTS (`gpt-4o-mini-tts` / `tts-1` / `tts-1-hd`) | `openai_api_key` (no extra; in the base install) |
 | `dashscope` | Qwen3-TTS via the Alibaba Cloud DashScope API | `DASHSCOPE_API_KEY` (no extra; in the base install) |
-| `qwen` | Qwen3-TTS run locally | a GPU + PyTorch (see note); `pip install yumi-agent[tts-local]` |
+| `qwen` | Qwen3-TTS run locally | a GPU + PyTorch (see note); `pip install yumi[tts-local]` |
 
-For `system`, `openai`, and `dashscope`, `pip install yumi-agent` includes the required Python packages. **Local `qwen` is the one exception**: it runs on PyTorch, and GPU-specific builds are large and platform-specific, so they cannot be part of the default install. Install PyTorch for your device from <https://pytorch.org/get-started/locally/> **first**; then `yumi --setup` will install `qwen-tts` on top. CUDA/NVIDIA is the fastest and most reliable path. Apple MPS can work on some Apple Silicon Macs, but is more experimental and usually slower. The provider auto-detects the device (CUDA → Apple MPS → CPU), and the first synthesis downloads the model weights (~GBs, with a progress bar).
+For `system`, `openai`, and `dashscope`, `pip install yumi` includes the required Python packages. **Local `qwen` is the one exception**: it runs on PyTorch, and GPU-specific builds are large and platform-specific, so they cannot be part of the default install. Install PyTorch for your device from <https://pytorch.org/get-started/locally/> **first**; then `yumi --setup` will install `qwen-tts` on top. CUDA/NVIDIA is the fastest and most reliable path. Apple MPS can work on some Apple Silicon Macs, but is more experimental and usually slower. The provider auto-detects the device (CUDA → Apple MPS → CPU), and the first synthesis downloads the model weights (~GBs, with a progress bar).
 
 ### Config keys
 

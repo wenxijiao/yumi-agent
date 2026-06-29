@@ -1,4 +1,4 @@
-"""Local Whisper STT via ``faster-whisper`` (bundled with yumi-agent)."""
+"""Local Whisper STT via ``faster-whisper`` (bundled with yumi)."""
 
 from __future__ import annotations
 
@@ -87,8 +87,8 @@ def ensure_whisper_weights_cached(*, model: str, model_dir: str | None = None) -
         from tqdm.auto import tqdm
     except ImportError as exc:
         raise RuntimeError(
-            "faster-whisper is required for STT and ships with yumi-agent. "
-            "Reinstall with: pip install --force-reinstall yumi-agent"
+            "faster-whisper is required for STT and ships with yumi. "
+            "Reinstall with: pip install --force-reinstall yumi"
         ) from exc
     fw_id = _FASTER_WHISPER_MODEL_IDS.get(model_name, model_name)
     repo_id = _FASTER_WHISPER_REPO_IDS.get(model_name)
@@ -149,7 +149,7 @@ class WhisperSttProvider(SpeechToTextProvider):
             except ImportError as exc:
                 raise SttError(
                     "faster-whisper is not importable. Reinstall with: "
-                    "pip install --force-reinstall yumi-agent"
+                    "pip install --force-reinstall yumi"
                 ) from exc
             self.model_dir.mkdir(parents=True, exist_ok=True)
             try:

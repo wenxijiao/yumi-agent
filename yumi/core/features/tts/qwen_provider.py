@@ -94,7 +94,7 @@ class QwenTtsProvider(TextToSpeechProvider):
             raise TtsError(
                 "qwen-tts (and PyTorch) are required for the local Qwen3-TTS provider. "
                 "Install PyTorch for your GPU from https://pytorch.org/get-started/locally/ , "
-                "then: pip install 'yumi-agent[tts-local]'."
+                "then: pip install 'yumi[tts-local]'."
             ) from exc
         device = self._device or self._auto_device(torch)
         QWEN_TTS_MODELS_DIR.mkdir(parents=True, exist_ok=True)
