@@ -33,7 +33,7 @@ class AudioSource(Protocol):
 class SoundDeviceSource:
     """Real microphone capture via the ``sounddevice`` library.
 
-    ``sounddevice`` ships with yumi; importing this class without it
+    ``sounddevice`` ships with yumi-agent; importing this class without it
     raises a clear repair hint for broken/partial installs.
     """
 
@@ -42,7 +42,7 @@ class SoundDeviceSource:
             import sounddevice as sd  # noqa: F401
         except ImportError as exc:  # pragma: no cover - import-time guard
             raise RuntimeError(
-                "sounddevice is not importable. Reinstall with: pip install --force-reinstall yumi"
+                "sounddevice is not importable. Reinstall with: pip install --force-reinstall yumi-agent"
             ) from exc
         self.sample_rate = int(sample_rate)
         self.frame_length = int(frame_length)

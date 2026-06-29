@@ -120,8 +120,8 @@ class OpenAIProvider(BaseLLMProvider):
             from openai import AsyncOpenAI, OpenAI
         except ImportError as exc:
             raise ImportError(
-                "The 'openai' package ships with yumi but is missing here. "
-                "Reinstall with: pip install --force-reinstall yumi"
+                "The 'openai' package ships with yumi-agent but is missing here. "
+                "Reinstall with: pip install --force-reinstall yumi-agent"
             ) from exc
 
         resolved_key = api_key or os.getenv("OPENAI_API_KEY") or ""

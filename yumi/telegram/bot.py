@@ -342,7 +342,7 @@ def build_application():
         )
     except ImportError as exc:
         raise RuntimeError(
-            "Failed to import python-telegram-bot (ships with yumi). Reinstall: pip install --force-reinstall yumi"
+            "Failed to import python-telegram-bot (ships with yumi-agent). Reinstall: pip install --force-reinstall yumi-agent"
         ) from exc
 
     token = get_telegram_bot_token()

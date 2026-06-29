@@ -11,7 +11,7 @@
 If you are installing from PyPI:
 
 ```bash
-pip install yumi
+pip install yumi-agent
 ```
 
 If you are installing from source:
@@ -32,7 +32,7 @@ pip install -e ".[dev]"
 
 | Artifact | Install |
 |----------|---------|
-| **Python app & server** | PyPI package name: **`yumi`**. Source installs use `pip install .` from a clone. |
+| **Python app & server** | PyPI package name: **`yumi-agent`**. Source installs use `pip install .` from a clone. |
 | **TypeScript SDK** | npm package name: **`yumi-sdk`** ([`yumi/sdk/typescript/package.json`](../yumi/sdk/typescript/package.json)). Source/template installs can copy from this repo or use `yumi --edge`. |
 | **Go, Swift, Java, C++, Rust, Kotlin, Dart, UE5** | Vendored from [`yumi/sdk/`](../yumi/sdk/README.md) or copied into your project via `yumi --edge`; not published as language-specific registry packages yet. |
 
@@ -129,7 +129,7 @@ yumi --server --voice            # or:  yumi --server --telegram --voice
 ```
 
 The Python packages for microphone capture, wake-word detection, VAD, and
-Whisper ship with `pip install yumi`; Whisper weights are downloaded when
+Whisper ship with `pip install yumi-agent`; Whisper weights are downloaded when
 you choose a local model.
 
 Required setup:

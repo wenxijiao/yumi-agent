@@ -98,8 +98,8 @@ class ClaudeProvider(BaseLLMProvider):
             import anthropic
         except ImportError as exc:
             raise ImportError(
-                "The 'anthropic' package ships with yumi but is missing here. "
-                "Reinstall with: pip install --force-reinstall yumi"
+                "The 'anthropic' package ships with yumi-agent but is missing here. "
+                "Reinstall with: pip install --force-reinstall yumi-agent"
             ) from exc
 
         resolved_key = api_key or os.getenv("ANTHROPIC_API_KEY") or ""

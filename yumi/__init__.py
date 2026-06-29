@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING
 __all__ = ["__version__", "YumiAgent", "register", "run", "run_in_background", "stop"]
 
 try:
-    __version__ = version("yumi")
+    __version__ = version("yumi-agent")
 except PackageNotFoundError:
     __version__ = "0.0.1"
 

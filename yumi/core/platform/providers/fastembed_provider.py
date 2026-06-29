@@ -27,7 +27,7 @@ class FastEmbedProvider(BaseLLMProvider):
                 from fastembed import TextEmbedding
             except ImportError as exc:
                 raise RuntimeError(
-                    "FastEmbed is not importable. Reinstall with: pip install --force-reinstall yumi"
+                    "FastEmbed is not importable. Reinstall with: pip install --force-reinstall yumi-agent"
                 ) from exc
             kwargs: dict[str, Any] = {"model_name": model_name}
             try:

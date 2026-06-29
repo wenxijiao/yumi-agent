@@ -1,6 +1,6 @@
 """Install optional ('extra') feature dependencies on demand.
 
-The base ``pip install yumi`` is intentionally batteries-included for
+The base ``pip install yumi-agent`` is intentionally batteries-included for
 chat providers, messaging bridges, STT, microphone voice mode, cloud TTS/STT,
 local FastEmbed embeddings, and file ingestion. The web UI now ships pre-built
 and is served by the core server (no extra install). Only local-GPU Qwen TTS
@@ -19,7 +19,7 @@ import sys
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import requires as _dist_requires
 
-_DIST = "yumi"
+_DIST = "yumi-agent"
 
 # feature -> (extra name, module to probe for "already installed?", label)
 _FEATURES: dict[str, tuple[str, str, str]] = {
@@ -38,7 +38,7 @@ def _extra_requirements(extra: str) -> list[str]:
 
     Reading the installed distribution's own metadata works whether yumi-agent
     was installed from PyPI, from git, or editable from source — so we never
-    depend on ``yumi[extra]`` resolving against an index that may not have
+    depend on ``yumi-agent[extra]`` resolving against an index that may not have
     published us yet.
     """
     try:
@@ -70,7 +70,7 @@ def ensure_feature_installed(feature: str, *, assume_yes: bool = False) -> bool:
         print(f"  {label} needs an optional package that isn't installed yet.")
         answer = input("  Install it now? (Y/n): ").strip().lower()
     if answer in ("n", "no"):
-        print(f"  Skipped. Install later with:  pip install 'yumi[{extra}]'")
+        print(f"  Skipped. Install later with:  pip install 'yumi-agent[{extra}]'")
         return False
 
     targets = _extra_requirements(extra) or [f"{_DIST}[{extra}]"]
@@ -79,7 +79,7 @@ def ensure_feature_installed(feature: str, *, assume_yes: bool = False) -> bool:
         subprocess.run([sys.executable, "-m", "pip", "install", *targets], check=True)
     except (subprocess.CalledProcessError, OSError) as exc:
         print(f"  Install failed ({exc}).")
-        print(f"  Try manually:  pip install 'yumi[{extra}]'")
+        print(f"  Try manually:  pip install 'yumi-agent[{extra}]'")
         return False
 
     importlib.invalidate_caches()

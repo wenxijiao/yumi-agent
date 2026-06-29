@@ -3,7 +3,7 @@ requires = ["setuptools>=77.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "yumi"
+name = "yumi-agent"
 version = "0.0.1"
 description = "Yumi — open-source self-hosted AI agent framework: cross-language tool edges + Telegram/LINE/Discord chat"
 license = "Apache-2.0"
@@ -41,7 +41,7 @@ dependencies = [
     "tqdm>=4.66",
     "rich>=13.7",
     # LLM provider SDKs — small pure-Python clients, bundled so every provider
-    # works straight after `pip install yumi`. openai also drives DeepSeek
+    # works straight after `pip install yumi-agent`. openai also drives DeepSeek
     # (an OpenAI-compatible endpoint).
     "openai>=1.0",
     "google-genai>=1.0",
@@ -140,7 +140,7 @@ dev = [
 ]
 # The web UI now ships pre-built (static assets served by the core server), so
 # it needs no extra install or Node. Only local-GPU Qwen TTS stays out of the
-# base install. Base `pip install yumi` includes STT, microphone voice
+# base install. Base `pip install yumi-agent` includes STT, microphone voice
 # deps, cloud TTS/STT, and local FastEmbed support; model/embedding weights are
 # still downloaded on demand by setup/runtime.
 tts-local = ["qwen-tts"]

@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `pip install yumi` now includes local FastEmbed, Whisper STT,
+- `pip install yumi-agent` now includes local FastEmbed, Whisper STT,
   microphone wake-word dependencies, DashScope cloud STT/TTS, and the pre-built
   web UI. Only local-GPU Qwen TTS (`[tts-local]`) remains an optional extra;
   model weights and embedding assets are still downloaded on demand.
@@ -123,7 +123,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (features → platform, never the reverse) enforced by tests. The old import
   paths were retired — no compatibility shims remain, so only the new paths are
   importable. See `docs/MIGRATION_PLATFORM_FEATURES.md` for the full old→new map.
-- **Batteries-included base install.** `pip install yumi` now bundles the
+- **Batteries-included base install.** `pip install yumi-agent` now bundles the
   LLM providers (OpenAI / Gemini / Claude, incl. DeepSeek), the Telegram +
   Discord bridges, and file ingestion, so they work out of the box. Only heavy /
   system-dependent features remain as extras (`[ui]`, `[stt]`, `[voice]`,
@@ -210,7 +210,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Repository split**: this `yumi` package is now the open-source single-user / LAN core. Higher-layer identity, policy, billing, and remote-pairing features live outside L1 and extend the core via the `yumi.core.platform.plugins` port system (`IdentityProvider`, `QuotaPolicy`, `BotPool`, `MemoryFactory`, `SessionScope`, `EdgeScope`, `AuditSink`, `BillingHook`, `RouteExtender`, `MiddlewareExtender`).
+- **Repository split**: this `yumi-agent` package is now the open-source single-user / LAN core. Higher-layer identity, policy, billing, and remote-pairing features live outside L1 and extend the core via the `yumi.core.platform.plugins` port system (`IdentityProvider`, `QuotaPolicy`, `BotPool`, `MemoryFactory`, `SessionScope`, `EdgeScope`, `AuditSink`, `BillingHook`, `RouteExtender`, `MiddlewareExtender`).
 - The OSS HTTP API now boots with `single_user` defaults: requests resolve to the local identity (`_local`), there is no Bearer auth requirement, and there are no quotas, billing, or account scoping.
 - CLI surface trimmed to `--server`, `--ui`, `--chat`, `--telegram`, `--line`, `--edge`, `--demo`, `--setup`, `--cleanup`, `--cleanup-memory`. Provisioning, migration, and public remote-access commands belong to higher layers.
 - `yumi.core.platform.security.connection` is now LAN-only (`mode="direct"`); remote profile bootstrap, persistence, and alternate connection variants moved out of L1.
