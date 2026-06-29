@@ -1,6 +1,7 @@
 """Zero-dependency TTS via the OS speech command.
 
-macOS ships ``say``; most Linux distros have ``espeak`` / ``espeak-ng``. This is
+macOS ships ``say``; Windows ships SAPI via PowerShell; most Linux distros have
+``espeak`` / ``espeak-ng``. This is
 the always-available default so spoken replies work without a GPU, an API key,
 or a heavy model download. Quality is modest — the qwen / dashscope providers
 are the upgrade path.
@@ -23,6 +24,11 @@ _SAMPLE_RATE = 22050
 
 def resolve_system_command() -> str | None:
     """Name of an available OS speech command, or None."""
+    if sys.platform == "win32":
+        for candidate in ("powershell", "pwsh"):
+            if shutil.which(candidate):
+                return candidate
+        return None
     if sys.platform == "darwin" and shutil.which("say"):
         return "say"
     for candidate in ("espeak-ng", "espeak"):
@@ -55,12 +61,20 @@ class SystemTtsProvider(TextToSpeechProvider):
             path = tmp.name
         try:
             argv = self._build_argv(command, text, voice, path)
+            env = None
+            if command in ("powershell", "pwsh"):
+                env = os.environ.copy()
+                env["YUMI_TTS_OUT"] = path
+                env["YUMI_TTS_TEXT"] = text
+                env["YUMI_TTS_VOICE"] = voice or ""
             try:
-                subprocess.run(argv, check=True, capture_output=True)
+                subprocess.run(argv, check=True, capture_output=True, env=env)
             except (subprocess.CalledProcessError, OSError) as exc:
                 raise TtsError(f"System TTS command failed: {exc}") from exc
             with open(path, "rb") as fh:
                 data = fh.read()
+            if not data:
+                raise TtsError("System TTS command produced no audio.")
         finally:
             try:
                 os.unlink(path)
@@ -76,6 +90,27 @@ class SystemTtsProvider(TextToSpeechProvider):
                 argv += ["-v", voice]
             argv.append(text)
             return argv
+        if command in ("powershell", "pwsh"):  # Windows SAPI
+            script = (
+                "$out = [string]$env:YUMI_TTS_OUT; "
+                "$text = [string]$env:YUMI_TTS_TEXT; "
+                "$voice = [string]$env:YUMI_TTS_VOICE; "
+                "Add-Type -AssemblyName System.Speech; "
+                "$synth = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
+                "try { "
+                "if ($voice) { $synth.SelectVoice($voice) }; "
+                "$synth.SetOutputToWaveFile($out); "
+                "$synth.Speak($text) "
+                "} finally { $synth.Dispose() }"
+            )
+            return [
+                command,
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                script,
+            ]
         # espeak / espeak-ng
         argv = [command, "-w", out_path]
         if voice:

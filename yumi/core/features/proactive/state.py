@@ -8,6 +8,7 @@ from typing import Any
 
 from yumi.core.features.config.paths import CONFIG_DIR, ensure_config_dir
 from yumi.core.features.config.store import load_model_config
+from yumi.core.platform.storage.sqlite_store import SQLiteStore, db_path_for_config_path
 from yumi.core.platform.timezone import proactive_calendar_date_iso
 from yumi.logging_config import get_logger
 
@@ -53,7 +54,16 @@ class ProactiveStateStore:
     def __init__(self, path: Path | None = None):
         self.path = path or STATE_PATH
 
+    def _store(self) -> SQLiteStore:
+        return SQLiteStore(db_path_for_config_path(self.path.with_name("config.json")))
+
     def _load_raw(self) -> dict[str, Any]:
+        try:
+            data = self._store().load_proactive_state()
+            if data:
+                return {"sessions": data}
+        except Exception:
+            pass
         if not self.path.exists():
             return {"sessions": {}}
         try:
@@ -65,9 +75,20 @@ class ProactiveStateStore:
         sessions = data.get("sessions")
         if not isinstance(sessions, dict):
             data["sessions"] = {}
+        elif sessions:
+            try:
+                self._store().save_proactive_state(sessions)
+            except Exception:
+                pass
         return data
 
     def _save_raw(self, data: dict[str, Any]) -> None:
+        sessions = data.get("sessions")
+        if isinstance(sessions, dict):
+            try:
+                self._store().save_proactive_state(sessions)
+            except Exception as exc:
+                logger.debug("Could not save proactive state to SQLite: %s", exc)
         try:
             ensure_config_dir()
             self.path.parent.mkdir(parents=True, exist_ok=True)

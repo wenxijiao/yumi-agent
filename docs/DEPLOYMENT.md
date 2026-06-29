@@ -6,17 +6,18 @@ runnable local-first agent server, CLI, HTTP API, and Edge SDK templates.
 ## Install
 
 ```bash
-pip install yumi-agent            # batteries-included: all chat/embedding
-                                  # providers, Telegram/Discord/LINE bridges,
-                                  # HTTP API, and CLI
-pip install "yumi-agent[all]"     # + web UI, voice wake-word, STT, and TTS
+pip install yumi-agent              # batteries-included: chat/embedding providers,
+                                    # messaging bridges, voice/STT/TTS, HTTP API, and CLI
+pip install "yumi-agent[ui]"        # optional: Reflex web UI
+pip install "yumi-agent[tts-local]" # optional: local GPU Qwen3-TTS
+pip install "yumi-agent[all]"       # optional: UI + local GPU Qwen3-TTS
 ```
 
-Optional extras (combine as needed): `embed` (local FastEmbed embeddings),
-`ui` (Reflex web UI), `stt` (Whisper speech-to-text), `voice` (microphone
-wake-word loop), `tts` (DashScope spoken replies), `tts-local` (on-GPU
-Qwen3-TTS), and `all` (everything above). Cloud providers and messaging
-bridges are in the base install — no extra needed.
+Optional extras are intentionally limited to `ui` (Reflex web UI), `tts-local`
+(on-GPU Qwen3-TTS), and `all` (both). Cloud providers, messaging bridges,
+FastEmbed, Whisper STT, microphone wake-word dependencies, and DashScope TTS/STT
+are in the base install. Model weights and embedding assets are still downloaded
+on demand.
 
 Python 3.10+.
 

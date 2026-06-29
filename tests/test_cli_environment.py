@@ -37,6 +37,59 @@ def test_reflex_ui_root_points_at_rxconfig():
     assert os.path.isfile(os.path.join(root, "rxconfig.py"))
 
 
+def test_ui_node_runtime_reports_missing_node(monkeypatch, capsys):
+    monkeypatch.setattr(cli_runners.shutil, "which", lambda _name: None)
+    monkeypatch.setattr(cli_runners.sys, "platform", "win32")
+
+    assert cli_runners._ensure_ui_node_runtime() is False
+
+    out = capsys.readouterr().out
+    assert "Node.js 22.12.0 or newer" in out
+    assert "Detected Node: not found" in out
+    assert "Detected platform: Windows" in out
+    assert "winget install OpenJS.NodeJS.LTS" in out
+
+
+def test_platform_label_is_user_facing():
+    assert cli_runners._platform_label("win32") == "Windows"
+    assert cli_runners._platform_label("darwin") == "macOS"
+    assert cli_runners._platform_label("linux") == "Linux"
+    assert cli_runners._platform_label("freebsd") == "freebsd"
+
+
+def test_ui_node_install_help_lines_cover_desktop_platforms():
+    assert "winget install OpenJS.NodeJS.LTS" in "\n".join(cli_runners._node_install_help_lines("win32"))
+    assert "brew install node" in "\n".join(cli_runners._node_install_help_lines("darwin"))
+    linux_help = "\n".join(cli_runners._node_install_help_lines("linux"))
+    assert "nvm install 22.12.0" in linux_help
+    assert "deb.nodesource.com/setup_22.x" in linux_help
+
+
+def test_ui_node_runtime_rejects_old_node(monkeypatch, capsys):
+    monkeypatch.setattr(cli_runners.shutil, "which", lambda _name: "node")
+    monkeypatch.setattr(
+        cli_runners.subprocess,
+        "run",
+        lambda *_args, **_kwargs: SimpleNamespace(stdout="v20.11.1\n", stderr=""),
+    )
+
+    assert cli_runners._ensure_ui_node_runtime() is False
+
+    out = capsys.readouterr().out
+    assert "Detected Node: v20.11.1" in out
+
+
+def test_ui_node_runtime_accepts_required_node(monkeypatch):
+    monkeypatch.setattr(cli_runners.shutil, "which", lambda _name: "node")
+    monkeypatch.setattr(
+        cli_runners.subprocess,
+        "run",
+        lambda *_args, **_kwargs: SimpleNamespace(stdout="v22.12.0\n", stderr=""),
+    )
+
+    assert cli_runners._ensure_ui_node_runtime() is True
+
+
 def test_main_dispatches_cleanup_memory(monkeypatch):
     called = {"memory": False}
 
@@ -47,6 +100,40 @@ def test_main_dispatches_cleanup_memory(monkeypatch):
     cli.main()
 
     assert called["memory"] is True
+
+
+def test_main_dispatches_cleanup_models(monkeypatch):
+    called = {}
+
+    monkeypatch.setattr(sys, "argv", ["yumi", "--cleanup-models", "--include-ollama"])
+    monkeypatch.setattr(cli, "configure_logging", lambda: None)
+    monkeypatch.setattr(cli, "run_cleanup_models", lambda **kwargs: called.update(kwargs))
+
+    cli.main()
+
+    assert called == {"include_ollama": True}
+
+
+def test_include_ollama_requires_cleanup_models(monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["yumi", "--include-ollama"])
+    monkeypatch.setattr(cli, "configure_logging", lambda: None)
+
+    with pytest.raises(SystemExit) as exc:
+        cli.main()
+
+    assert "Use --include-ollama with --cleanup-models." in str(exc.value)
+
+
+def test_configured_ollama_models_are_deduplicated(monkeypatch):
+    cfg = SimpleNamespace(
+        chat_provider="ollama",
+        chat_model="qwen3.5:9b",
+        embedding_provider="ollama",
+        embedding_model="qwen3.5:9b",
+    )
+    monkeypatch.setattr(cli_runners, "load_saved_model_config", lambda: cfg)
+
+    assert cli_runners._configured_ollama_models() == ["qwen3.5:9b"]
 
 
 @pytest.mark.parametrize("flag", ["--version", "-v"])
@@ -77,6 +164,7 @@ def test_main_help_is_grouped_and_user_facing(monkeypatch, capsys):
     assert "| Setup And Maintenance" in out
     assert "| Messaging And Voice" in out
     assert "yumi --run-edge" in out
+    assert "yumi --cleanup-models" in out
     assert "yumi --server --telegram --discord --line" in out
     assert "terminal chat" in out
     assert "Web UI" in out

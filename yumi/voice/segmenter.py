@@ -20,7 +20,9 @@ class _VadBackend:
         try:
             import webrtcvad  # noqa: F401
         except ImportError as exc:  # pragma: no cover - import-time guard
-            raise RuntimeError("webrtcvad is not installed. Install with: pip install yumi-agent[voice]") from exc
+            raise RuntimeError(
+                "webrtcvad is not importable. Reinstall with: pip install --force-reinstall yumi-agent"
+            ) from exc
         import webrtcvad
 
         self._vad = webrtcvad.Vad(int(aggressiveness))

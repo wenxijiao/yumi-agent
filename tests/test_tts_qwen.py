@@ -6,6 +6,8 @@ is mocked so the conversion + plumbing can be tested on any machine.
 
 import asyncio
 import io
+import sys
+import types
 import wave
 
 import numpy as np
@@ -55,6 +57,60 @@ def test_auto_device_prefers_cuda_then_mps_then_cpu():
     assert QwenTtsProvider._auto_device(fake_torch(True, True)) == "cuda:0"
     assert QwenTtsProvider._auto_device(fake_torch(False, True)) == "mps"
     assert QwenTtsProvider._auto_device(fake_torch(False, False)) == "cpu"
+
+
+def test_load_kwargs_use_cuda_bfloat16():
+    import types
+
+    fake_torch = types.SimpleNamespace(bfloat16="bf16", float32="fp32")
+
+    assert QwenTtsProvider._load_kwargs(fake_torch, "cuda:0") == {
+        "device_map": "cuda:0",
+        "dtype": "bf16",
+    }
+
+
+def test_load_kwargs_use_sdpa_float32_for_mps():
+    fake_torch = types.SimpleNamespace(bfloat16="bf16", float32="fp32")
+
+    assert QwenTtsProvider._load_kwargs(fake_torch, "mps") == {
+        "device_map": "mps",
+        "dtype": "fp32",
+        "attn_implementation": "sdpa",
+    }
+
+
+def test_load_model_uses_yumi_cache_dir(monkeypatch, tmp_path):
+    from yumi.core.features.tts import qwen_provider
+
+    captured = {}
+
+    class FakeQwenModel:
+        @classmethod
+        def from_pretrained(cls, model_name, **kwargs):
+            captured.update(model_name=model_name, kwargs=kwargs)
+            return "loaded-model"
+
+    fake_torch = types.SimpleNamespace(
+        cuda=types.SimpleNamespace(is_available=lambda: False),
+        backends=types.SimpleNamespace(mps=types.SimpleNamespace(is_available=lambda: False)),
+        bfloat16="bf16",
+        float32="fp32",
+    )
+    fake_qwen_tts = types.ModuleType("qwen_tts")
+    fake_qwen_tts.Qwen3TTSModel = FakeQwenModel
+    cache_dir = tmp_path / "qwen-tts"
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
+    monkeypatch.setitem(sys.modules, "qwen_tts", fake_qwen_tts)
+    monkeypatch.setattr(qwen_provider, "QWEN_TTS_MODELS_DIR", cache_dir)
+
+    provider = QwenTtsProvider(device="cpu")
+
+    assert provider._load_model() == "loaded-model"
+    assert captured["model_name"] == "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice"
+    assert captured["kwargs"]["cache_dir"] == str(cache_dir)
+    assert captured["kwargs"]["device_map"] == "cpu"
+    assert cache_dir.exists()
 
 
 def test_synthesize_wraps_model_output(monkeypatch):

@@ -42,7 +42,7 @@ Then depend on it from your app:
 <dependency>
     <groupId>io.yumi</groupId>
     <artifactId>yumi-sdk</artifactId>
-    <version>0.1.0</version>
+    <version>0.0.1</version>
 </dependency>
 ```
 

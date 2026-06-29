@@ -282,6 +282,11 @@ def test_put_config_model_accepts_fastembed_embedding_provider(monkeypatch, tmp_
         encoding="utf-8",
     )
     monkeypatch.setattr("yumi.core.features.config.router.ensure_provider_available", lambda provider: None)
+    prepared: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        "yumi.core.features.config.router.ensure_model_ready",
+        lambda provider, model: prepared.append((provider, model)) or model,
+    )
 
     async def _run():
         return await update_model_config_endpoint(
@@ -295,6 +300,7 @@ def test_put_config_model_accepts_fastembed_embedding_provider(monkeypatch, tmp_
     saved = json.loads(p.read_text(encoding="utf-8"))
     assert response["embedding_provider"] == "fastembed"
     assert saved["embedding_provider"] == "fastembed"
+    assert prepared == [("fastembed", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")]
 
 
 def test_put_config_model_updates_edge_tool_routing_settings(monkeypatch, tmp_path: Path) -> None:

@@ -1,7 +1,7 @@
 """Cloud speech-to-text via Alibaba Cloud DashScope (Qwen ASR).
 
-Needs the ``dashscope`` SDK (the ``[tts]`` extra). The audio bytes are written
-to a short-lived temp file and handed to the multimodal ASR model; the response
+Uses the ``dashscope`` SDK from the base install. The audio bytes are written to
+a short-lived temp file and handed to the multimodal ASR model; the response
 shape is read defensively (attribute objects or plain dicts), mirroring the
 DashScope TTS provider.
 """
@@ -113,8 +113,8 @@ class DashScopeSttProvider(SpeechToTextProvider):
             import dashscope
         except ImportError as exc:
             raise SttError(
-                "The 'dashscope' package is required for DashScope transcription. "
-                "Install it with: pip install 'yumi-agent[tts]'"
+                "The 'dashscope' package is required for DashScope transcription and ships with yumi-agent. "
+                "Reinstall with: pip install --force-reinstall yumi-agent"
             ) from exc
 
         if not self._api_key:

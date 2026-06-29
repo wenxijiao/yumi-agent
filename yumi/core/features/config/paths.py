@@ -6,6 +6,10 @@ from pathlib import Path
 CONFIG_DIR = Path.home() / ".yumi"
 CONFIG_PATH = CONFIG_DIR / "config.json"
 MEMORY_DIR = CONFIG_DIR / "memory"
+MODELS_DIR = CONFIG_DIR / "models"
+WHISPER_MODELS_DIR = MODELS_DIR / "whisper"
+FASTEMBED_MODELS_DIR = MODELS_DIR / "fastembed"
+QWEN_TTS_MODELS_DIR = MODELS_DIR / "qwen-tts"
 # Legacy bundled DB shipped under yumi/core/memories/.lancedb (yumi/core is parent of this config/ dir).
 LEGACY_MEMORY_DIR = Path(__file__).resolve().parent.parent / "memories" / ".lancedb"
 
@@ -55,10 +59,29 @@ def cleanup_memory_data() -> list[Path]:
         shutil.rmtree(MEMORY_DIR)
         removed_paths.append(MEMORY_DIR)
 
+    db_path = CONFIG_DIR / "yumi.db"
+    if db_path.exists():
+        try:
+            from yumi.core.platform.storage.sqlite_store import SQLiteStore
+
+            SQLiteStore(db_path).clear_memory_tables()
+        except Exception:
+            pass
+
     legacy = get_legacy_memory_dir()
     if legacy.exists():
         shutil.rmtree(legacy)
         removed_paths.append(legacy)
+
+    return removed_paths
+
+
+def cleanup_model_data() -> list[Path]:
+    removed_paths: list[Path] = []
+
+    if MODELS_DIR.exists():
+        shutil.rmtree(MODELS_DIR)
+        removed_paths.append(MODELS_DIR)
 
     return removed_paths
 

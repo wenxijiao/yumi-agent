@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import base64
 import binascii
+import hashlib
+import mimetypes
 import re
 from pathlib import Path
 
 from fastapi import HTTPException
+from yumi.core.platform.storage.sqlite_store import SQLiteStore, db_path_for_config_path
 
 # Keep in sync with ``yumi.tools.file_tools`` supported types users typically upload.
 _ALLOWED_EXTENSIONS = frozenset(
@@ -167,10 +170,23 @@ def save_uploaded_file(
     dest.write_bytes(data)
     resolved = str(dest.resolve())
     ext = Path(safe_name).suffix.lower()
-    return {
+    result = {
         "status": "success",
         "path": resolved,
         "saved_as": dest.name,
         "size_bytes": len(data),
         "is_image": ext in IMAGE_EXTENSIONS,
     }
+    try:
+        SQLiteStore(db_path_for_config_path(root.parent / "config.json")).record_file(
+            session_id=session_id,
+            original_name=original_filename,
+            path=resolved,
+            size_bytes=len(data),
+            mime_type=mimetypes.guess_type(dest.name)[0] or "",
+            sha256=hashlib.sha256(data).hexdigest(),
+            metadata={"owner_user_id": owner_user_id or "_local", "saved_as": dest.name},
+        )
+    except Exception:
+        pass
+    return result

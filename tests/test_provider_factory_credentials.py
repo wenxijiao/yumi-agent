@@ -8,6 +8,7 @@ import warnings
 import pytest
 from yumi.core.features.config.credentials import (
     ensure_embedding_provider_supported,
+    ensure_model_ready,
     ensure_provider_available,
     get_api_credentials,
 )
@@ -74,6 +75,50 @@ def test_fastembed_provider_suppresses_known_pooling_warning(monkeypatch):
         assert provider.embed("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2", "hello") == [1.0, 2.0]
 
     assert caught == []
+
+
+def test_fastembed_provider_uses_yumi_cache_dir(monkeypatch, tmp_path):
+    from yumi.core.platform.providers import fastembed_provider
+    from yumi.core.platform.providers.fastembed_provider import FastEmbedProvider
+
+    captured = {}
+
+    class FakeTextEmbedding:
+        def __init__(self, model_name: str, cache_dir: str | None = None) -> None:
+            captured.update(model_name=model_name, cache_dir=cache_dir)
+
+        def embed(self, _texts):
+            return [[1.0, 2.0]]
+
+    fake_fastembed = types.ModuleType("fastembed")
+    fake_fastembed.TextEmbedding = FakeTextEmbedding
+    cache_dir = tmp_path / "fastembed"
+    monkeypatch.setitem(sys.modules, "fastembed", fake_fastembed)
+    monkeypatch.setattr(fastembed_provider, "FASTEMBED_MODELS_DIR", cache_dir)
+
+    provider = FastEmbedProvider()
+    assert provider.embed("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2", "hello") == [1.0, 2.0]
+
+    assert captured == {
+        "model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+        "cache_dir": str(cache_dir),
+    }
+    assert cache_dir.exists()
+
+
+def test_ensure_model_ready_pulls_fastembed(monkeypatch):
+    pulled: list[str] = []
+
+    class FakeProvider:
+        def pull_model(self, model: str) -> None:
+            pulled.append(model)
+
+    monkeypatch.setattr("yumi.core.features.config.credentials._get_provider", lambda provider: FakeProvider())
+
+    assert ensure_model_ready("fastembed", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2") == (
+        "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    )
+    assert pulled == ["sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"]
 
 
 # ── credentials ──

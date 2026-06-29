@@ -53,6 +53,7 @@ from yumi.core.features.memory.repos import (
 )
 from yumi.core.features.memory.tool_replay import persist_openai_messages as _tool_replay_persist
 from yumi.core.features.prompts.store import get_effective_system_prompt
+from yumi.core.platform.storage.sqlite_store import SQLiteStore, db_path_for_memory_storage
 from yumi.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -106,6 +107,7 @@ class Memory:
         self.backend = LanceDBBackend(self.db_dir)
         self.db = self.backend.db
         self.embedding = EmbeddingProcessor(self.backend, config.embedding_model, get_embed_provider())
+        self.sqlite = SQLiteStore(db_path_for_memory_storage(self.db_dir))
 
         # Table names retained as attributes for legacy callers that reach in.
         self.table_name = MessageRepository.TABLE_NAME
@@ -126,12 +128,53 @@ class Memory:
         if self.backend.claim_initialization():
             self._init_tables()
             self.embedding.maybe_migrate(self.table_name)
+        self._sync_sqlite_to_lancedb_if_needed()
+        self._sync_lancedb_to_sqlite_if_needed()
 
     # ── lifecycle / init delegation ────────────────────────────────────────
 
     def _init_tables(self) -> None:
         self.messages.init_table()
         self.sessions_repo.init_table()
+
+    def _sync_lancedb_to_sqlite_if_needed(self) -> None:
+        try:
+            if self.sqlite.event_count(session_id=self.session_id) > 0:
+                return
+            rows = self.messages.query_rows()
+            if rows:
+                self.sqlite.import_messages(rows)
+            for session in self.sessions_repo.list(status="all"):
+                self.sqlite.upsert_session(session)
+        except Exception as exc:
+            logger.debug("SQLite memory import skipped: %s", exc)
+
+    def _sync_sqlite_to_lancedb_if_needed(self) -> None:
+        try:
+            if self.messages.query_rows(limit=1):
+                return
+            total = self.sqlite.event_count()
+            if total <= 0:
+                return
+            for row in self.sqlite.list_messages(limit=total):
+                self.messages.create(
+                    session_id=row["session_id"],
+                    role=row["role"],
+                    content=row["content"],
+                    timestamp=row["timestamp"],
+                    timestamp_num=row["timestamp_num"],
+                    message_id=row["id"],
+                    thought=row.get("thought") or None,
+                )
+            for session in self.sqlite.list_sessions(status="all"):
+                self.sessions_repo.update(
+                    session["session_id"],
+                    title=session["title"],
+                    is_pinned=session["is_pinned"],
+                    status=session["status"],
+                )
+        except Exception as exc:
+            logger.debug("LanceDB rebuild from SQLite skipped: %s", exc)
 
     # ── shims still consumed by external collaborators ─────────────────────
     #
@@ -228,9 +271,18 @@ class Memory:
 
     def clear_history(self) -> None:
         self.messages.clear_session(self.session_id)
+        try:
+            self.sqlite.clear_session(self.session_id)
+        except Exception as exc:
+            logger.debug("SQLite clear_session skipped: %s", exc)
 
     def delete_message(self, message_id: str) -> bool:
-        return self.messages.delete(message_id)
+        deleted = self.messages.delete(message_id)
+        try:
+            deleted = self.sqlite.delete_message(message_id) or deleted
+        except Exception as exc:
+            logger.debug("SQLite delete_message skipped: %s", exc)
+        return deleted
 
     def list_messages(
         self,
@@ -239,6 +291,19 @@ class Memory:
         offset: int = 0,
         include_deleted_sessions: bool = True,
     ):
+        try:
+            rows = self.sqlite.list_messages(
+                session_id=session_id,
+                limit=limit,
+                offset=offset,
+                include_deleted_sessions=include_deleted_sessions,
+            )
+            has_rows = self.sqlite.event_count(session_id=session_id) if session_id else self.sqlite.event_count()
+            if rows or has_rows:
+                return rows
+        except Exception as exc:
+            logger.debug("SQLite list_messages skipped: %s", exc)
+
         deleted_session_ids: set[str] | None = None
         if not include_deleted_sessions and session_id is None:
             deleted_session_ids = {
@@ -253,6 +318,12 @@ class Memory:
         )
 
     def get_message(self, message_id: str):
+        try:
+            message = self.sqlite.get_message(message_id)
+            if message is not None:
+                return message
+        except Exception as exc:
+            logger.debug("SQLite get_message skipped: %s", exc)
         return self.messages.get(message_id)
 
     def create_message(
@@ -274,6 +345,10 @@ class Memory:
             message_id=message_id,
             thought=thought,
         )
+        try:
+            self.sqlite.upsert_event_from_message(result)
+        except Exception as exc:
+            logger.debug("SQLite event write skipped: %s", exc)
         # Structured-memory write hook is best-effort; runs after the commit.
         try:
             from yumi.core.features.memory.writer import MemoryWriter
@@ -348,9 +423,20 @@ class Memory:
     # ── public API: sessions ───────────────────────────────────────────────
 
     def create_session(self, title: str | None = None, session_id: str | None = None):
-        return self.sessions_repo.create(title=title, session_id=session_id)
+        session = self.sessions_repo.create(title=title, session_id=session_id)
+        try:
+            self.sqlite.upsert_session(session)
+        except Exception as exc:
+            logger.debug("SQLite session write skipped: %s", exc)
+        return session
 
     def get_session(self, session_id: str):
+        try:
+            session = self.sqlite.get_session(session_id)
+            if session is not None:
+                return session
+        except Exception as exc:
+            logger.debug("SQLite get_session skipped: %s", exc)
         return self.sessions_repo.get(session_id)
 
     def update_session(
@@ -360,9 +446,21 @@ class Memory:
         is_pinned: bool | None = None,
         status: str | None = None,
     ):
-        return self.sessions_repo.update(session_id, title=title, is_pinned=is_pinned, status=status)
+        session = self.sessions_repo.update(session_id, title=title, is_pinned=is_pinned, status=status)
+        if session is not None:
+            try:
+                self.sqlite.upsert_session(session)
+            except Exception as exc:
+                logger.debug("SQLite session update skipped: %s", exc)
+        return session
 
     def list_sessions(self, status: str = "active", session_id_prefix: str | None = None):
+        try:
+            sessions = self.sqlite.list_sessions(status=status, session_id_prefix=session_id_prefix)
+            if sessions or self.sqlite.event_count() > 0:
+                return sessions
+        except Exception as exc:
+            logger.debug("SQLite list_sessions skipped: %s", exc)
         return self.sessions_repo.list(status=status, session_id_prefix=session_id_prefix)
 
     # ── public API: long-term memory / tool observations / summaries ──────
@@ -377,7 +475,7 @@ class Memory:
         confidence: float = 0.5,
         importance: float = 0.5,
     ):
-        return self.long_term.create(
+        memory = self.long_term.create(
             kind=kind,
             content=content,
             session_id=session_id,
@@ -385,6 +483,12 @@ class Memory:
             confidence=confidence,
             importance=importance,
         )
+        if memory is not None:
+            try:
+                self.sqlite.upsert_memory(memory)
+            except Exception as exc:
+                logger.debug("SQLite long-term memory write skipped: %s", exc)
+        return memory
 
     def list_long_term_memories(self, kind: str | None = None, session_id: str | None = None, limit: int = 50):
         return self.long_term.list(kind=kind, session_id=session_id, limit=limit)
@@ -400,7 +504,7 @@ class Memory:
         call_id: str = "",
         importance: float = 0.5,
     ):
-        return self.tool_observations.create(
+        observation = self.tool_observations.create(
             tool_name=tool_name,
             args_summary=args_summary,
             result_summary=result_summary,
@@ -409,6 +513,18 @@ class Memory:
             call_id=call_id,
             importance=importance,
         )
+        if observation is not None:
+            try:
+                self.sqlite.upsert_memory(
+                    {
+                        **observation,
+                        "kind": "tool_observation",
+                        "content": observation.get("content") or observation.get("result_summary") or "",
+                    }
+                )
+            except Exception as exc:
+                logger.debug("SQLite tool observation write skipped: %s", exc)
+        return observation
 
     def list_tool_observations(self, session_id: str | None = None, limit: int = 50):
         return self.tool_observations.list(session_id=session_id, limit=limit)
@@ -423,7 +539,13 @@ class Memory:
         *,
         covered_until_num: int | None = None,
     ):
-        return self.summaries.update(summary, session_id=session_id, covered_until_num=covered_until_num)
+        row = self.summaries.update(summary, session_id=session_id, covered_until_num=covered_until_num)
+        if row is not None:
+            try:
+                self.sqlite.upsert_session_summary(row)
+            except Exception as exc:
+                logger.debug("SQLite session summary write skipped: %s", exc)
+        return row
 
     # ── prompt accessor ────────────────────────────────────────────────────
 

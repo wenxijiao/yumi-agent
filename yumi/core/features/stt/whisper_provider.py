@@ -7,7 +7,7 @@ import tempfile
 import threading
 from pathlib import Path
 
-from yumi.core.features.config.paths import CONFIG_DIR
+from yumi.core.features.config.paths import WHISPER_MODELS_DIR
 from yumi.core.features.stt.base import SpeechToTextProvider, SttError
 from yumi.core.features.stt.types import WHISPER_MULTILINGUAL_MODELS, TranscriptionResult
 
@@ -79,7 +79,7 @@ def ensure_whisper_weights_cached(*, model: str, model_dir: str | None = None) -
     model_name = (model or "").strip()
     if model_name not in WHISPER_MULTILINGUAL_MODELS:
         raise ValueError(f"Unsupported Whisper model: {model_name!r}")
-    root = Path(model_dir).expanduser() if model_dir else CONFIG_DIR / "models" / "whisper"
+    root = Path(model_dir).expanduser() if model_dir else WHISPER_MODELS_DIR
     root.mkdir(parents=True, exist_ok=True)
     try:
         from faster_whisper import WhisperModel
@@ -87,7 +87,8 @@ def ensure_whisper_weights_cached(*, model: str, model_dir: str | None = None) -
         from tqdm.auto import tqdm
     except ImportError as exc:
         raise RuntimeError(
-            "faster-whisper is required for STT. Install it with: pip install 'yumi-agent[stt]'"
+            "faster-whisper is required for STT and ships with yumi-agent. "
+            "Reinstall with: pip install --force-reinstall yumi-agent"
         ) from exc
     fw_id = _FASTER_WHISPER_MODEL_IDS.get(model_name, model_name)
     repo_id = _FASTER_WHISPER_REPO_IDS.get(model_name)
@@ -129,7 +130,7 @@ class WhisperSttProvider(SpeechToTextProvider):
                 f"Supported multilingual models: {', '.join(WHISPER_MULTILINGUAL_MODELS)}"
             )
         self.model_name = model_name
-        self.model_dir = Path(model_dir).expanduser() if model_dir else CONFIG_DIR / "models" / "whisper"
+        self.model_dir = Path(model_dir).expanduser() if model_dir else WHISPER_MODELS_DIR
         self.language = (language or "auto").strip()
         self._model = None
         # Guard concurrent first-time loads — otherwise two transcriptions racing
@@ -147,7 +148,8 @@ class WhisperSttProvider(SpeechToTextProvider):
                 from huggingface_hub import get_token
             except ImportError as exc:
                 raise SttError(
-                    "faster-whisper is not importable. Install it with: pip install 'yumi-agent[stt]'"
+                    "faster-whisper is not importable. Reinstall with: "
+                    "pip install --force-reinstall yumi-agent"
                 ) from exc
             self.model_dir.mkdir(parents=True, exist_ok=True)
             try:

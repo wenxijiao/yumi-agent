@@ -7,6 +7,8 @@ dedicated module so ``yumi/cli/__init__.py`` stays a thin entry point.
 """
 
 import os
+import re
+import shutil
 import socket
 import subprocess
 import sys
@@ -17,7 +19,9 @@ from pathlib import Path
 
 from yumi.core.features.config import (
     CONFIG_PATH,
+    MODELS_DIR,
     cleanup_memory_data,
+    cleanup_model_data,
     cleanup_user_data,
     embeddings_enabled,
     ensure_chat_model_configured,
@@ -52,6 +56,7 @@ from yumi.edge.client import init_workspace
 SERVER_URL = os.getenv("YUMI_SERVER_URL", "http://127.0.0.1:8000")
 UI_FRONTEND_PORT = 3000
 UI_BACKEND_PORT = 8001
+MIN_UI_NODE_VERSION = (22, 12, 0)
 
 
 def server_health_url(base_url: str | None = None) -> str:
@@ -671,8 +676,98 @@ def _reflex_ui_root() -> str:
     return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "ui")
 
 
+def _parse_node_version(raw: str) -> tuple[int, int, int] | None:
+    match = re.search(r"v?(\d+)\.(\d+)\.(\d+)", raw)
+    if not match:
+        return None
+    return tuple(int(part) for part in match.groups())
+
+
+def _format_version(version: tuple[int, int, int]) -> str:
+    return ".".join(str(part) for part in version)
+
+
+def _platform_label(platform: str | None = None) -> str:
+    target = platform or sys.platform
+    if target == "win32":
+        return "Windows"
+    if target == "darwin":
+        return "macOS"
+    if target.startswith("linux"):
+        return "Linux"
+    return target
+
+
+def _node_install_help_lines(platform: str | None = None) -> list[str]:
+    required = _format_version(MIN_UI_NODE_VERSION)
+    target = platform or sys.platform
+    if target == "win32":
+        return [
+            "  Windows:",
+            "    winget install OpenJS.NodeJS.LTS",
+            "  Or use nvm-windows:",
+            f"    nvm install {required}",
+            f"    nvm use {required}",
+        ]
+    if target == "darwin":
+        return [
+            "  macOS with Homebrew:",
+            "    brew install node",
+            "  Or use nvm:",
+            f"    nvm install {required}",
+            f"    nvm use {required}",
+        ]
+    return [
+        "  Linux with nvm:",
+        f"    nvm install {required}",
+        f"    nvm use {required}",
+        "  Debian/Ubuntu alternative:",
+        "    curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -",
+        "    sudo apt-get install -y nodejs",
+    ]
+
+
+def _print_node_install_help(detected: str) -> None:
+    required = _format_version(MIN_UI_NODE_VERSION)
+    print()
+    print(f"  Yumi UI needs Node.js {required} or newer because Reflex runs the frontend dev server.")
+    print(f"  Detected Node: {detected}")
+    print(f"  Detected platform: {_platform_label()}")
+    print()
+    print("  Install/update Node.js, then open a new terminal and run `yumi --ui` again:")
+    for line in _node_install_help_lines():
+        print(line)
+    print()
+    print("  Check it with: node --version")
+    print()
+
+
+def _ensure_ui_node_runtime() -> bool:
+    node = shutil.which("node")
+    if not node:
+        _print_node_install_help("not found")
+        return False
+    try:
+        result = subprocess.run([node, "--version"], check=False, capture_output=True, text=True)
+    except OSError as exc:
+        _print_node_install_help(f"error running node: {exc}")
+        return False
+    raw = (result.stdout or result.stderr or "").strip()
+    version = _parse_node_version(raw)
+    if version is None:
+        _print_node_install_help(raw or "unknown")
+        return False
+    if version < MIN_UI_NODE_VERSION:
+        _print_node_install_help(raw)
+        return False
+    return True
+
+
 def run_ui():
     env = prepare_client_environment("ui")
+
+    if not _ensure_ui_node_runtime():
+        return
 
     if not is_server_running(server_health_url(env.get("YUMI_SERVER_URL"))):
         print("\n  Yumi server is not running. Start it first with: yumi --server\n")
@@ -1257,8 +1352,7 @@ def _run_demo():
 def run_cleanup() -> None:
     print()
     print("  This will remove Yumi user data from this machine:")
-    print("  - ~/.yumi/config.json")
-    print("  - ~/.yumi/memory/")
+    print("  - ~/.yumi/ (config, memory, prompts, connection codes, and Yumi-managed model caches)")
     print()
     print("  Ollama and Ollama model files will not be affected.")
     confirm = input("  Type 'delete' to continue: ").strip().lower()
@@ -1301,6 +1395,91 @@ def run_cleanup_memory() -> None:
 
 
 # ── client environment ──
+
+
+def _configured_ollama_models() -> list[str]:
+    config = load_saved_model_config()
+    models: set[str] = set()
+    if config.chat_provider == "ollama" and config.chat_model:
+        models.add(config.chat_model)
+    if config.embedding_provider == "ollama" and config.embedding_model:
+        models.add(config.embedding_model)
+    return sorted(models)
+
+
+def _remove_ollama_models(models: list[str]) -> tuple[list[str], list[tuple[str, str]]]:
+    removed: list[str] = []
+    errors: list[tuple[str, str]] = []
+    if not models:
+        return removed, errors
+    if shutil.which("ollama") is None:
+        return removed, [(model, "ollama CLI was not found on PATH") for model in models]
+
+    for model in models:
+        try:
+            proc = subprocess.run(
+                ["ollama", "rm", model],
+                capture_output=True,
+                text=True,
+                timeout=120,
+                check=False,
+            )
+        except Exception as exc:
+            errors.append((model, str(exc)))
+            continue
+        if proc.returncode == 0:
+            removed.append(model)
+        else:
+            detail = (proc.stderr or proc.stdout or "ollama rm failed").strip()
+            errors.append((model, detail))
+    return removed, errors
+
+
+def run_cleanup_models(*, include_ollama: bool = False) -> None:
+    print()
+    print("  This will remove local model files downloaded or managed by Yumi:")
+    print(f"  - {MODELS_DIR} (Whisper, FastEmbed, and local Qwen3-TTS caches)")
+    ollama_models = _configured_ollama_models() if include_ollama else []
+    if include_ollama:
+        if ollama_models:
+            print("  - configured Ollama models:")
+            for model in ollama_models:
+                print(f"    - {model}")
+        else:
+            print("  - no configured Ollama models were found")
+    else:
+        print("  Ollama models are not affected. Add --include-ollama to remove configured Ollama models too.")
+    print()
+    print("  Saved API keys, model settings, prompts, memory, and connection codes will be kept.")
+    confirm = input("  Type 'delete models' to continue: ").strip().lower()
+    if confirm != "delete models":
+        print("  Model cleanup cancelled.")
+        return
+
+    removed_paths = cleanup_model_data()
+    removed_ollama: list[str] = []
+    ollama_errors: list[tuple[str, str]] = []
+    if include_ollama:
+        removed_ollama, ollama_errors = _remove_ollama_models(ollama_models)
+
+    print()
+    if removed_paths:
+        print("  Removed model paths:")
+        for path in removed_paths:
+            print(f"    - {path}")
+    else:
+        print("  No Yumi-managed model cache directory was found.")
+
+    if include_ollama:
+        if removed_ollama:
+            print("  Removed Ollama models:")
+            for model in removed_ollama:
+                print(f"    - {model}")
+        if ollama_errors:
+            print("  Could not remove these Ollama models:")
+            for model, detail in ollama_errors:
+                print(f"    - {model}: {detail}")
+    print()
 
 
 def prepare_client_environment(scope: str) -> dict:

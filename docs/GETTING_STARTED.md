@@ -72,7 +72,7 @@ yumi --setup
 | `ollama` | Yes | Yes | Local models, no API key needed |
 | `openai` | Yes | Yes | Also works with OpenAI-compatible endpoints via `openai_base_url` |
 | `gemini` | Yes | Yes | Google Gemini |
-| `fastembed` | No | Yes | Local multilingual embeddings installed/downloaded from the CLI |
+| `fastembed` | No | Yes | Local multilingual embeddings downloaded from the CLI |
 | `claude` | Yes | No | Anthropic Claude (use another provider for embeddings) |
 | `deepseek` | Yes | No | DeepSeek chat API; use another provider for embeddings |
 | `grok` | Yes | No | xAI Grok chat API; use another provider for embeddings |
@@ -83,6 +83,12 @@ You can mix providers — for example OpenAI for chat and Ollama for embeddings.
 
 ```bash
 yumi --ui
+```
+
+The web UI is the one large user-facing extra. Install it first if needed:
+
+```bash
+pip install "yumi-agent[ui]"
 ```
 
 The UI includes:
@@ -117,10 +123,13 @@ Useful commands:
 `yumi --server --voice` attaches a microphone wake-word loop to the running API. Say "hi yumi" and the next sentence you speak is transcribed with Whisper and dispatched as a chat turn, in parallel with Telegram, Discord, `--chat`, and `--ui`.
 
 ```bash
-pip install -e ".[voice,stt]"     # sounddevice, webrtcvad, pvporcupine, faster-whisper
 yumi --setup                     # enable Whisper (stt_provider=whisper)
 yumi --server --voice            # or:  yumi --server --telegram --voice
 ```
+
+The Python packages for microphone capture, wake-word detection, VAD, and
+Whisper ship with `pip install yumi-agent`; Whisper weights are downloaded when
+you choose a local model.
 
 Required setup:
 
@@ -190,6 +199,14 @@ yumi --cleanup
 ```
 
 This removes `~/.yumi/`. Ollama and its model files are not touched.
+
+To delete only local model caches managed by Yumi:
+
+```bash
+yumi --cleanup-models
+```
+
+This removes `~/.yumi/models/` (Whisper, FastEmbed, and local Qwen3-TTS caches) while keeping config, memory, prompts, and connection info. Add `--include-ollama` to also remove the Ollama models referenced by your current Yumi config.
 
 To clear only saved chat memory and embeddings while keeping config and profiles:
 

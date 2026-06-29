@@ -5,7 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.4.0] - 2026-06-28
+## [0.0.1] - Unreleased
+
+### Changed
+
+- `pip install yumi-agent` now includes local FastEmbed, Whisper STT,
+  microphone wake-word dependencies, and DashScope cloud STT/TTS. Only the
+  Reflex web UI (`[ui]`) and local-GPU Qwen TTS (`[tts-local]`) remain optional
+  extras; model weights and embedding assets are still downloaded on demand.
+- Windows `system` TTS now uses the built-in SAPI voice through PowerShell,
+  matching the zero-dependency spoken-reply path already available on macOS and
+  Linux.
+
+## Development Notes - 2026-06-28
 
 ### Added
 
@@ -37,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `rich` is now a base dependency (used for the redesigned wizard rendering).
 
-## [0.3.0] - 2026-06-19
+## Development Notes - 2026-06-19
 
 ### Changed
 
@@ -131,7 +143,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Whisper provider lazy `_load_model` is now lock-guarded so two concurrent
   first transcriptions don't both download/load the model.
 
-## [0.2.0] - 2026-04-20
+## Development Notes - 2026-04-20
 
 ### Changed
 
@@ -147,7 +159,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - New `yumi/core/platform/plugins/` package with `Identity`, `LOCAL_IDENTITY`, `Protocol` ports, single-user defaults, a runtime registry, and `entry_points`-based plugin discovery (`yumi.plugins` group).
 
-## [0.1.x]
+## Early Development Notes
 
 ### Changed
 
@@ -160,14 +172,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `build` to the development extras and documented a local pre-release smoke check for maintainers.
 - Added `yumi --cleanup-memory` to clear persisted memory without deleting saved config, prompts, profiles, or connection codes.
 
-[0.4.0]: https://github.com/wenxijiao/yumi-agent/releases/tag/v0.4.0
-[0.3.0]: https://github.com/wenxijiao/yumi-agent/releases/tag/v0.3.0
-[0.2.0]: https://github.com/wenxijiao/yumi-agent/releases/tag/v0.2.0
-
-## [0.1.0] - 2026-04-11
+## Initial Development Baseline - 2026-04-11
 
 ### Added
 
 - Initial documented release baseline: local-first agent, CLI (`yumi`), FastAPI server, Reflex web UI, multi-language edge SDKs, HTTP API and docs.
-
-[0.1.0]: https://github.com/wenxijiao/yumi-agent/releases/tag/v0.1.0

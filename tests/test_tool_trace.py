@@ -2,6 +2,8 @@
 
 import json
 
+import pytest
+import yumi.core.platform.tools.trace as trace_mod
 from yumi.core.platform.tools.trace import (
     clear_memory_buffer,
     export_traces_json_lines,
@@ -10,7 +12,12 @@ from yumi.core.platform.tools.trace import (
 )
 
 
-def setup_function():
+@pytest.fixture(autouse=True)
+def isolated_trace_store(monkeypatch, tmp_path):
+    clear_memory_buffer()
+    monkeypatch.setattr(trace_mod, "_disk_bootstrapped", False)
+    monkeypatch.setattr(trace_mod, "_trace_file", lambda: tmp_path / "tool_traces.jsonl")
+    yield
     clear_memory_buffer()
 
 
@@ -50,3 +57,29 @@ def test_record_list_filter_and_export_roundtrip():
     assert len(lines) == 2
     assert lines[0]["session_id"] == "s-a"
     assert lines[1]["session_id"] == "s-b"
+
+
+def test_record_redacts_sensitive_arguments_and_json_result_preview():
+    record_tool_trace(
+        session_id="s-a",
+        tool_name="send_request",
+        kind="server",
+        edge_name=None,
+        display_name="send_request",
+        arguments={
+            "url": "https://example.test",
+            "api_key": "sk-secret",
+            "nested": {"access_token": "tok-secret", "safe": "ok"},
+        },
+        status="ok",
+        duration_ms=1,
+        result_preview='{"password":"pw-secret","message":"done"}',
+    )
+
+    row = list_traces(limit=1)[0]
+    assert row["arguments"]["url"] == "https://example.test"
+    assert row["arguments"]["api_key"] == "[redacted]"
+    assert row["arguments"]["nested"]["access_token"] == "[redacted]"
+    assert row["arguments"]["nested"]["safe"] == "ok"
+    assert "pw-secret" not in row["result_preview"]
+    assert "[redacted]" in row["result_preview"]

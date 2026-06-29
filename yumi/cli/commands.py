@@ -62,13 +62,6 @@ class ServerCommand(Command):
         discord = bool(getattr(args, "discord", False))
         line = bool(args.line)
         voice = bool(getattr(args, "voice", False))
-        if voice:
-            # Voice = mic wake-word (pvporcupine) + Whisper transcription, both
-            # optional extras. Offer to install before launching the server.
-            from yumi.core.features.config.feature_install import ensure_feature_installed
-
-            if not (ensure_feature_installed("voice") and ensure_feature_installed("stt")):
-                return
         if telegram or discord or line or voice:
             run_server_with_bridges(telegram=telegram, discord=discord, line=line, voice=voice)
         else:
@@ -155,7 +148,7 @@ class VoiceModifierCommand(Command):
             action="store_true",
             help=(
                 "With --server: open a microphone wake-word session (say 'hi yumi'). "
-                "Offers to install the voice/stt extras on first use; needs a Picovoice access key."
+                "Needs a Picovoice access key."
             ),
         )
 
@@ -179,8 +172,11 @@ class UICommand(Command):
         return bool(args.ui)
 
     def run(self, args):
+        from yumi.cli.runners import _ensure_ui_node_runtime
         from yumi.core.features.config.feature_install import ensure_feature_installed
 
+        if not _ensure_ui_node_runtime():
+            return
         if not ensure_feature_installed("ui"):
             return
         from yumi.cli import run_ui
@@ -459,6 +455,30 @@ class CleanupMemoryCommand(Command):
         run_cleanup_memory()
 
 
+class CleanupModelsCommand(Command):
+    name = "cleanup-models"
+
+    def register(self, parser, mutex_group):
+        mutex_group.add_argument(
+            "--cleanup-models",
+            action="store_true",
+            help="Delete local model caches downloaded or managed by Yumi",
+        )
+        parser.add_argument(
+            "--include-ollama",
+            action="store_true",
+            help="With --cleanup-models: also remove configured Ollama models",
+        )
+
+    def matches(self, args):
+        return bool(getattr(args, "cleanup_models", False))
+
+    def run(self, args):
+        from yumi.cli import run_cleanup_models
+
+        run_cleanup_models(include_ollama=bool(getattr(args, "include_ollama", False)))
+
+
 # ── cross-command flag validation ──────────────────────────────────────────
 
 
@@ -472,6 +492,7 @@ _NON_SERVER_BASE_FLAGS = (
     "setup",
     "config",
     "cleanup",
+    "cleanup_models",
     "cleanup_memory",
     "tool_routing",
 )
@@ -519,6 +540,9 @@ def validate_cross_command_flags(args: argparse.Namespace) -> str | None:
     ):
         return "Use --edge-tools-limit/--enable-edge-tool-routing/--disable-edge-tool-routing with --tool-routing."
 
+    if getattr(args, "include_ollama", False) and not getattr(args, "cleanup_models", False):
+        return "Use --include-ollama with --cleanup-models."
+
     flag_list = _format_non_server_flag_list()
 
     if bridge_flags:
@@ -560,6 +584,7 @@ def build_default_registry() -> CommandRegistry:
     registry.add(ConfigCommand())
     registry.add(ToolRoutingCommand())
     registry.add(CleanupCommand())
+    registry.add(CleanupModelsCommand())
     registry.add(CleanupMemoryCommand())
     # standalone commands that double as modifier flags
     registry.add(TelegramStandaloneCommand())
@@ -572,6 +597,7 @@ def build_default_registry() -> CommandRegistry:
 __all__ = [
     "ChatCommand",
     "CleanupCommand",
+    "CleanupModelsCommand",
     "CleanupMemoryCommand",
     "ConfigCommand",
     "DemoCommand",

@@ -103,7 +103,7 @@ def ensure_provider_available(provider_name: str) -> None:
             raise ProviderNotReadyError(
                 "YUMI_MISSING_FASTEMBED",
                 "FastEmbed is required for local embeddings.",
-                hint="Run `yumi --setup` and choose Local embeddings, or install `pip install 'yumi-agent[embed]'`.",
+                hint="FastEmbed ships with yumi-agent. Reinstall with `pip install --force-reinstall yumi-agent`.",
             )
     else:
         from yumi.core.platform.providers import ALL_PROVIDER_NAMES
@@ -177,6 +177,17 @@ def is_model_available(provider_name: str, model_name: str) -> bool:
 
 
 def ensure_model_ready(provider_name: str, model_name: str) -> str:
+    if provider_name == "fastembed":
+        provider = _get_provider("fastembed")
+        try:
+            provider.pull_model(model_name)
+        except Exception as exc:
+            raise ProviderNotReadyError(
+                "YUMI_FASTEMBED_MODEL_UNAVAILABLE",
+                f"Could not prepare FastEmbed model {model_name!r}.",
+                hint="Check your network connection, Hugging Face access, and free disk space, then retry setup.",
+            ) from exc
+        return model_name
     if provider_name != "ollama":
         return model_name
     if not is_model_available(provider_name, model_name):

@@ -18,7 +18,7 @@ Model and provider fields:
 
 - `chat_provider`: Chat model provider. Common values: `ollama`, `openai`, `gemini`, `claude`, `deepseek`, `grok`. Default: `ollama`.
 - `chat_model`: Chat model name. `null` means Yumi will use provider defaults/setup.
-- `embedding_provider`: Embedding provider. Default: `ollama`. `openai`, `gemini`, `fastembed`, and `ollama` can embed (`claude` / `deepseek` / `grok` have no embedding API); choose one of those for cross-session memory vectors. `fastembed` is the setup wizard's no-Ollama local option and is installed/downloaded from the CLI when selected.
+- `embedding_provider`: Embedding provider. Default: `ollama`. `openai`, `gemini`, `fastembed`, and `ollama` can embed (`claude` / `deepseek` / `grok` have no embedding API); choose one of those for cross-session memory vectors. `fastembed` is the setup wizard's no-Ollama local option and downloads its embedding model from the CLI when selected.
 - `embedding_model`: Embedding model name. `null` means provider default/setup.
 - `embedding_dim`: Optional embedding vector dimension override. Usually leave `null`.
 - `openai_api_key`, `openai_base_url`, `gemini_api_key`, `claude_api_key`, `deepseek_api_key`, `deepseek_base_url`, `grok_api_key`, `grok_base_url`: Saved provider credentials/base URL. Environment variables override these.
@@ -201,7 +201,7 @@ Put `HF_TOKEN=hf_...` in **`~/.yumi/.env`** or **`./.env`** if you want; Yumi lo
 
 Speech-to-text is optional and disabled by default. Run `yumi --setup` to enable local multilingual Whisper for Telegram voice/audio, LINE audio, audio uploads in the web UI, or `/transcribe <path>` in `yumi --chat`.
 
-**Install the `[stt]` extra** before enabling Whisper: `pip install 'yumi-agent[stt]'`. (As of 0.2.x, faster-whisper is no longer bundled with the default install — only the optional extra ships it.) **Model weight files** are large and are not in the git repository; when you pick an STT model in `yumi --setup`, Yumi **downloads the weights to** `~/.yumi/models/whisper` (or your chosen directory) so the first real voice message is not stuck waiting on the network.
+`pip install yumi-agent` includes the Whisper runtime, but **model weight files** are large and are not in the git repository or wheel. When you pick an STT model in `yumi --setup`, Yumi **downloads the weights to** `~/.yumi/models/whisper` (or your chosen directory) so the first real voice message is not stuck waiting on the network.
 
 The **cloud STT providers** (`openai`, `gemini`, `dashscope`) need no extra and no model download — they ship in the base install and reuse the API key you already configured for that provider. Pick one in `yumi --setup` when you want transcription without local model weights; `openai` additionally honors `openai_base_url` (`OPENAI_BASE_URL`) for OpenAI-compatible proxy / Azure endpoints.
 
@@ -356,11 +356,7 @@ Yumi exposes `POST /line/webhook`, verifies `X-Line-Signature`, and forwards cha
 
 ### Install
 
-```bash
-pip install -e ".[voice,stt]"
-```
-
-This pulls in `sounddevice` (mic capture), `webrtcvad-wheels` (voice activity detection), `pvporcupine` (wake-word), and `faster-whisper` (transcription). Whisper weights are downloaded the first time you run `yumi --setup` and pick a model.
+`pip install yumi-agent` includes `sounddevice` (mic capture), `webrtcvad-wheels` (voice activity detection), `pvporcupine` (wake-word), and `faster-whisper` (transcription). Whisper weights are downloaded the first time you run `yumi --setup` and pick a model.
 
 ### Setup
 
@@ -403,12 +399,12 @@ Yumi can speak its replies. In voice mode (`--server --voice`) replies are spoke
 
 | `tts_provider` | What it is | Needs |
 |---|---|---|
-| `system` | OS speech command (macOS `say`, Linux `espeak`/`espeak-ng`) | nothing (zero-dependency default) |
+| `system` | OS speech command (Windows SAPI, macOS `say`, Linux `espeak`/`espeak-ng`) | nothing (zero-dependency default) |
 | `openai` | OpenAI TTS (`gpt-4o-mini-tts` / `tts-1` / `tts-1-hd`) | `openai_api_key` (no extra; in the base install) |
-| `dashscope` | Qwen3-TTS via the Alibaba Cloud DashScope API | `DASHSCOPE_API_KEY`; `pip install yumi-agent[tts]` |
+| `dashscope` | Qwen3-TTS via the Alibaba Cloud DashScope API | `DASHSCOPE_API_KEY` (no extra; in the base install) |
 | `qwen` | Qwen3-TTS run locally | a GPU + PyTorch (see note); `pip install yumi-agent[tts-local]` |
 
-For `system`, `openai`, and `dashscope`, `yumi --setup` installs anything needed on demand — `pip install yumi-agent` "just works" with no GPU. **Local `qwen` is the one exception**: it runs on PyTorch, and the CUDA build is multi-GB and version-specific, so it cannot be auto-installed (this is true of every local-GPU model, not a Yumi limitation). Install PyTorch for your GPU from <https://pytorch.org/get-started/locally/> **first**; then `yumi --setup` will install `qwen-tts` on top. The provider auto-detects the device (CUDA → Apple MPS → CPU), and the first synthesis downloads the model weights (~GBs, with a progress bar).
+For `system`, `openai`, and `dashscope`, `pip install yumi-agent` includes the required Python packages. **Local `qwen` is the one exception**: it runs on PyTorch, and GPU-specific builds are large and platform-specific, so they cannot be part of the default install. Install PyTorch for your device from <https://pytorch.org/get-started/locally/> **first**; then `yumi --setup` will install `qwen-tts` on top. CUDA/NVIDIA is the fastest and most reliable path. Apple MPS can work on some Apple Silicon Macs, but is more experimental and usually slower. The provider auto-detects the device (CUDA → Apple MPS → CPU), and the first synthesis downloads the model weights (~GBs, with a progress bar).
 
 ### Config keys
 
@@ -431,12 +427,24 @@ On Telegram / Discord, audio replies are sent as a normal audio file (WAV) with 
 | `~/.yumi/config.json` | Model config, prompt config, saved connection code |
 | `~/.yumi/memory/` | Session history and embeddings |
 
-`config.json` can hold **multiple provider API keys at once** (`openai_api_key`, `gemini_api_key`, `claude_api_key`, `deepseek_api_key`, `grok_api_key`, and optional provider base URLs). You can use the dedicated `deepseek` and `grok` providers, or point `openai_base_url` at another OpenAI-compatible endpoint. Environment variables still win when set. `yumi --setup` only asks for what the chosen chat/embedding providers need; for local embeddings it can install FastEmbed and download a multilingual model directly from the CLI. You can add other keys later via the web UI **Model Configuration** dialog or by editing `config.json`, so switching providers does not require re-entering keys once they are saved.
+`config.json` can hold **multiple provider API keys at once** (`openai_api_key`, `gemini_api_key`, `claude_api_key`, `deepseek_api_key`, `grok_api_key`, and optional provider base URLs). You can use the dedicated `deepseek` and `grok` providers, or point `openai_base_url` at another OpenAI-compatible endpoint. Environment variables still win when set. `yumi --setup` only asks for what the chosen chat/embedding providers need; for local embeddings it downloads a multilingual FastEmbed model directly from the CLI. You can add other keys later via the web UI **Model Configuration** dialog or by editing `config.json`, so switching providers does not require re-entering keys once they are saved.
 
 To clear only memory and embeddings (keeping config):
 
 ```bash
 yumi --cleanup-memory
+```
+
+To clear local model caches managed by Yumi while keeping config, memory, prompts, and connection info:
+
+```bash
+yumi --cleanup-models
+```
+
+This removes `~/.yumi/models/` (Whisper, FastEmbed, and local Qwen3-TTS caches). Ollama keeps models in its own store; to also remove the Ollama models referenced by your current Yumi config:
+
+```bash
+yumi --cleanup-models --include-ollama
 ```
 
 To delete all Yumi user data (`~/.yumi/`):

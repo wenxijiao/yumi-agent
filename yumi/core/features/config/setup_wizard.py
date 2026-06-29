@@ -20,7 +20,7 @@ from yumi.core.features.config.model import (
     RECOMMENDED_EMBEDDING_MODELS,
     ModelConfig,
 )
-from yumi.core.features.config.paths import CONFIG_DIR, CONFIG_PATH
+from yumi.core.features.config.paths import CONFIG_PATH, WHISPER_MODELS_DIR
 from yumi.core.features.config.store import load_model_config, load_saved_model_config, save_model_config
 
 
@@ -848,7 +848,7 @@ def _prompt_model_name(provider_name: str, label: str) -> str | None:
 
 
 _WHISPER_MODELS = ("tiny", "base", "small", "medium", "large", "turbo")
-_DEFAULT_WHISPER_MODEL_DIR = CONFIG_DIR / "models" / "whisper"
+_DEFAULT_WHISPER_MODEL_DIR = WHISPER_MODELS_DIR
 _STT_OPENAI_MODELS = ("gpt-4o-mini-transcribe", "gpt-4o-transcribe", "whisper-1")
 _STT_GEMINI_MODELS = ("gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite")
 _STT_DASHSCOPE_MODELS = ("qwen3-asr-flash",)
@@ -913,8 +913,6 @@ def _ensure_cloud_voice_key(config: ModelConfig, provider: str, label: str, step
 
 def _setup_cloud_stt(config: ModelConfig) -> bool:
     """Pick a cloud transcription provider + model. False = go back."""
-    from yumi.core.features.config.feature_install import ensure_feature_installed
-
     while True:
         options = [(value, label, "") for value, label, _models in _STT_CLOUD_PROVIDERS]
         options.append(("back", "← Back", ""))
@@ -945,12 +943,6 @@ def _setup_cloud_stt(config: ModelConfig) -> bool:
         config.stt_model = model
         config.stt_model_dir = None
         config.stt_language = "auto"
-        if provider == "dashscope":
-            with _normal_screen():
-                print("\n  Installing DashScope support...\n")
-                if not ensure_feature_installed("tts", assume_yes=True):
-                    _note("DashScope package isn't installed yet; transcription starts once it is.", ok=False)
-                    return True
         detail = f"{provider} · {model}" if model else provider
         _note(f"Voice input ready: {detail}")
         return True
@@ -958,8 +950,6 @@ def _setup_cloud_stt(config: ModelConfig) -> bool:
 
 def _setup_local_stt(config: ModelConfig) -> bool:
     """Pick + cache a local Whisper model. False = go back."""
-    from yumi.core.features.config.feature_install import ensure_feature_installed
-
     options = [(name, name, "") for name in _WHISPER_MODELS]
     options.append(("back", "← Back", ""))
     model = _select_option(
@@ -976,15 +966,9 @@ def _setup_local_stt(config: ModelConfig) -> bool:
     config.stt_model_dir = str(_DEFAULT_WHISPER_MODEL_DIR)
     config.stt_language = "auto"
 
-    # Install + weight download go on the normal screen (own progress output).
+    # Weight download goes on the normal screen (own progress output).
     with _normal_screen():
-        print(f"\n  Preparing Whisper '{model}' — installing support and caching weights.\n")
-        if not ensure_feature_installed("stt", assume_yes=True):
-            _note(
-                "Voice input saved, but the package isn't installed yet — re-run `yumi --setup` to cache it.",
-                ok=False,
-            )
-            return True
+        print(f"\n  Preparing Whisper '{model}' — caching weights.\n")
         try:
             from yumi.core.features.stt.whisper_provider import ensure_whisper_weights_cached
 
@@ -992,6 +976,7 @@ def _setup_local_stt(config: ModelConfig) -> bool:
         except Exception as exc:
             _note(f"Could not prepare Whisper weights: {exc} — it retries on first use.", ok=False)
             return True
+    _clear_screen()
     _note(f"Voice input ready: whisper / {model}")
     return True
 
@@ -1086,6 +1071,73 @@ _TTS_CLOUD_PROVIDERS: tuple[tuple[str, str, tuple[str, ...], str], ...] = (
 )
 
 
+def _qwen_tts_torch_install_hint(platform: str | None = None) -> str:
+    """Platform-specific PyTorch guidance for local Qwen3-TTS."""
+    target = platform or sys.platform
+    reset = (
+        "If pip already installed CPU-only torch, replace it first: "
+        "`python -m pip uninstall -y torch torchvision torchaudio`."
+    )
+    if target == "win32":
+        return (
+            f"{reset} Then install a CUDA-enabled PyTorch build for your NVIDIA GPU and rerun `yumi --setup`. "
+            "Use the official selector: https://pytorch.org/get-started/locally/ "
+            "(choose Windows, pip, and your CUDA version)."
+        )
+    if target == "darwin":
+        return (
+            f"{reset} Install PyTorch with Apple Silicon/MPS support, then rerun `yumi --setup`. "
+            "MPS can run Qwen3-TTS on some Apple Silicon Macs, but it is more experimental and usually slower "
+            "than CUDA. PyTorch selector: https://pytorch.org/get-started/locally/"
+        )
+    return (
+        f"{reset} Then install a CUDA-enabled PyTorch build for your NVIDIA GPU and rerun `yumi --setup`. "
+        "Use the official selector: https://pytorch.org/get-started/locally/ "
+        "(choose Linux, pip, and your CUDA version)."
+    )
+
+
+def _qwen_tts_torch_status() -> tuple[bool, str]:
+    """Return whether local Qwen3-TTS has a usable PyTorch GPU runtime."""
+    hint = _qwen_tts_torch_install_hint()
+    try:
+        import torch
+    except ImportError:
+        return False, f"PyTorch is not installed. {hint}"
+
+    version = str(getattr(torch, "__version__", "unknown"))
+    cuda_build = getattr(getattr(torch, "version", None), "cuda", None)
+    try:
+        cuda_available = bool(torch.cuda.is_available())
+    except Exception:
+        cuda_available = False
+    try:
+        mps = getattr(getattr(torch, "backends", None), "mps", None)
+        mps_available = bool(mps is not None and mps.is_available())
+    except Exception:
+        mps_available = False
+
+    if cuda_available:
+        try:
+            device = torch.cuda.get_device_name(0)
+        except Exception:
+            device = "CUDA GPU"
+        cuda_label = cuda_build or "available"
+        return True, f"PyTorch GPU ready: torch {version}, CUDA {cuda_label}, {device}."
+    if mps_available:
+        return True, (
+            f"PyTorch MPS ready: torch {version}, Apple Silicon GPU. "
+            "Local Qwen3-TTS on MPS is experimental and may be slower than CUDA."
+        )
+
+    if not cuda_build:
+        return False, f"PyTorch is CPU-only in this environment (torch {version}; CUDA/MPS: none). {hint}"
+    return False, (
+        f"PyTorch has a CUDA build (torch {version}; CUDA {cuda_build}), but no CUDA GPU is available. "
+        "Check your NVIDIA driver and that this shell can see the GPU."
+    )
+
+
 def _prompt_tts_voice(label: str, voices: tuple[str, ...], default: str) -> str:
     options = [(name, name, "default" if name == default else "") for name in voices]
     options.append(("custom", "Enter a custom voice name", ""))
@@ -1109,8 +1161,6 @@ def _prompt_tts_voice(label: str, voices: tuple[str, ...], default: str) -> str:
 
 def _setup_cloud_tts(config: ModelConfig) -> bool:
     """Pick a cloud voice provider + voice. False = go back."""
-    from yumi.core.features.config.feature_install import ensure_feature_installed
-
     while True:
         options = [(value, label, "") for value, label, _voices, _default in _TTS_CLOUD_PROVIDERS]
         options.append(("back", "← Back", ""))
@@ -1130,12 +1180,6 @@ def _setup_cloud_tts(config: ModelConfig) -> bool:
         config.tts_model = None
         config.tts_voice = voice
         config.tts_language = "auto"
-        if provider == "dashscope":
-            with _normal_screen():
-                print("\n  Installing DashScope support...\n")
-                if not ensure_feature_installed("tts", assume_yes=True):
-                    _note("DashScope package isn't installed yet; spoken replies start once it is.", ok=False)
-                    return True
         _note(f"Spoken replies: {provider} · {voice}")
         return True
 
@@ -1144,34 +1188,47 @@ def _setup_local_tts(config: ModelConfig) -> bool:
     """Pick a local voice backend. False = go back."""
     from yumi.core.features.config.feature_install import ensure_feature_installed
 
-    choice = _select_option(
-        step="Step 4/5: Spoken replies (text-to-speech) · Local",
-        title="Local spoken-reply backend",
-        options=[
-            ("system", "System voice", "macOS say / Linux espeak; offline, no key, instant"),
-            ("qwen", "Local Qwen3-TTS", "highest local quality; heavy, needs a CUDA GPU"),
-            ("back", "← Back", ""),
-        ],
-    )
-    if choice == "back":
-        return False
-    if choice == "system":
-        config.tts_provider = "system"
+    notice: str | None = None
+    while True:
+        choice = _select_option(
+            step="Step 4/5: Spoken replies (text-to-speech) · Local",
+            title="Local spoken-reply backend",
+            error=notice,
+            options=[
+                ("system", "System voice", "Windows SAPI / macOS say / Linux espeak; offline, no key, instant"),
+                ("qwen", "Local Qwen3-TTS", "heavy; best on CUDA, experimental on Apple MPS"),
+                ("back", "← Back to spoken-reply options", ""),
+            ],
+        )
+        notice = None
+        if choice == "back":
+            return False
+        if choice == "system":
+            config.tts_provider = "system"
+            config.tts_model = None
+            config.tts_voice = None
+            config.tts_language = "auto"
+            _note("Spoken replies: system voice.")
+            return True
+        ready, detail = _qwen_tts_torch_status()
+        if not ready:
+            notice = f"Local Qwen3-TTS needs CUDA or Apple MPS PyTorch before installing qwen-tts.\n{detail}"
+            continue
+        with _normal_screen():
+            print("\n  Installing local Qwen3-TTS (heavy; needs a GPU)...\n")
+            installed = ensure_feature_installed("tts-local", assume_yes=True)
+        if not installed:
+            notice = "Local Qwen3-TTS isn't installed yet; choose another voice option or retry after installing it."
+            continue
+        ready, detail = _qwen_tts_torch_status()
+        if not ready:
+            notice = f"qwen-tts installed, but GPU PyTorch is no longer ready.\n{detail}"
+            continue
+        config.tts_provider = "qwen"
         config.tts_model = None
         config.tts_voice = None
-        config.tts_language = "auto"
-        _note("Spoken replies: system voice.")
+        _note(f"Spoken replies: local Qwen3-TTS. {detail}")
         return True
-    config.tts_provider = "qwen"
-    config.tts_model = None
-    config.tts_voice = None
-    with _normal_screen():
-        print("\n  Installing local Qwen3-TTS (heavy; needs a GPU)...\n")
-        if not ensure_feature_installed("tts-local", assume_yes=True):
-            _note("Local Qwen3-TTS isn't installed yet; spoken replies start once it is.", ok=False)
-            return True
-    _note("Spoken replies: local Qwen3-TTS.")
-    return True
 
 
 def _prompt_tts_config(config: ModelConfig) -> str:
@@ -1326,6 +1383,45 @@ def _provider_label(provider: str) -> str:
     return provider
 
 
+def _ollama_install_lines(platform: str | None = None) -> list[str]:
+    target = platform or sys.platform
+    if target == "win32":
+        return [
+            "Windows install:",
+            "  winget install Ollama.Ollama",
+            "  or download: https://ollama.com/download/windows",
+        ]
+    if target == "darwin":
+        return [
+            "macOS install:",
+            "  brew install --cask ollama",
+            "  or download: https://ollama.com/download/mac",
+        ]
+    return [
+        "Linux install:",
+        "  curl -fsSL https://ollama.com/install.sh | sh",
+    ]
+
+
+def _ollama_unavailable_message(exc: Exception | str, *, purpose: str) -> str:
+    lines = [
+        f"Ollama {purpose} requires Ollama to be installed and running.",
+        "",
+        *_ollama_install_lines(),
+        "",
+        "Start Ollama:",
+        "  ollama serve",
+        "",
+        "Then pull a model, for example:",
+        "  ollama pull qwen3.5:9b",
+        "  ollama pull qwen3-embedding:0.6b",
+        "",
+        "If you use a custom server, set OLLAMA_HOST.",
+        f"Details: {exc}",
+    ]
+    return "\n".join(lines)
+
+
 def _choose_cloud_provider() -> str | None:
     options = [(key, label, "") for key, label in _CLOUD_PROVIDERS]
     options.append(("back", "Back", ""))
@@ -1444,10 +1540,7 @@ def _configure_chat_model() -> tuple[str, str]:
                 choice = _select_option(
                     step="Step 1/5: AI model · Ollama",
                     title="Ollama isn't reachable yet",
-                    error=(
-                        "Install it from https://ollama.com and start it (run `ollama serve`), "
-                        f"then retry.\nDetails: {exc}"
-                    ),
+                    error=_ollama_unavailable_message(exc, purpose="chat"),
                     options=[
                         ("retry", "Retry connection", ""),
                         ("runmode", "← Back to run mode", ""),
@@ -1537,19 +1630,14 @@ def _setup_cloud_embeddings(config: ModelConfig, chat_provider: str) -> bool:
 
 
 def _prepare_fastembed_model(model: str, size_label: str) -> bool:
-    from yumi.core.features.config.feature_install import ensure_feature_installed
-
-    # Drop to the normal screen: the pip install + download progress bar belong
-    # there, not on the wizard's alternate screen where a late flush would stick.
+    # Drop to the normal screen: the download progress bar belongs there, not on
+    # the wizard's alternate screen where a late flush would stick.
     with _normal_screen():
         print()
-        print(f"  Installing local embedding support and downloading {model} ({size_label}).")
+        print(f"  Downloading local embedding model {model} ({size_label}).")
         print("  This can take a few minutes the first time.\n")
-        if not ensure_feature_installed("embed", assume_yes=True):
-            _note("Local embeddings aren't ready — choose another backend or retry later.", ok=False)
-            return False
         try:
-            _get_provider("fastembed").pull_model(model)
+            ensure_model_ready("fastembed", model)
         except Exception as exc:
             _note(f"Could not prepare local embedding model: {exc}", ok=False)
             return False
@@ -1580,13 +1668,35 @@ def _setup_fastembed_embeddings(config: ModelConfig) -> bool:
 
 
 def _setup_ollama_embeddings(config: ModelConfig) -> bool:
+    unavailable_notice: str | None = None
     notice: str | None = None
     try:
         ensure_provider_available("ollama")
     except Exception as exc:
-        notice = f"Ollama embeddings require Ollama to be installed and running first.\nDetails: {exc}"
+        unavailable_notice = _ollama_unavailable_message(exc, purpose="embedding setup")
 
     while True:
+        if unavailable_notice:
+            choice = _select_option(
+                step="Step 2/5: Memory (text embeddings)",
+                title="Configure Ollama embeddings",
+                error=unavailable_notice,
+                options=[
+                    ("retry", "Retry connection", ""),
+                    ("back", "Back", ""),
+                ],
+            )
+            if choice == "retry":
+                try:
+                    ensure_provider_available("ollama")
+                except Exception as exc:
+                    unavailable_notice = _ollama_unavailable_message(exc, purpose="embedding setup")
+                    continue
+                unavailable_notice = None
+                continue
+            if choice == "back":
+                return False
+
         choice = _select_option(
             step="Step 2/5: Memory (text embeddings)",
             title="Configure Ollama embeddings",
@@ -1673,7 +1783,7 @@ def _configure_embeddings(config: ModelConfig, chat_provider: str) -> str:
             warning=_EMBEDDING_STABILITY_WARNING,
             options=[
                 ("cloud", "Cloud embeddings", ""),
-                ("local", "Local embeddings", "Yumi installs and downloads everything from the CLI"),
+                ("local", "Local embeddings", "Yumi downloads the embedding model from the CLI"),
                 ("ollama", "Ollama embeddings", "requires Ollama already installed and running"),
                 ("skip", "Skip embeddings for now", "memory and tool-routing quality will be reduced"),
                 ("back", "← Back to previous step", ""),
@@ -1706,6 +1816,9 @@ def _setup_embeddings(config: ModelConfig, chat_provider: str) -> str:
     if action == "back":
         return "back"
     if action == "keep":
+        if config.embedding_provider == "fastembed" and config.embedding_model:
+            if not _prepare_fastembed_model(config.embedding_model, "configured"):
+                return _configure_embeddings(config, chat_provider)
         _note(f"Kept memory: {config.embedding_provider} / {config.embedding_model}")
         return "next"
     return _configure_embeddings(config, chat_provider)
@@ -1761,6 +1874,8 @@ def configure_models_noninteractive(
             if embedding_provider == "disabled"
             else embedding_model or RECOMMENDED_EMBEDDING_MODELS.get(embedding_provider)
         )
+        if config.embedding_provider == "fastembed" and config.embedding_model:
+            ensure_model_ready("fastembed", config.embedding_model)
     else:
         config.embedding_provider = "disabled"
         config.embedding_model = None

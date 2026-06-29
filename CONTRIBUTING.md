@@ -42,7 +42,7 @@ pytest
 python -m build
 ```
 
-1. Create an annotated tag: `git tag -a v0.1.0 -m "v0.1.0"` and `git push origin v0.1.0`.
+1. Create an annotated tag: `git tag -a v0.0.1 -m "v0.0.1"` and `git push origin v0.0.1`.
 2. Configure PyPI **Trusted Publishing** for this repository and workflow file (`release.yml`) with the `pypi` and `testpypi` GitHub environments. The Python publish job uses OIDC, so there is no long-lived PyPI API token to store.
 3. Configure repository **Secrets**:
    - `NPM_TOKEN` — [npm automation token](https://docs.npmjs.com/creating-and-viewing-access-tokens) with publish rights for `yumi-sdk`.
@@ -66,7 +66,7 @@ ai-tools, websocket, local-first
 
 **Recommended toggles:**
 
-- **Releases** — create one for each version tag (`v0.1.0`, etc.).
+- **Releases** — create one for each version tag (`v0.0.1`, etc.).
 - **Discussions** — enable for community Q&A.
 - **Wiki** — disable (documentation lives in [`docs/`](docs/)).
 - **Sponsorship** — enable if applicable.

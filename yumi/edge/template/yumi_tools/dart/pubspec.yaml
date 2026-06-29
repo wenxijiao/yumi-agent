@@ -1,6 +1,6 @@
 name: yumi_edge
 description: Yumi edge sample (Dart VM)
-version: 0.1.0
+version: 0.0.1
 publish_to: none
 
 environment:

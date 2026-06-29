@@ -46,7 +46,9 @@ class PorcupineWake:
         try:
             import pvporcupine  # noqa: F401
         except ImportError as exc:  # pragma: no cover - import-time guard
-            raise RuntimeError("pvporcupine is not installed. Install with: pip install yumi-agent[voice]") from exc
+            raise RuntimeError(
+                "pvporcupine is not importable. Reinstall with: pip install --force-reinstall yumi-agent"
+            ) from exc
         import pvporcupine
 
         key = _resolve_access_key(access_key)

@@ -84,7 +84,8 @@ class ModelConfig(BaseModel):
         description="Minutes between scheduled sends when set (5–10080). Null disables interval scheduling.",
     )
     proactive_schedule_require_idle: bool = True
-    # Speech-to-text (optional): disabled by default so text-only installs stay lightweight.
+    # Speech-to-text (optional at runtime): disabled by default; dependencies
+    # ship in the base package, while Whisper weights download on demand.
     stt_provider: str = "disabled"
     stt_backend: str = "faster-whisper"
     stt_model: str | None = None
@@ -101,14 +102,14 @@ class ModelConfig(BaseModel):
     voice_silence_ms: int = Field(default=800, ge=100, le=10000)
     voice_max_utterance_ms: int = Field(default=15000, ge=1000, le=60000)
     voice_owner_id: str | None = None
-    # Text-to-speech (optional): spoken replies. "disabled" by default so
-    # text-only installs stay lightweight. Provider is one of:
+    # Text-to-speech (optional at runtime): spoken replies. "disabled" by
+    # default. Provider is one of:
     #   system    - OS speech command (macOS `say` / Linux `espeak`), zero deps
     #   openai    - OpenAI audio/speech endpoint
     #   gemini    - Gemini native audio TTS
     #   grok      - xAI/Grok voice TTS endpoint
     #   dashscope - Qwen3-TTS via the Alibaba Cloud DashScope API (needs a key)
-    #   qwen      - Qwen3-TTS run locally (heavy `tts` extra; realistically a GPU)
+    #   qwen      - Qwen3-TTS run locally (heavy `tts-local` extra; realistically a GPU)
     tts_provider: str = "disabled"
     tts_voice: str | None = None
     tts_model: str | None = None

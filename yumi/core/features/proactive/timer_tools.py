@@ -7,6 +7,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Callable
 
+from yumi.core.platform.storage.sqlite_store import SQLiteStore, db_path_for_config_path
+
 try:
     from yumi.core.features.chat.context import get_chat_owner_user_id
 except ImportError:
@@ -269,8 +271,15 @@ class SchedulerService:
 
     # ── persistence ──
 
+    def _store(self) -> SQLiteStore:
+        return SQLiteStore(db_path_for_config_path(self.schedules_path.with_name("config.json")))
+
     def _save_schedules(self) -> None:
         items = [v for v in self.active_timers.values() if v.get("type") == "scheduled"]
+        try:
+            self._store().save_schedules(items)
+        except Exception:
+            pass
         try:
             self.schedules_path.parent.mkdir(parents=True, exist_ok=True)
             self.schedules_path.write_text(
@@ -281,11 +290,23 @@ class SchedulerService:
             pass
 
     def _load_schedules(self) -> list[dict]:
+        try:
+            items = self._store().load_schedules()
+            if items:
+                return items
+        except Exception:
+            pass
         if not self.schedules_path.exists():
             return []
         try:
             data = json.loads(self.schedules_path.read_text(encoding="utf-8"))
-            return data if isinstance(data, list) else []
+            items = data if isinstance(data, list) else []
+            if items:
+                try:
+                    self._store().save_schedules(items)
+                except Exception:
+                    pass
+            return items
         except (OSError, json.JSONDecodeError):
             return []
 

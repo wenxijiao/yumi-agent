@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "yumi-agent"
-version = "0.4.0"
+version = "0.0.1"
 description = "Yumi — open-source self-hosted AI agent framework: cross-language tool edges + Telegram/LINE/Discord chat"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
@@ -49,6 +49,15 @@ dependencies = [
     # Document ingestion (PDF / docx).
     "PyPDF2>=3.0",
     "python-docx>=1.0",
+    # Core local features: these install code only. Model weights and local
+    # embedding assets are still downloaded lazily/setup-time, not bundled.
+    "fastembed>=0.6",
+    "faster-whisper>=1.0",
+    "huggingface-hub>=0.20",
+    "sounddevice>=0.4.6",
+    "webrtcvad-wheels>=2.0.14",
+    "pvporcupine>=3.0.0",
+    "dashscope>=1.20.0",
 ]
 
 [tool.setuptools.packages.find]
@@ -121,31 +130,15 @@ dev = [
     "pyright>=1.1",
     "twine>=6.0",
 ]
-# Heavy / system-dependent / cloud features kept OUT of the base install.
-# `yumi --setup` offers to install these on demand when you turn the feature on;
-# or install manually:
-#   pip install yumi-agent[embed]  # lightweight local multilingual embeddings
-#   pip install yumi-agent[ui]     # Reflex web UI (large; pulls a Node toolchain)
-#   pip install yumi-agent[stt]    # speech-to-text (downloads Whisper models)
-#   pip install yumi-agent[voice]  # mic wake-word (needs PortAudio + a Picovoice key)
-#   pip install yumi-agent[tts]       # Qwen3-TTS spoken replies via the DashScope API
-#   pip install yumi-agent[tts-local] # Qwen3-TTS run locally (heavy; needs a CUDA GPU)
-#   pip install yumi-agent[all]       # all of the above
-embed = ["fastembed>=0.6"]
+# Only UI and local-GPU Qwen TTS stay out of the base install. Base
+# `pip install yumi-agent` includes STT, microphone voice deps, cloud TTS/STT,
+# and local FastEmbed support; model/embedding weights are still downloaded on
+# demand by setup/runtime.
 ui = ["reflex>=0.9"]
-stt = ["faster-whisper>=1.0", "huggingface-hub>=0.20"]
-voice = ["sounddevice>=0.4.6", "webrtcvad-wheels>=2.0.14", "pvporcupine>=3.0.0"]
-tts = ["dashscope>=1.20.0"]
 tts-local = ["qwen-tts"]
 all = [
-    "fastembed>=0.6",
     "reflex>=0.9",
-    "faster-whisper>=1.0",
-    "huggingface-hub>=0.20",
-    "sounddevice>=0.4.6",
-    "webrtcvad-wheels>=2.0.14",
-    "pvporcupine>=3.0.0",
-    "dashscope>=1.20.0",
+    "qwen-tts",
 ]
 
 [tool.ruff]

@@ -148,6 +148,8 @@ Your app connects to the Yumi server over WebSocket and registers functions as t
 | `yumi --setup` | Reconfigure models and providers |
 | `yumi --config` | Create/update `~/.yumi/config.json` with all known settings and defaults |
 | `yumi --cleanup` | Delete all Yumi user data (`~/.yumi/`) |
+| `yumi --cleanup-models` | Delete local model caches managed by Yumi (`~/.yumi/models/`) |
+| `yumi --cleanup-models --include-ollama` | Also remove configured Ollama models |
 | `yumi --cleanup-memory` | Delete saved chat memory and embeddings only |
 
 ## Optional Integrations
@@ -155,8 +157,8 @@ Your app connects to the Yumi server over WebSocket and registers functions as t
 - **Telegram** — chat with Yumi from a Telegram bot. Get a token from [@BotFather](https://t.me/BotFather), then run `yumi --server --telegram` (single machine) or `yumi --telegram` (bot only). Token, allowlist, and timer-push details: [Configuration → Telegram](docs/CONFIGURATION.md#telegram).
 - **Discord** — chat with Yumi from a Discord bot. Create an application + bot in the [Discord Developer Portal](https://discord.com/developers/applications), enable the Message Content intent, then run `yumi --server --discord` (single machine) or `yumi --discord` (bot only). Token, allowlist, and timer-push details: [Configuration → Discord](docs/CONFIGURATION.md#discord).
 - **LINE** — chat from LINE via the Messaging API webhook. Run `yumi --server --line` (single machine, default port 8788) or `yumi --line` (webhook sidecar only). Credentials and webhook setup: [Configuration → LINE](docs/CONFIGURATION.md#line).
-- **Voice** — talk to Yumi through your microphone. Say the wake word ("hi yumi") and Yumi transcribes the rest of your sentence and runs it as a chat turn. Transcription runs locally with Whisper (`pip install yumi-agent[voice,stt]`) or, with no model download, through a cloud provider that reuses your existing key — `openai`, `gemini`, or `dashscope` (Qwen3-ASR). Coexists with Telegram / `--chat` / `--ui` so the same Yumi instance can listen and type at once, and recent voice/Telegram/CLI turns are merged into each prompt. Mic capture needs a Picovoice access key. Setup: [Configuration → Voice](docs/CONFIGURATION.md#voice).
-- **Spoken replies (TTS)** — Yumi can talk back. Pick a backend in `yumi --setup`: `system` (macOS `say` / Linux `espeak`, zero-dependency default), `openai` (OpenAI TTS, reuses your `openai_api_key`), `dashscope` (Qwen3-TTS via the DashScope API), or `qwen` (Qwen3-TTS run locally on a GPU). In voice mode replies are spoken automatically; on Telegram / Discord, `/voice on` (`!voice on`) switches a chat to audio replies. Test any time with `yumi --speak "hello"`.
+- **Voice** — talk to Yumi through your microphone. Say the wake word ("hi yumi") and Yumi transcribes the rest of your sentence and runs it as a chat turn. Transcription runs locally with Whisper, or with no model download through a cloud provider that reuses your existing key — `openai`, `gemini`, or `dashscope` (Qwen3-ASR). Coexists with Telegram / `--chat` / `--ui` so the same Yumi instance can listen and type at once, and recent voice/Telegram/CLI turns are merged into each prompt. Mic capture needs a Picovoice access key. Setup: [Configuration → Voice](docs/CONFIGURATION.md#voice).
+- **Spoken replies (TTS)** — Yumi can talk back. Pick a backend in `yumi --setup`: `system` (Windows SAPI, macOS `say`, or Linux `espeak`), `openai` (OpenAI TTS, reuses your `openai_api_key`), `dashscope` (Qwen3-TTS via the DashScope API), or `qwen` (Qwen3-TTS run locally on a GPU via the optional `[tts-local]` extra). In voice mode replies are spoken automatically; on Telegram / Discord, `/voice on` (`!voice on`) switches a chat to audio replies. Test any time with `yumi --speak "hello"`.
 
 ## Supported Providers
 
@@ -165,7 +167,7 @@ Your app connects to the Yumi server over WebSocket and registers functions as t
 | Ollama | Yes | Yes | Local models, no API key needed |
 | OpenAI | Yes | Yes | Also works with OpenAI-compatible endpoints via `openai_base_url` |
 | Gemini | Yes | Yes | Google Gemini |
-| FastEmbed | No | Yes | Local multilingual embeddings installed/downloaded by `yumi --setup`; no Ollama needed |
+| FastEmbed | No | Yes | Local multilingual embeddings downloaded by `yumi --setup`; no Ollama needed |
 | Claude | Yes | No | Anthropic Claude (use another provider for embeddings) |
 | DeepSeek | Yes | No | OpenAI-compatible chat API; use FastEmbed, Ollama, OpenAI, or Gemini for embeddings |
 | Grok | Yes | No | xAI Grok chat API; use FastEmbed, Ollama, OpenAI, or Gemini for embeddings |

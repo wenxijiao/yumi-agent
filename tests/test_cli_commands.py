@@ -5,9 +5,10 @@ or touching the network.
 """
 
 import argparse
+from types import SimpleNamespace
 
 import pytest
-from yumi.cli.commands import build_default_registry, validate_cross_command_flags
+from yumi.cli.commands import UICommand, build_default_registry, validate_cross_command_flags
 
 
 def _parse(argv: list[str]) -> argparse.Namespace:
@@ -82,3 +83,14 @@ def test_edge_tool_flags_require_tool_routing():
 
 def test_plain_server_is_valid():
     assert validate_cross_command_flags(_parse(["--server"])) is None
+
+
+def test_ui_command_checks_node_before_installing_ui_extra(monkeypatch):
+    monkeypatch.setattr("yumi.cli.runners._ensure_ui_node_runtime", lambda: False)
+    monkeypatch.setattr(
+        "yumi.core.features.config.feature_install.ensure_feature_installed",
+        lambda *_args, **_kwargs: pytest.fail("UI extra should not install before Node is ready"),
+    )
+    monkeypatch.setattr("yumi.cli.run_ui", lambda: pytest.fail("UI should not start before Node is ready"))
+
+    UICommand().run(SimpleNamespace())

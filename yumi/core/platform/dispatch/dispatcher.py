@@ -85,7 +85,8 @@ class ToolDispatcher:
 
         for tc in tcalls:
             raw_call_name = str(tc["function"]["name"]).strip()
-            args, parse_err = self._parse_arguments(tc["function"]["arguments"], raw_call_name)
+            raw_arguments = tc["function"].get("arguments")
+            args, parse_err = self._parse_arguments(raw_arguments, raw_call_name)
             if parse_err is not None:
                 ctx.ephemeral_messages.append({"role": "tool", "content": parse_err, "name": raw_call_name})
                 ctx.tool_loop_events.append(
@@ -96,6 +97,15 @@ class ToolDispatcher:
                         "reason": "invalid_json_arguments",
                         "detail": parse_err[:1000],
                     }
+                )
+                self._record_pre_execution_trace(
+                    ctx,
+                    tool_name=raw_call_name,
+                    display_name=raw_call_name,
+                    kind="unknown",
+                    edge_name=None,
+                    arguments=raw_arguments,
+                    result_preview=parse_err,
                 )
                 events.append(
                     ToolStatusEvent(
@@ -158,6 +168,29 @@ class ToolDispatcher:
         )
         return {}, msg
 
+    @staticmethod
+    def _record_pre_execution_trace(
+        ctx: TurnContext,
+        *,
+        tool_name: str,
+        display_name: str,
+        kind: str,
+        edge_name: str | None,
+        arguments: Any,
+        result_preview: str,
+    ) -> None:
+        record_tool_trace(
+            session_id=ctx.session_id,
+            tool_name=tool_name,
+            kind=kind,
+            edge_name=edge_name,
+            display_name=display_name,
+            arguments=arguments,
+            status="error",
+            duration_ms=0,
+            result_preview=result_preview,
+        )
+
     def _resolve_edge_invocation(
         self,
         raw_call_name: str,
@@ -193,6 +226,15 @@ class ToolDispatcher:
                     "detail": err,
                 }
             )
+            self._record_pre_execution_trace(
+                ctx,
+                tool_name=func_name,
+                display_name=raw_call_name,
+                kind="edge" if func_name.startswith("edge_") else "unknown",
+                edge_name=target_edge,
+                arguments=args,
+                result_preview=err,
+            )
             return None, ToolStatusEvent(status="error", content=err)
 
         peer = self.runtime.edge_registry.active_connections.get(target_edge)
@@ -209,6 +251,15 @@ class ToolDispatcher:
                     "reason": "edge_device_went_offline",
                     "edge": target_edge,
                 }
+            )
+            self._record_pre_execution_trace(
+                ctx,
+                tool_name=func_name,
+                display_name=raw_call_name,
+                kind="edge",
+                edge_name=target_edge,
+                arguments=args,
+                result_preview="Device offline or tool not found.",
             )
             return None, ToolStatusEvent(
                 status="error",

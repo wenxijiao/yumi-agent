@@ -12,7 +12,35 @@ from typing import Any
 
 MAX_BUFFER = 2000
 MAX_ARG_CHARS = 4096
+MAX_RESULT_CHARS = 2000
 _MAX_FILE_TAIL_LINES = 800
+_MAX_REDACT_DEPTH = 12
+_SENSITIVE_KEY_NAMES = {
+    "api_key",
+    "apikey",
+    "api-key",
+    "access_key",
+    "access-key",
+    "key",
+    "password",
+    "passwd",
+    "pwd",
+    "authorization",
+    "auth",
+    "cookie",
+}
+_SENSITIVE_KEY_FRAGMENTS = (
+    "api_key",
+    "access_token",
+    "refresh_token",
+    "id_token",
+    "auth_token",
+    "bearer_token",
+    "secret",
+    "password",
+    "private_key",
+    "credential",
+)
 
 _buffer: deque[dict[str, Any]] = deque(maxlen=MAX_BUFFER)
 _lock = threading.Lock()
@@ -23,8 +51,27 @@ def _trace_file() -> Path:
     return Path.home() / ".yumi" / "tool_traces.jsonl"
 
 
+def _is_sensitive_key(key: Any) -> bool:
+    normalized = str(key).strip().lower().replace("-", "_").replace(" ", "_")
+    return normalized in _SENSITIVE_KEY_NAMES or any(fragment in normalized for fragment in _SENSITIVE_KEY_FRAGMENTS)
+
+
+def _redact_sensitive(value: Any, *, depth: int = 0) -> Any:
+    if depth > _MAX_REDACT_DEPTH:
+        return "[truncated]"
+    if isinstance(value, dict):
+        return {
+            str(key): "[redacted]" if _is_sensitive_key(key) else _redact_sensitive(val, depth=depth + 1)
+            for key, val in value.items()
+        }
+    if isinstance(value, (list, tuple)):
+        return [_redact_sensitive(item, depth=depth + 1) for item in value]
+    return value
+
+
 def _truncate_args(args: Any) -> Any:
     """Limit size of stored arguments for logs (privacy + storage)."""
+    args = _redact_sensitive(args)
     try:
         s = json.dumps(args, ensure_ascii=False, default=str)
     except (TypeError, ValueError):
@@ -35,6 +82,21 @@ def _truncate_args(args: Any) -> Any:
         return json.loads(s)
     except json.JSONDecodeError:
         return s
+
+
+def _truncate_result_preview(result_preview: str | None) -> str:
+    if not result_preview:
+        return ""
+    text = str(result_preview)
+    try:
+        parsed = json.loads(text)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return text[:MAX_RESULT_CHARS]
+    try:
+        text = json.dumps(_redact_sensitive(parsed), ensure_ascii=False, default=str)
+    except (TypeError, ValueError):
+        text = str(parsed)
+    return text[:MAX_RESULT_CHARS]
 
 
 def _bootstrap_from_disk_if_needed() -> None:
@@ -88,7 +150,7 @@ def record_tool_trace(
         "arguments": _truncate_args(arguments),
         "status": status,
         "duration_ms": duration_ms,
-        "result_preview": (result_preview or "")[:2000],
+        "result_preview": _truncate_result_preview(result_preview),
     }
     with _lock:
         _buffer.appendleft(rec)

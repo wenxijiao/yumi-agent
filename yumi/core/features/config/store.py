@@ -6,9 +6,14 @@ import os
 from pydantic import ValidationError
 from yumi.core.features.config.model import ModelConfig
 from yumi.core.features.config.paths import CONFIG_PATH, ensure_config_dir
+from yumi.core.platform.storage.sqlite_store import SQLiteStore, db_path_for_config_path
 
 
-def load_saved_model_config() -> ModelConfig:
+def _config_store() -> SQLiteStore:
+    return SQLiteStore(db_path_for_config_path(CONFIG_PATH))
+
+
+def _load_json_model_config() -> ModelConfig:
     if not CONFIG_PATH.exists():
         return ModelConfig()
 
@@ -21,6 +26,23 @@ def load_saved_model_config() -> ModelConfig:
         return ModelConfig.model_validate(data)
     except Exception:
         return ModelConfig()
+
+
+def load_saved_model_config() -> ModelConfig:
+    try:
+        data = _config_store().load_model_config_dict()
+        if data is not None:
+            return ModelConfig.model_validate(data)
+    except Exception:
+        pass
+
+    config = _load_json_model_config()
+    if CONFIG_PATH.exists():
+        try:
+            _config_store().save_model_config_dict(config.model_dump())
+        except Exception:
+            pass
+    return config
 
 
 def load_model_config() -> ModelConfig:
@@ -307,6 +329,7 @@ def load_model_config() -> ModelConfig:
 
 def save_model_config(config: ModelConfig) -> None:
     ensure_config_dir()
+    _config_store().save_model_config_dict(config.model_dump())
     payload = json.dumps(config.model_dump(), ensure_ascii=False, indent=2).encode("utf-8")
     # Atomic write with 0o600 perms — config.json holds API keys, bot tokens, and lan_secret.
     tmp_path = CONFIG_PATH.with_suffix(CONFIG_PATH.suffix + ".tmp")

@@ -7,6 +7,8 @@ inferred from a bare API key (Docker-friendly), embeddings default to off, and
 
 import json
 import os
+import sys
+from types import SimpleNamespace
 
 import pytest
 from yumi.core.features.config import configure_models_noninteractive, credentials, setup_wizard
@@ -168,10 +170,15 @@ def test_noninteractive_with_embeddings_fills_default_model(isolated_config):
     assert cfg.embedding_model  # provider fallback filled in
 
 
-def test_noninteractive_fastembed_fills_default_model(isolated_config):
+def test_noninteractive_fastembed_fills_default_model(isolated_config, monkeypatch):
+    prepared: list[tuple[str, str]] = []
+    monkeypatch.setattr(setup_wizard, "ensure_model_ready", lambda provider, model: prepared.append((provider, model)) or model)
+
     cfg = configure_models_noninteractive(provider="claude", embedding_provider="fastembed")
+
     assert cfg.embedding_provider == "fastembed"
     assert cfg.embedding_model == "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    assert prepared == [("fastembed", cfg.embedding_model)]
 
 
 def test_noninteractive_no_embeddings_flag(isolated_config):
@@ -285,7 +292,7 @@ def test_select_page_wraps_continuation_lines_to_content_column(monkeypatch, cap
             (
                 "local",
                 "Local embeddings",
-                "Yumi installs and downloads everything from the CLI before continuing",
+                "Yumi downloads the embedding model from the CLI before continuing",
             ),
         ],
         selected=0,
@@ -300,8 +307,8 @@ def test_select_page_wraps_continuation_lines_to_content_column(monkeypatch, cap
     assert "  │ memory. Changing it later can make old" in lines
     # Unselected option label at the gutter; description hangs at column 4.
     assert "  Local embeddings" in lines
-    assert "    Yumi installs and downloads everything" in lines
-    assert "    from the CLI before continuing" in lines
+    assert "    Yumi downloads the embedding model from" in lines
+    assert "    the CLI before continuing" in lines
     assert all(not line.startswith("provider/model") for line in lines)
     assert all(not line.startswith("downloads everything") for line in lines)
     assert all(not line.startswith("continuing") for line in lines)
@@ -358,6 +365,39 @@ def test_configure_chat_model_cloud_uses_quick_model_choice(isolated_config, mon
     assert os.environ["OPENAI_API_KEY"] == "sk-test"
 
 
+def test_ollama_install_lines_are_platform_specific():
+    assert "winget install Ollama.Ollama" in "\n".join(setup_wizard._ollama_install_lines("win32"))
+    assert "brew install --cask ollama" in "\n".join(setup_wizard._ollama_install_lines("darwin"))
+    assert "https://ollama.com/install.sh" in "\n".join(setup_wizard._ollama_install_lines("linux"))
+
+
+def test_configure_chat_model_ollama_unavailable_shows_install_and_start_commands(monkeypatch):
+    captured = []
+    modes = iter(["local", "exit"])
+
+    def fake_select_option(**kwargs):
+        captured.append(kwargs)
+        return "runmode"
+
+    def fail_provider(provider: str) -> None:
+        if provider == "ollama":
+            raise RuntimeError("connection refused")
+
+    monkeypatch.setattr(setup_wizard, "_choose_run_mode", lambda notice=None: next(modes))
+    monkeypatch.setattr(setup_wizard, "_select_option", fake_select_option)
+    monkeypatch.setattr(setup_wizard, "ensure_provider_available", fail_provider)
+
+    with pytest.raises(SystemExit):
+        setup_wizard._configure_chat_model()
+
+    error = captured[0]["error"]
+    assert "Ollama chat requires Ollama to be installed and running." in error
+    assert "ollama serve" in error
+    assert "ollama pull qwen3.5:9b" in error
+    assert "ollama pull qwen3-embedding:0.6b" in error
+    assert "Details: connection refused" in error
+
+
 def test_chat_action_requires_config_when_missing():
     assert setup_wizard._choose_chat_action(ModelConfig()) == "reconfigure"
 
@@ -401,13 +441,16 @@ def test_setup_embeddings_keep_available_current(monkeypatch):
         embedding_provider="fastembed",
         embedding_model="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
     )
+    prepared: list[tuple[str, str]] = []
     monkeypatch.setattr(setup_wizard, "ensure_provider_available", lambda provider: None)
+    monkeypatch.setattr(setup_wizard, "ensure_model_ready", lambda provider, model: prepared.append((provider, model)) or model)
     monkeypatch.setattr("builtins.input", lambda _prompt="": "")
 
     setup_wizard._setup_embeddings(cfg, "claude")
 
     assert cfg.embedding_provider == "fastembed"
     assert cfg.embedding_model == "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    assert prepared == [("fastembed", cfg.embedding_model)]
 
 
 def test_embedding_action_requires_config_when_missing(monkeypatch):
@@ -461,23 +504,19 @@ def test_setup_embeddings_unavailable_current_can_skip(monkeypatch):
 def test_setup_embeddings_local_prepares_fastembed(isolated_config, monkeypatch):
     cfg = ModelConfig(chat_provider="claude", chat_model="m")
     answers = iter(["2", "1"])
-    pulled: list[str] = []
+    prepared: list[tuple[str, str]] = []
     cleared: list[bool] = []
-
-    class FakeFastEmbedProvider:
-        def pull_model(self, model: str) -> None:
-            pulled.append(model)
 
     monkeypatch.setattr("builtins.input", lambda _prompt="": next(answers))
     monkeypatch.setattr("yumi.core.features.config.feature_install.ensure_feature_installed", lambda *a, **k: True)
-    monkeypatch.setattr(setup_wizard, "_get_provider", lambda provider: FakeFastEmbedProvider())
+    monkeypatch.setattr(setup_wizard, "ensure_model_ready", lambda provider, model: prepared.append((provider, model)) or model)
     monkeypatch.setattr(setup_wizard, "_clear_screen", lambda: cleared.append(True))
 
     setup_wizard._setup_embeddings(cfg, "claude")
 
     assert cfg.embedding_provider == "fastembed"
     assert cfg.embedding_model == "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-    assert pulled == [cfg.embedding_model]
+    assert prepared == [("fastembed", cfg.embedding_model)]
     assert cleared == [True]
 
 
@@ -506,6 +545,58 @@ def test_setup_ollama_embeddings_manual_clears_download_progress(monkeypatch):
     assert cfg.embedding_model == "qwen3-embedding:0.6b"
     assert prepared == ["ollama:qwen3-embedding:0.6b"]
     assert cleared == [True]
+
+
+def test_setup_ollama_embeddings_unavailable_shows_install_and_start_commands(monkeypatch):
+    choices = iter(["back"])
+    captured = []
+
+    def fail_provider(provider: str) -> None:
+        if provider == "ollama":
+            raise RuntimeError("service missing")
+
+    def fake_select_option(**kwargs):
+        captured.append(kwargs)
+        return next(choices)
+
+    cfg = ModelConfig(chat_provider="openai", chat_model="m")
+    monkeypatch.setattr(setup_wizard, "ensure_provider_available", fail_provider)
+    monkeypatch.setattr(setup_wizard, "_select_option", fake_select_option)
+
+    assert setup_wizard._setup_ollama_embeddings(cfg) is False
+
+    error = captured[0]["error"]
+    assert [option[0] for option in captured[0]["options"]] == ["retry", "back"]
+    assert "Ollama embedding setup requires Ollama to be installed and running." in error
+    assert "ollama serve" in error
+    assert "ollama pull qwen3-embedding:0.6b" in error
+    assert "Details: service missing" in error
+
+
+def test_setup_ollama_embeddings_retry_after_unavailable_restores_model_choices(monkeypatch):
+    choices = iter(["retry", "back"])
+    captured = []
+    provider_checks: list[str] = []
+
+    def ensure_provider(provider: str) -> None:
+        provider_checks.append(provider)
+        if len(provider_checks) == 1:
+            raise RuntimeError("service missing")
+
+    def fake_select_option(**kwargs):
+        captured.append(kwargs)
+        return next(choices)
+
+    cfg = ModelConfig(chat_provider="openai", chat_model="m")
+    monkeypatch.setattr(setup_wizard, "ensure_provider_available", ensure_provider)
+    monkeypatch.setattr(setup_wizard, "_select_option", fake_select_option)
+
+    assert setup_wizard._setup_ollama_embeddings(cfg) is False
+
+    assert provider_checks == ["ollama", "ollama"]
+    assert [option[0] for option in captured[0]["options"]] == ["retry", "back"]
+    assert [option[0] for option in captured[1]["options"]] == ["installed", "manual", "back"]
+    assert captured[1]["error"] is None
 
 
 def test_setup_ollama_embeddings_reports_missing_installed_models(monkeypatch):
@@ -617,22 +708,21 @@ def test_prompt_stt_config_cloud_grok_without_model(isolated_config, monkeypatch
 def test_prompt_stt_config_local_whisper_caches_model(monkeypatch):
     selections = iter(["local", "small"])  # top menu → local, then a Whisper model
     captured = []
-    installed_features = []
+    cached = []
+    cleared: list[bool] = []
 
     def fake_select_option(**kwargs):
         captured.append(kwargs)
         return next(selections)
 
-    def fake_ensure_feature_installed(feature, *, assume_yes=False):
-        installed_features.append((feature, assume_yes))
-        return False
-
     cfg = ModelConfig()
     monkeypatch.setattr(setup_wizard, "_select_option", fake_select_option)
     monkeypatch.setattr("builtins.input", lambda _prompt="": pytest.fail("STT setup should not ask for a cache path"))
     monkeypatch.setattr(
-        "yumi.core.features.config.feature_install.ensure_feature_installed", fake_ensure_feature_installed
+        "yumi.core.features.stt.whisper_provider.ensure_whisper_weights_cached",
+        lambda **kwargs: cached.append(kwargs),
     )
+    monkeypatch.setattr(setup_wizard, "_clear_screen", lambda: cleared.append(True))
 
     setup_wizard._prompt_stt_config(cfg)
 
@@ -642,7 +732,8 @@ def test_prompt_stt_config_local_whisper_caches_model(monkeypatch):
     assert cfg.stt_provider == "whisper"
     assert cfg.stt_model == "small"
     assert cfg.stt_model_dir == str(setup_wizard._DEFAULT_WHISPER_MODEL_DIR)
-    assert installed_features == [("stt", True)]
+    assert cached == [{"model": "small", "model_dir": str(setup_wizard._DEFAULT_WHISPER_MODEL_DIR)}]
+    assert cleared == [True]
 
 
 def test_prompt_tts_config_top_menu_is_cloud_local(monkeypatch):
@@ -690,26 +781,83 @@ def test_prompt_tts_config_local_system_voice_does_not_prompt(monkeypatch):
     assert cfg.tts_provider == "system"
 
 
-def test_prompt_tts_config_cloud_dashscope_installs(isolated_config, monkeypatch):
-    selections = iter(["cloud", "dashscope", "Cherry"])  # cloud → dashscope → voice
-    installed_features = []
+def test_qwen_tts_torch_status_reports_cpu_only_torch(monkeypatch):
+    fake_torch = SimpleNamespace(
+        __version__="2.12.1+cpu",
+        version=SimpleNamespace(cuda=None),
+        cuda=SimpleNamespace(is_available=lambda: False),
+        backends=SimpleNamespace(mps=SimpleNamespace(is_available=lambda: False)),
+    )
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
 
-    def fake_ensure_feature_installed(feature, *, assume_yes=False):
-        installed_features.append((feature, assume_yes))
-        return False
+    ready, detail = setup_wizard._qwen_tts_torch_status()
+
+    assert ready is False
+    assert "CPU-only" in detail
+    assert "pytorch.org/get-started/locally" in detail
+
+
+def test_qwen_tts_torch_status_accepts_mps_torch(monkeypatch):
+    fake_torch = SimpleNamespace(
+        __version__="2.12.1",
+        version=SimpleNamespace(cuda=None),
+        cuda=SimpleNamespace(is_available=lambda: False),
+        backends=SimpleNamespace(mps=SimpleNamespace(is_available=lambda: True)),
+    )
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
+
+    ready, detail = setup_wizard._qwen_tts_torch_status()
+
+    assert ready is True
+    assert "MPS ready" in detail
+    assert "experimental" in detail
+
+
+def test_qwen_tts_torch_install_hint_is_platform_specific():
+    assert "choose Windows" in setup_wizard._qwen_tts_torch_install_hint("win32")
+    assert "choose Linux" in setup_wizard._qwen_tts_torch_install_hint("linux")
+    mac_hint = setup_wizard._qwen_tts_torch_install_hint("darwin")
+    assert "Apple Silicon/MPS" in mac_hint
+    assert "experimental" in mac_hint
+
+
+def test_prompt_tts_config_local_qwen_does_not_install_without_cuda_torch(monkeypatch):
+    selections = iter(["local", "qwen", "back", "back"])
+    captured = []
+
+    def fake_select_option(**kwargs):
+        captured.append(kwargs)
+        return next(selections)
+
+    monkeypatch.setattr(setup_wizard, "_select_option", fake_select_option)
+    monkeypatch.setattr(setup_wizard, "_qwen_tts_torch_status", lambda: (False, "PyTorch is CPU-only."))
+    monkeypatch.setattr(setup_wizard, "_note", lambda *_args, **_kwargs: pytest.fail("failed Qwen setup should not complete"))
+    monkeypatch.setattr(
+        "yumi.core.features.config.feature_install.ensure_feature_installed",
+        lambda *_args, **_kwargs: pytest.fail("qwen-tts should not install before CUDA PyTorch is ready"),
+    )
+
+    cfg = ModelConfig()
+    assert setup_wizard._prompt_tts_config(cfg) == "back"
+
+    assert cfg.tts_provider == "disabled"
+    assert captured[2]["title"] == "Local spoken-reply backend"
+    assert "Local Qwen3-TTS needs CUDA or Apple MPS PyTorch before installing qwen-tts." in captured[2]["error"]
+    assert "PyTorch is CPU-only." in captured[2]["error"]
+    assert [option[0] for option in captured[2]["options"]] == ["system", "qwen", "back"]
+
+
+def test_prompt_tts_config_cloud_dashscope(isolated_config, monkeypatch):
+    selections = iter(["cloud", "dashscope", "Cherry"])  # cloud → dashscope → voice
 
     cfg = ModelConfig(tts_api_key="dashscope-key")  # key already saved → no prompt
     monkeypatch.setattr(setup_wizard, "_select_option", lambda **_k: next(selections))
     monkeypatch.setattr("builtins.input", lambda _prompt="": "")  # reuse saved DashScope key
-    monkeypatch.setattr(
-        "yumi.core.features.config.feature_install.ensure_feature_installed", fake_ensure_feature_installed
-    )
 
     setup_wizard._prompt_tts_config(cfg)
 
     assert cfg.tts_provider == "dashscope"
     assert cfg.tts_voice == "Cherry"
-    assert installed_features == [("tts", True)]
 
 
 def test_prompt_tts_config_cloud_grok(isolated_config, monkeypatch):

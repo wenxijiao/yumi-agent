@@ -5,12 +5,14 @@ from __future__ import annotations
 import asyncio
 
 import pytest
+import yumi.core.platform.tools.trace as trace_mod
 from yumi.core.platform.dispatch.context import ToolInvocation, ToolResult, TurnContext
 from yumi.core.platform.dispatch.dispatcher import ToolDispatcher, canonical_local_tool_name
 from yumi.core.platform.dispatch.edge import EdgeToolExecutor
 from yumi.core.platform.dispatch.local import LocalToolExecutor
 from yumi.core.platform.runtime import get_default_runtime
 from yumi.core.platform.tools.tool import TOOL_REGISTRY
+from yumi.core.platform.tools.trace import clear_memory_buffer, list_traces
 
 
 @pytest.fixture
@@ -25,6 +27,15 @@ def dispatcher(runtime):
         local_executor=LocalToolExecutor(timeout=5),
         edge_executor=EdgeToolExecutor(runtime, default_timeout=5),
     )
+
+
+@pytest.fixture(autouse=True)
+def isolated_tool_trace(monkeypatch):
+    clear_memory_buffer()
+    monkeypatch.setattr(trace_mod, "_disk_bootstrapped", True)
+    monkeypatch.setattr(trace_mod, "_append_jsonl_line", lambda _rec: None)
+    yield
+    clear_memory_buffer()
 
 
 def _ctx() -> TurnContext:
@@ -70,6 +81,19 @@ def test_prepare_unknown_tool_yields_error_and_message(dispatcher):
     assert ctx.ephemeral_messages and ctx.ephemeral_messages[-1]["role"] == "tool"
 
 
+def test_prepare_unknown_tool_records_trace(dispatcher, isolated_tool_trace):
+    ctx = _ctx()
+    invs, events = dispatcher.prepare([_tcall("nope", "{}")], ctx)
+
+    assert invs == []
+    assert events
+    traces = list_traces(session_id="s1", limit=10)
+    assert len(traces) == 1
+    assert traces[0]["tool_name"] == "nope"
+    assert traces[0]["status"] == "error"
+    assert "not registered" in traces[0]["result_preview"]
+
+
 def test_prepare_invalid_json_arguments_repaired(dispatcher, monkeypatch):
     monkeypatch.setitem(TOOL_REGISTRY, "echo", {})
     invs, events = dispatcher.prepare([_tcall("echo", "{a:1,}")], _ctx())
@@ -84,6 +108,21 @@ def test_prepare_unrepairable_json_yields_error(dispatcher, monkeypatch):
     ctx = _ctx()
     invs, events = dispatcher.prepare([_tcall("echo", "][not parseable")], ctx)
     assert invs == [] or all(i.args == {} for i in invs)
+    monkeypatch.delitem(TOOL_REGISTRY, "echo", raising=False)
+
+
+def test_prepare_unrepairable_json_records_trace(dispatcher, monkeypatch, isolated_tool_trace):
+    monkeypatch.setitem(TOOL_REGISTRY, "echo", {})
+    ctx = _ctx()
+    invs, events = dispatcher.prepare([_tcall("echo", "][not parseable")], ctx)
+
+    assert invs == []
+    assert events
+    traces = list_traces(session_id="s1", limit=10)
+    assert len(traces) == 1
+    assert traces[0]["tool_name"] == "echo"
+    assert traces[0]["status"] == "error"
+    assert "Invalid JSON" in traces[0]["result_preview"]
     monkeypatch.delitem(TOOL_REGISTRY, "echo", raising=False)
 
 

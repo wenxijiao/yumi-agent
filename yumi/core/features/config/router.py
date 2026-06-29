@@ -18,6 +18,7 @@ from yumi.core.features.config import (
     delete_session_prompt,
     ensure_config_dir,
     ensure_embedding_provider_supported,
+    ensure_model_ready,
     ensure_provider_available,
     get_api_credentials,
     get_session_prompt,
@@ -261,6 +262,8 @@ async def update_model_config_endpoint(request: ModelConfigUpdateRequest):
                 continue
             seen.add(prov)
             ensure_provider_available(prov)
+        if config.embedding_provider == "fastembed" and config.embedding_model:
+            ensure_model_ready("fastembed", config.embedding_model)
     except ProviderNotReadyError as exc:
         _restore_config_file(backup_before)
         raise provider_not_ready_http(exc) from exc

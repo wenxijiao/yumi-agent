@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import warnings
+from inspect import signature
+from pathlib import Path
 from typing import Any
 
 from yumi.core.platform.providers.base import BaseLLMProvider
@@ -8,6 +10,7 @@ from yumi.core.platform.providers.base import BaseLLMProvider
 # Match on the stable middle of the message, not a start-anchored prefix, so an
 # upstream change that prepends text to the warning doesn't make it leak through.
 _FASTEMBED_POOLING_WARNING = r".*mean pooling instead of CLS embedding.*"
+FASTEMBED_MODELS_DIR = Path.home() / ".yumi" / "models" / "fastembed"
 
 
 class FastEmbedProvider(BaseLLMProvider):
@@ -24,12 +27,18 @@ class FastEmbedProvider(BaseLLMProvider):
                 from fastembed import TextEmbedding
             except ImportError as exc:
                 raise RuntimeError(
-                    "FastEmbed is not installed. Run `yumi --setup` and choose Local embeddings, "
-                    "or install it with `pip install 'yumi-agent[embed]'`."
+                    "FastEmbed is not importable. Reinstall with: pip install --force-reinstall yumi-agent"
                 ) from exc
+            kwargs: dict[str, Any] = {"model_name": model_name}
+            try:
+                if "cache_dir" in signature(TextEmbedding).parameters:
+                    FASTEMBED_MODELS_DIR.mkdir(parents=True, exist_ok=True)
+                    kwargs["cache_dir"] = str(FASTEMBED_MODELS_DIR)
+            except (TypeError, ValueError):
+                pass
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", message=_FASTEMBED_POOLING_WARNING, category=UserWarning)
-                self._models[model_name] = TextEmbedding(model_name=model_name)
+                self._models[model_name] = TextEmbedding(**kwargs)
         return self._models[model_name]
 
     def embed(self, model: str, text: str) -> list[float]:

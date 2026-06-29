@@ -33,15 +33,17 @@ class AudioSource(Protocol):
 class SoundDeviceSource:
     """Real microphone capture via the ``sounddevice`` library.
 
-    ``sounddevice`` is an optional dependency (``pip install yumi-agent[voice]``);
-    importing this class without it raises a clear error.
+    ``sounddevice`` ships with yumi-agent; importing this class without it
+    raises a clear repair hint for broken/partial installs.
     """
 
     def __init__(self, *, sample_rate: int, frame_length: int, device: int | None = None) -> None:
         try:
             import sounddevice as sd  # noqa: F401
         except ImportError as exc:  # pragma: no cover - import-time guard
-            raise RuntimeError("sounddevice is not installed. Install with: pip install yumi-agent[voice]") from exc
+            raise RuntimeError(
+                "sounddevice is not importable. Reinstall with: pip install --force-reinstall yumi-agent"
+            ) from exc
         self.sample_rate = int(sample_rate)
         self.frame_length = int(frame_length)
         self.device = device

@@ -1,15 +1,11 @@
 """Install optional ('extra') feature dependencies on demand.
 
-The base ``pip install yumi-agent`` is batteries-included for LLM providers,
-messaging bridges, and file ingestion. Only the genuinely heavy / system-
-dependent features stay out of the base install:
+The base ``pip install yumi-agent`` is intentionally batteries-included for
+chat providers, messaging bridges, STT, microphone voice mode, cloud TTS/STT,
+local FastEmbed embeddings, and file ingestion. Only the large UI stack and
+local-GPU Qwen TTS stay out of the base install.
 
-* ``ui``    — the Reflex web UI (large; pulls a Node toolchain)
-* ``embed`` — local multilingual embeddings (FastEmbed)
-* ``stt``   — Whisper speech-to-text (downloads model weights)
-* ``voice`` — microphone wake-word (needs the PortAudio system lib + a key)
-
-This module lets the setup wizard and the CLI offer to install those the moment
+This module lets the setup wizard and the CLI offer those two extras the moment
 a user turns the feature on, instead of failing later with a missing-package
 error.
 """
@@ -27,11 +23,7 @@ _DIST = "yumi-agent"
 
 # feature -> (extra name, module to probe for "already installed?", label)
 _FEATURES: dict[str, tuple[str, str, str]] = {
-    "embed": ("embed", "fastembed", "local multilingual embeddings"),
     "ui": ("ui", "reflex", "the Reflex web UI"),
-    "stt": ("stt", "faster_whisper", "Whisper speech-to-text"),
-    "voice": ("voice", "sounddevice", "microphone wake-word voice"),
-    "tts": ("tts", "dashscope", "Qwen3-TTS spoken replies (DashScope API)"),
     "tts-local": ("tts-local", "qwen_tts", "Qwen3-TTS running locally (GPU)"),
 }
 
@@ -94,11 +86,6 @@ def ensure_feature_installed(feature: str, *, assume_yes: bool = False) -> bool:
     importlib.invalidate_caches()
     if not is_feature_installed(feature):
         print(f"  Installed, but '{module}' still can't be imported.")
-        if feature == "voice":
-            print(
-                "  Voice also needs the PortAudio system library "
-                "(macOS: `brew install portaudio`; Debian/Ubuntu: `sudo apt install libportaudio2`)."
-            )
         return False
     print(f"  {label} is ready.")
     return True

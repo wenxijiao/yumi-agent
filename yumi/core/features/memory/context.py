@@ -105,6 +105,38 @@ class ContextBuilder:
         max_recent: int,
         peer_session_ids: list[str] | None = None,
     ) -> list[dict]:
+        sqlite = getattr(self.memory, "sqlite", None)
+        if sqlite is not None:
+            try:
+                total_current = sqlite.event_count(session_id=self.memory.session_id)
+                if total_current > 0:
+                    results = sqlite.recent_transcript_rows(
+                        self.memory.session_id,
+                        max_recent * 2 if peer_session_ids else max_recent,
+                        peer_session_ids=peer_session_ids,
+                    )
+                    if peer_session_ids:
+                        current_sid = self.memory.session_id
+                        results = [
+                            r
+                            for r in results
+                            if r.get("session_id") == current_sid or r.get("role") in {"user", "assistant"}
+                        ]
+                        for r in results:
+                            if r.get("session_id") and r.get("session_id") != current_sid:
+                                r["_peer_channel"] = _channel_label(r.get("session_id"))
+                    if len(results) > max_recent * 2:
+                        results = results[-max_recent * 2 :]
+                    current_count = sum(1 for r in results if r.get("session_id") == self.memory.session_id)
+                    results = trim_leading_orphan_tool_rows(results)
+                    results = trim_trailing_incomplete_tool_rows(results)
+                    if current_count < total_current:
+                        results = trim_leading_orphan_assistant_tool_calls(results)
+                    results = dedupe_consecutive_user_rows(results)
+                    return [_format_transcript_message(msg) for msg in results]
+            except Exception:
+                pass
+
         if not self.memory._table_exists():
             return []
 

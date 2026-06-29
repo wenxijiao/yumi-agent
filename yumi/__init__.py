@@ -16,7 +16,7 @@ from __future__ import annotations
 
 __all__ = ["__version__", "YumiAgent", "register", "run", "run_in_background", "stop"]
 
-__version__ = "0.3.0"
+__version__ = "0.0.1"
 
 from yumi.sdk import YumiAgent as YumiAgent
 

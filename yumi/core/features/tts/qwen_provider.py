@@ -1,9 +1,10 @@
 """Qwen3-TTS run locally via the ``qwen-tts`` package.
 
 This is the self-hosted alternative to the DashScope API provider. It loads the
-model with ``transformers``/``torch`` and realistically needs an NVIDIA GPU —
-on CPU / Apple Silicon it will be very slow or fail to load FlashAttention. The
-model is loaded lazily on first synthesis so importing this module stays cheap.
+model with ``transformers``/``torch``. CUDA/NVIDIA is the fastest and most
+reliable path; Apple MPS can work on some Apple Silicon Macs with more
+conservative loading settings, but is still slower/more experimental. The model
+is loaded lazily on first synthesis so importing this module stays cheap.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ import io
 import wave
 from typing import Any
 
+from yumi.core.features.config.paths import QWEN_TTS_MODELS_DIR
 from yumi.core.features.tts.base import TextToSpeechProvider, TtsError
 from yumi.core.features.tts.types import SpeechAudio
 
@@ -70,6 +72,18 @@ class QwenTtsProvider(TextToSpeechProvider):
             pass
         return "cpu"
 
+    @staticmethod
+    def _load_kwargs(torch: Any, device: str) -> dict[str, Any]:
+        kwargs: dict[str, Any] = {"device_map": device}
+        if device.startswith("cuda"):
+            kwargs["dtype"] = torch.bfloat16
+        else:
+            # MPS/CPU are more fragile with bf16/flash attention. SDPA + fp32 is
+            # slower, but avoids the most common non-CUDA load failures.
+            kwargs["dtype"] = torch.float32
+            kwargs["attn_implementation"] = "sdpa"
+        return kwargs
+
     def _load_model(self) -> Any:
         if self._model is not None:
             return self._model
@@ -83,10 +97,11 @@ class QwenTtsProvider(TextToSpeechProvider):
                 "then: pip install 'yumi-agent[tts-local]'."
             ) from exc
         device = self._device or self._auto_device(torch)
+        QWEN_TTS_MODELS_DIR.mkdir(parents=True, exist_ok=True)
         self._model = Qwen3TTSModel.from_pretrained(
             self._model_name,
-            device_map=device,
-            dtype=torch.bfloat16,
+            cache_dir=str(QWEN_TTS_MODELS_DIR),
+            **self._load_kwargs(torch, device),
         )
         return self._model
 

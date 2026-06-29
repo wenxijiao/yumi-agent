@@ -148,6 +148,7 @@ class ToolTraceEntry(BaseModel):
     duration_ms: int = 0
     session_id: str = ""
     args_summary: str = ""
+    result_preview: str = ""
 
 
 # ────────────────────────────────────────────
@@ -986,6 +987,9 @@ class State(rx.State):
                     s = str(args)
                 if len(s) > 120:
                     s = s[:117] + "..."
+                result_preview = str(t.get("result_preview") or "")
+                if len(result_preview) > 220:
+                    result_preview = result_preview[:217] + "..."
                 ts = str(t.get("ts", ""))
                 short_ts = ts.replace("T", " ")[:19] if ts else ""
                 norm.append(
@@ -998,6 +1002,7 @@ class State(rx.State):
                         duration_ms=int(t.get("duration_ms") or 0),
                         session_id=str(t.get("session_id", "")),
                         args_summary=s,
+                        result_preview=result_preview,
                     )
                 )
             self.monitor_traces = norm
@@ -3810,13 +3815,35 @@ def _trace_row(trace: ToolTraceEntry) -> rx.Component:
             flex_shrink="0",
             style={"overflow": "hidden", "text_overflow": "ellipsis", "white_space": "nowrap"},
         ),
-        rx.text(
-            trace.args_summary,
-            size="1",
-            color="var(--text-2)",
+        rx.vstack(
+            rx.hstack(
+                rx.badge("args", variant="soft", size="1", color_scheme="gray"),
+                rx.text(
+                    trace.args_summary,
+                    size="1",
+                    color="var(--text-2)",
+                    style={"word_break": "break-word"},
+                ),
+                spacing="2",
+                align="start",
+                width="100%",
+            ),
+            rx.hstack(
+                rx.badge("result", variant="soft", size="1", color_scheme="gray"),
+                rx.text(
+                    trace.result_preview,
+                    size="1",
+                    color="var(--text-3)",
+                    style={"word_break": "break-word"},
+                ),
+                spacing="2",
+                align="start",
+                width="100%",
+            ),
             flex="1",
             min_width="0",
-            style={"word_break": "break-word"},
+            spacing="1",
+            align="stretch",
         ),
         rx.hstack(
             rx.text(trace.duration_ms, size="1", color="var(--text-3)"),
@@ -3918,7 +3945,7 @@ def _monitor_main() -> rx.Component:
                         "Time (UTC)", size="1", weight="bold", color="var(--text-3)", width="150px", flex_shrink="0"
                     ),
                     rx.text("Tool", size="1", weight="bold", color="var(--text-3)", width="180px", flex_shrink="0"),
-                    rx.text("Arguments", size="1", weight="bold", color="var(--text-3)", flex="1", min_width="0"),
+                    rx.text("Details", size="1", weight="bold", color="var(--text-3)", flex="1", min_width="0"),
                     rx.text("Duration", size="1", weight="bold", color="var(--text-3)", width="72px", flex_shrink="0"),
                     rx.text("Status", size="1", weight="bold", color="var(--text-3)", width="90px", flex_shrink="0"),
                     width="100%",

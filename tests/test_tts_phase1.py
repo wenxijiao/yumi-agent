@@ -46,13 +46,22 @@ def test_build_argv_espeak_without_voice():
     assert argv[-1] == "hi"
 
 
+def test_build_argv_windows_powershell_uses_sapi():
+    argv = SystemTtsProvider._build_argv("powershell", "hello", "Microsoft Zira Desktop", "C:\\tmp\\o.wav")
+    assert argv[:5] == ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command"]
+    assert "System.Speech.Synthesis.SpeechSynthesizer" in argv[5]
+    assert "$env:YUMI_TTS_OUT" in argv[5]
+    assert "$env:YUMI_TTS_TEXT" in argv[5]
+    assert "$env:YUMI_TTS_VOICE" in argv[5]
+
+
 def test_synthesize_returns_wav_bytes(monkeypatch):
     monkeypatch.setattr(
         "yumi.core.features.tts.system_provider.resolve_system_command",
         lambda: "espeak",
     )
 
-    def fake_run(argv, check, capture_output):
+    def fake_run(argv, check, capture_output, env=None):
         out_path = argv[argv.index("-w") + 1]
         with open(out_path, "wb") as fh:
             fh.write(b"RIFFfake-wav-bytes")
