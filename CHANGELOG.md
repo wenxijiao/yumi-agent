@@ -39,6 +39,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Core (agent loop + memory storage):
+  - **SQLite is now the authoritative write** for every message; the LanceDB
+    vector index is a derived, best-effort write that is rebuilt from SQLite when
+    needed — so an index hiccup can no longer lose a canonical message (the write
+    order was previously inverted).
+  - Added `Memory.rebuild_index_from_sqlite()` to drop and regenerate the LanceDB
+    query index from SQLite (e.g. after changing the embedding model, or to repair
+    drift).
+  - Removed the never-consumed `embedding_jobs` / `vector_index_records` queue
+    (it grew unbounded and was dead scaffolding; embeddings are generated inline
+    and the index is rebuilt from SQLite on demand).
+  - Chat: a malformed-tool-call retry no longer re-sends and re-persists the
+    user's message on each attempt.
 - Pre-release hardening (web UI + voice):
   - Cloud STT (Gemini/DashScope/Grok) now transcodes browser WebM/MP4 recordings
     to WAV via PyAV, and the mic upload filename matches the real container

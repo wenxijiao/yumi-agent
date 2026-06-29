@@ -12,8 +12,7 @@ def load_yumi_dotenv() -> None:
     except ImportError:
         return
 
-    from yumi.core.features.config.paths import CONFIG_DIR
-
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    load_dotenv(CONFIG_DIR / ".env", override=False)
+    config_dir = Path.home() / ".yumi"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    load_dotenv(config_dir / ".env", override=False)
     load_dotenv(Path.cwd() / ".env", override=False)

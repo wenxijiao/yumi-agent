@@ -16,34 +16,76 @@ from __future__ import annotations
 
 import argparse
 from importlib.metadata import PackageNotFoundError, version
+from typing import TYPE_CHECKING
 
-from yumi.cli.runners import (
-    _parse_edge_langs,
-    _run_demo,
-    prepare_client_environment,
-    run_chat,
-    run_cleanup,
-    run_cleanup_memory,
-    run_cleanup_models,
-    run_config_file,
-    run_discord_standalone,
-    run_edge,
-    run_edge_standalone,
-    run_line_standalone,
-    run_model_setup,
-    run_server,
-    run_server_with_bridges,
-    run_server_with_discord,
-    run_server_with_line,
-    run_server_with_telegram,
-    run_server_with_telegram_and_voice,
-    run_server_with_voice,
-    run_telegram_standalone,
-    run_tool_routing_config,
-    run_ui,
-    setup_messaging_tokens,
-)
 from yumi.logging_config import configure_logging
+
+if TYPE_CHECKING:
+    from yumi.cli.runners import (
+        _parse_edge_langs,
+        _run_demo,
+        prepare_client_environment,
+        run_chat,
+        run_cleanup,
+        run_cleanup_memory,
+        run_cleanup_models,
+        run_config_file,
+        run_discord_standalone,
+        run_edge,
+        run_edge_standalone,
+        run_line_standalone,
+        run_model_setup,
+        run_server,
+        run_server_with_bridges,
+        run_server_with_discord,
+        run_server_with_line,
+        run_server_with_telegram,
+        run_server_with_telegram_and_voice,
+        run_server_with_voice,
+        run_telegram_standalone,
+        run_tool_routing_config,
+        run_ui,
+        setup_messaging_tokens,
+    )
+
+_RUNNER_EXPORTS = {
+    "_parse_edge_langs",
+    "_run_demo",
+    "prepare_client_environment",
+    "run_chat",
+    "run_cleanup",
+    "run_cleanup_memory",
+    "run_cleanup_models",
+    "run_config_file",
+    "run_discord_standalone",
+    "run_edge",
+    "run_edge_standalone",
+    "run_line_standalone",
+    "run_model_setup",
+    "run_server",
+    "run_server_with_bridges",
+    "run_server_with_discord",
+    "run_server_with_line",
+    "run_server_with_telegram",
+    "run_server_with_telegram_and_voice",
+    "run_server_with_voice",
+    "run_telegram_standalone",
+    "run_tool_routing_config",
+    "run_ui",
+    "setup_messaging_tokens",
+}
+
+
+def __getattr__(name: str):
+    """Lazily expose runner helpers so ``yumi --help`` stays dependency-light."""
+    if name in _RUNNER_EXPORTS:
+        import importlib
+
+        runners = importlib.import_module("yumi.cli.runners")
+        value = getattr(runners, name)
+        globals()[name] = value
+        return value
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def _package_version() -> str:

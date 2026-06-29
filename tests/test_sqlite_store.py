@@ -32,8 +32,6 @@ def test_sqlite_schema_creates_canonical_tables(tmp_path):
         "events",
         "memories",
         "session_summaries",
-        "embedding_jobs",
-        "vector_index_records",
         "files",
         "schedules",
         "audit_log",
@@ -61,7 +59,7 @@ def test_config_json_migrates_to_sqlite_and_save_keeps_legacy_mirror(monkeypatch
     assert data["openai_api_key"] == "sk-old"
 
 
-def test_memory_writes_sqlite_events_and_tool_jobs(tmp_path):
+def test_memory_writes_sqlite_events(tmp_path):
     m = Memory(session_id="s", storage_dir=tmp_path, max_recent=50)
     user_id = m.add_message("user", "hello")
     m.persist_openai_messages(
@@ -81,10 +79,8 @@ def test_memory_writes_sqlite_events_and_tool_jobs(tmp_path):
 
     with sqlite3.connect(tmp_path / "yumi.db") as conn:
         event_types = [row[0] for row in conn.execute("SELECT event_type FROM events ORDER BY seq")]
-        pending_jobs = conn.execute("SELECT COUNT(*) FROM embedding_jobs WHERE status='pending'").fetchone()[0]
 
     assert event_types == ["user_message", "assistant_tool_calls", "tool_result"]
-    assert pending_jobs >= 3
 
 
 def test_lancedb_chat_history_can_rebuild_from_sqlite_events(tmp_path):
@@ -96,6 +92,21 @@ def test_lancedb_chat_history_can_rebuild_from_sqlite_events(tmp_path):
 
     rows = rebuilt.messages.list(session_id="s", limit=10)
     assert [row["content"] for row in rows] == ["canonical"]
+
+
+def test_rebuild_index_from_sqlite_realigns_lancedb(tmp_path):
+    m = Memory(session_id="s", storage_dir=tmp_path, max_recent=50)
+    m.add_message("user", "first")
+    m.add_message("assistant", "second")
+
+    # Simulate LanceDB index drift/loss while SQLite (the source of truth) is intact.
+    m.db.drop_table("chat_history", ignore_missing=True)
+
+    count = m.rebuild_index_from_sqlite()
+
+    assert count == 2
+    rebuilt = m.messages.list(session_id="s", limit=10)
+    assert [r["content"] for r in rebuilt] == ["first", "second"]
 
 
 def test_upload_metadata_is_recorded_in_sqlite(tmp_path, monkeypatch):

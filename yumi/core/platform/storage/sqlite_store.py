@@ -63,15 +63,6 @@ MODEL_PROFILE_FIELDS = frozenset(MODEL_PROFILE_COLUMNS)
 
 PROMPT_FIELDS = frozenset({"system_prompt", "session_prompts", "proactive_profile_prompt"})
 TOOL_POLICY_FIELDS = frozenset({"local_tools_always_allow", "local_tools_force_confirm"})
-MEMORY_EVENT_TYPES = frozenset(
-    {
-        "user_message",
-        "assistant_message",
-        "assistant_tool_calls",
-        "tool_result",
-        "system_note",
-    }
-)
 
 
 def _utc_now() -> str:
@@ -524,9 +515,9 @@ class SQLiteStore:
 
     def import_messages(self, rows: list[dict[str, Any]]) -> None:
         for row in sorted(rows, key=lambda r: int(r.get("timestamp_num") or 0)):
-            self.upsert_event_from_message(row, create_job=False)
+            self.upsert_event_from_message(row)
 
-    def upsert_event_from_message(self, message: dict[str, Any], *, create_job: bool = True) -> None:
+    def upsert_event_from_message(self, message: dict[str, Any]) -> None:
         parsed = _event_fields_from_message(message)
         now = _utc_now()
         with self.connect() as conn:
@@ -579,8 +570,6 @@ class SQLiteStore:
                 ),
             )
             self._refresh_session_stats(conn, parsed["session_id"], now)
-            if create_job and parsed["event_type"] in MEMORY_EVENT_TYPES:
-                self._enqueue_embedding_job(conn, "event", parsed["id"], "upsert", revision, now)
 
     def get_message(self, message_id: str) -> dict[str, Any] | None:
         with self.connect() as conn:
@@ -675,16 +664,12 @@ class SQLiteStore:
                 return False
             conn.execute("UPDATE events SET deleted_at=?, updated_at=?, revision=revision+1 WHERE id=?", (now, now, message_id))
             self._refresh_session_stats(conn, existing["session_id"], now)
-            self._enqueue_embedding_job(conn, "event", message_id, "delete", int(existing["revision"]) + 1, now)
             return True
 
     def clear_session(self, session_id: str) -> None:
         now = _utc_now()
         with self.connect() as conn:
-            rows = conn.execute("SELECT id, revision FROM events WHERE session_id=? AND deleted_at IS NULL", (session_id,)).fetchall()
             conn.execute("UPDATE events SET deleted_at=?, updated_at=?, revision=revision+1 WHERE session_id=? AND deleted_at IS NULL", (now, now, session_id))
-            for row in rows:
-                self._enqueue_embedding_job(conn, "event", row["id"], "delete", int(row["revision"]) + 1, now)
             self._refresh_session_stats(conn, session_id, now)
 
     def upsert_session(self, session: dict[str, Any]) -> None:
@@ -812,25 +797,6 @@ class SQLiteStore:
             ),
         )
 
-    def _enqueue_embedding_job(
-        self,
-        conn: sqlite3.Connection,
-        target_type: str,
-        target_id: str,
-        action: str,
-        target_revision: int,
-        now: str,
-    ) -> None:
-        conn.execute(
-            """
-            INSERT INTO embedding_jobs(
-              id, target_type, target_id, action, embedding_model, target_revision,
-              status, attempts, created_at, updated_at
-            ) VALUES(?, ?, ?, ?, '', ?, 'pending', 0, ?, ?)
-            """,
-            (str(uuid.uuid4()), target_type, target_id, action, target_revision, now, now),
-        )
-
     # ------------------------------------------------------------------
     # Structured memory mirrors
 
@@ -868,7 +834,6 @@ class SQLiteStore:
                     now,
                 ),
             )
-            self._enqueue_embedding_job(conn, "memory", row["id"], "upsert", int(row.get("revision") or 1), now)
 
     def upsert_session_summary(self, row: dict[str, Any]) -> None:
         now = _utc_now()
@@ -1006,8 +971,6 @@ class SQLiteStore:
                 "events",
                 "memories",
                 "session_summaries",
-                "embedding_jobs",
-                "vector_index_records",
                 "files",
                 "schedules",
             ):
@@ -1302,34 +1265,6 @@ _SCHEMA_SQL = [
       revision INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
-    )
-    """,
-    """
-    CREATE TABLE IF NOT EXISTS embedding_jobs (
-      id TEXT PRIMARY KEY,
-      target_type TEXT NOT NULL,
-      target_id TEXT NOT NULL,
-      action TEXT NOT NULL,
-      embedding_model TEXT NOT NULL DEFAULT '',
-      target_revision INTEGER NOT NULL DEFAULT 0,
-      status TEXT NOT NULL DEFAULT 'pending',
-      attempts INTEGER NOT NULL DEFAULT 0,
-      error TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    )
-    """,
-    "CREATE INDEX IF NOT EXISTS idx_embedding_jobs_status ON embedding_jobs(status, created_at)",
-    """
-    CREATE TABLE IF NOT EXISTS vector_index_records (
-      target_type TEXT NOT NULL,
-      target_id TEXT NOT NULL,
-      index_name TEXT NOT NULL,
-      embedding_model TEXT NOT NULL,
-      target_revision INTEGER NOT NULL,
-      vector_dim INTEGER,
-      indexed_at TEXT NOT NULL,
-      PRIMARY KEY(target_type, target_id, index_name, embedding_model)
     )
     """,
     """

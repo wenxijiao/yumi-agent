@@ -28,6 +28,8 @@ What moved
 
 from __future__ import annotations
 
+import uuid as _uuid
+
 from yumi.core.features.config import load_model_config, migrate_legacy_memory_dir
 from yumi.core.features.memory import transcript as _transcript
 from yumi.core.features.memory.backend import LanceDBBackend
@@ -153,28 +155,49 @@ class Memory:
         try:
             if self.messages.query_rows(limit=1):
                 return
-            total = self.sqlite.event_count()
-            if total <= 0:
+            if self.sqlite.event_count() <= 0:
                 return
-            for row in self.sqlite.list_messages(limit=total):
-                self.messages.create(
-                    session_id=row["session_id"],
-                    role=row["role"],
-                    content=row["content"],
-                    timestamp=row["timestamp"],
-                    timestamp_num=row["timestamp_num"],
-                    message_id=row["id"],
-                    thought=row.get("thought") or None,
-                )
-            for session in self.sqlite.list_sessions(status="all"):
-                self.sessions_repo.update(
-                    session["session_id"],
-                    title=session["title"],
-                    is_pinned=session["is_pinned"],
-                    status=session["status"],
-                )
+            self._rebuild_messages_from_sqlite()
         except Exception as exc:
             logger.debug("LanceDB rebuild from SQLite skipped: %s", exc)
+
+    def _rebuild_messages_from_sqlite(self) -> int:
+        """Repopulate the LanceDB message index from SQLite (re-embedding with the
+        current model). SQLite is the source of truth; LanceDB rows are derived."""
+        total = self.sqlite.event_count()
+        if total <= 0:
+            return 0
+        for row in self.sqlite.list_messages(limit=total):
+            self.messages.create(
+                session_id=row["session_id"],
+                role=row["role"],
+                content=row["content"],
+                timestamp=row["timestamp"],
+                timestamp_num=row["timestamp_num"],
+                message_id=row["id"],
+                thought=row.get("thought") or None,
+            )
+        for session in self.sqlite.list_sessions(status="all"):
+            self.sessions_repo.update(
+                session["session_id"],
+                title=session["title"],
+                is_pinned=session["is_pinned"],
+                status=session["status"],
+            )
+        return total
+
+    def rebuild_index_from_sqlite(self) -> int:
+        """Drop and rebuild the LanceDB query index entirely from SQLite.
+
+        LanceDB is only a derived index for fast semantic lookup; SQLite holds the
+        canonical messages. Call this to realign the index with the source of
+        truth — e.g. after changing the embedding model/provider (so vectors are
+        regenerated from canonical content) or to repair any drift. Returns the
+        number of messages re-indexed.
+        """
+        self.backend.db.drop_table(self.table_name, ignore_missing=True)
+        self.messages.init_table()
+        return self._rebuild_messages_from_sqlite()
 
     # ── shims still consumed by external collaborators ─────────────────────
     #
@@ -336,27 +359,64 @@ class Memory:
         message_id: str | None = None,
         thought: str | None = None,
     ) -> dict:
-        result = self.messages.create(
-            session_id=session_id,
-            role=role,
-            content=content,
-            timestamp=timestamp,
-            timestamp_num=timestamp_num,
-            message_id=message_id,
-            thought=thought,
-        )
+        # SQLite is the source of truth and must be written first. LanceDB is a
+        # derived index (used only for fast semantic lookup) and is rebuilt from
+        # SQLite when needed (e.g. on embedding-model change), so its write is
+        # best-effort: an index hiccup must never lose the canonical message.
+        normalized_content = content.strip()
+        if not normalized_content:
+            raise ValueError("Memory content cannot be empty.")
+        normalized_role = role.strip().lower()
+        if normalized_role not in {"system", "user", "assistant", "tool"}:
+            raise ValueError("Memory role must be one of: system, user, assistant, tool.")
+        normalized_session_id = session_id.strip() or self.session_id
+
+        # Quota gate before any write so an over-quota message is rejected outright.
+        from yumi.core.platform.plugins import get_memory_factory
+
+        get_memory_factory().assert_quota_for_session(normalized_session_id)
+
+        thought_val = ""
+        if normalized_role == "assistant" and thought is not None and str(thought).strip():
+            thought_val = str(thought).strip()
+
+        record = {
+            "id": message_id or str(_uuid.uuid4()),
+            "session_id": normalized_session_id,
+            "role": normalized_role,
+            "content": normalized_content,
+            "thought": thought_val,
+            "timestamp": timestamp or self.backend.format_timestamp(),
+            "timestamp_num": (
+                timestamp_num if timestamp_num is not None else self.backend.current_timestamp_num()
+            ),
+        }
+
+        # 1) Authoritative write — propagate failures (the message is not accepted).
+        self.sqlite.upsert_event_from_message(record)
+
+        # 2) Derived index — best-effort; failures are logged and reconciled later.
         try:
-            self.sqlite.upsert_event_from_message(result)
+            self.messages.create(
+                session_id=record["session_id"],
+                role=record["role"],
+                content=record["content"],
+                timestamp=record["timestamp"],
+                timestamp_num=record["timestamp_num"],
+                message_id=record["id"],
+                thought=thought,
+            )
         except Exception as exc:
-            logger.debug("SQLite event write skipped: %s", exc)
+            logger.warning("LanceDB index write failed (rebuildable from SQLite): %s", exc)
+
         # Structured-memory write hook is best-effort; runs after the commit.
         try:
             from yumi.core.features.memory.writer import MemoryWriter
 
-            MemoryWriter(self).observe_message(result)
+            MemoryWriter(self).observe_message(record)
         except Exception as exc:
             logger.debug("Structured memory write skipped: %s", exc)
-        return result
+        return record
 
     def update_message(self, message_id: str, content: str, role: str | None = None):
         # Mirror legacy: delete + create through ``create_message`` so the

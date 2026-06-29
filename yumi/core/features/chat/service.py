@@ -293,6 +293,9 @@ class ChatTurnService:
                         ),
                     )
                 )
+                # Clear the prompt so the retry does not re-send and re-persist the
+                # original user message (the normalizer already queued a regenerate note).
+                current_prompt = None
                 continue
 
             assert outcome.tcalls is not None

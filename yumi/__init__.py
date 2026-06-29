@@ -14,18 +14,36 @@ control (custom connection code, edge name, multiple agents) use
 
 from __future__ import annotations
 
+from importlib.metadata import PackageNotFoundError, version
+from typing import TYPE_CHECKING
+
 __all__ = ["__version__", "YumiAgent", "register", "run", "run_in_background", "stop"]
 
-__version__ = "0.0.1"
+try:
+    __version__ = version("yumi-agent")
+except PackageNotFoundError:
+    __version__ = "0.0.1"
 
-from yumi.sdk import YumiAgent as YumiAgent
+if TYPE_CHECKING:
+    from yumi.sdk import YumiAgent
 
 _default_agent: YumiAgent | None = None
+
+
+def __getattr__(name: str):
+    """Lazily expose SDK symbols without making ``import yumi`` import websockets."""
+    if name == "YumiAgent":
+        from yumi.sdk import YumiAgent
+
+        return YumiAgent
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def _get_default_agent() -> YumiAgent:
     global _default_agent
     if _default_agent is None:
+        from yumi.sdk import YumiAgent
+
         _default_agent = YumiAgent()
     return _default_agent
 

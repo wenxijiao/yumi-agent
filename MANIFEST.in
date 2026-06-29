@@ -1,4 +1,11 @@
-include assets/social-preview.png
+include CHANGELOG.md
+include CODE_OF_CONDUCT.md
+include COMMERCIAL.md
+include CONTRIBUTING.md
+include SECURITY.md
+include llms.txt
+graft assets
+graft docs
 # Ship the pre-built web UI; exclude its source/build toolchain.
 graft yumi/ui/static
 prune yumi/ui/frontend/node_modules
