@@ -36,6 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   messages.
 - Migrated PDF ingestion from the end-of-life `PyPDF2` to `pypdf`; added explicit
   `pydantic` and `av` (PyAV) dependencies.
+- Windows `system` TTS now uses the built-in SAPI voice through PowerShell,
+  matching the zero-dependency spoken-reply path already available on macOS and
+  Linux.
 
 ### Fixed
 
@@ -76,9 +79,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - The Reflex web UI and the `[ui]` optional dependency extra.
-- Windows `system` TTS now uses the built-in SAPI voice through PowerShell,
-  matching the zero-dependency spoken-reply path already available on macOS and
-  Linux.
 
 ## Development Notes - 2026-06-28
 

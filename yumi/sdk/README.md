@@ -63,7 +63,7 @@ When `yumi --edge` runs, code from this tree is copied into the user's project a
 | Java | `yumi_tools/java/yumi_sdk/` |
 | C# | `yumi_tools/csharp/yumi_sdk/` |
 | Rust | `yumi_tools/rust/yumi_sdk/` |
-| Kotlin | `yumi_tools/kotlin/yumi_sdk/` |
+| Kotlin | `yumi_tools/kotlin/src/main/kotlin/io/yumi/sdk/` |
 | Dart | `yumi_tools/dart/yumi_sdk/` |
 | UE5 | `yumi_tools/ue5/YumiSDK/` |
 

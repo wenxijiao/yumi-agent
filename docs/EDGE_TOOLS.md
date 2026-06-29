@@ -13,7 +13,7 @@ cd my_project
 yumi --edge
 ```
 
-Or scaffold a subset of languages (repeat `--lang` or use commas):
+On a terminal, `yumi --edge` runs an interactive wizard: pick languages (leave the selection empty for all), name the edge (defaults to the hostname), and optionally paste a LAN connection code (`yumi-lan_...`) from `yumi --server`. To skip the prompts, scaffold a subset of languages non-interactively (repeat `--lang` or use commas):
 
 ```bash
 yumi --edge --lang python
@@ -31,7 +31,7 @@ yumi --edge --lang kotlin
 yumi --edge --lang dart
 ```
 
-This creates `yumi_tools/`, a `.env` file, and language-specific setup templates.
+This creates `yumi_tools/` with a `.env` file, a `.gitignore`, an `AGENTS.md`, and language-specific setup templates.
 
 ## Next Steps After `yumi --edge`
 

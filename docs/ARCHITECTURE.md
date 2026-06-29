@@ -51,8 +51,8 @@ yumi/core/
                 runtime/ dispatch/ providers/ streaming/ plugins/
                 tools/ security/ http/  exceptions.py  env_load.py
   features/     self-contained capabilities; each owns its router + service + domain
-                chat/ memory/ proactive/ config/ stt/ prompts/
-                uploads/ edge/ tools/ monitor/ health/
+                chat/ memory/ proactive/ config/ stt/ tts/ prompts/
+                uploads/ edge/ tools/ monitor/ stats/ health/
   api/          HTTP composition root (app_factory, __main__) — wires features
                 onto the FastAPI app; may import both platform and features
   chatbot.py    central YumiBot composition object
@@ -104,7 +104,9 @@ changes; see `yumi/ui/frontend/README.md`.
   | `features/health/router.py` | `GET /health` |
   | `features/memory/router.py` | sessions and messages CRUD |
   | `features/monitor/router.py` | `GET /monitor/{topology,traces}` |
+  | `features/stats/router.py` | `GET /stats` (dashboard metrics) |
   | `features/stt/router.py` | `POST /stt/transcribe` |
+  | `features/tts/router.py` | `POST /tts/synthesize` |
   | `features/proactive/router.py` | `GET /timer-events` (NDJSON) |
   | `features/tools/router.py` | tool listing and confirmation policy |
   | `features/uploads/router.py` | `POST /uploads` |
@@ -134,6 +136,7 @@ platform/runtime/*        — mutable state registries (locks, edge peers, tool 
 | `dispatch/local.py` | `LocalToolExecutor` — registered local tool runner with timeout |
 | `dispatch/edge.py` | `EdgeToolExecutor` — WebSocket RPC to an edge peer |
 | `dispatch/dispatcher.py` | `ToolDispatcher` — argument parsing, classification, parallel run |
+| `dispatch/limits.py` | shared pipeline limits — `MAX_TOOL_LOOPS`, tool-call retry budget, tool timeouts |
 
 Debug-trace recording and diagnostic file writes live alongside the orchestrator in
 `features/chat/trace_sink.py` (`ChatTraceSink`).
@@ -185,7 +188,7 @@ memory/
     └── summaries.py       # SessionSummaryRepository (session_summaries)
 ```
 
-`Memory(...)` keeps its historical signature and every public method (`add_message`, `create_message`, `list_sessions`, …); each one delegates to the appropriate repository. Legacy private helpers (`_has_table`, `_open_table`, `_build_where_clause`, …) are preserved as instance methods so external collaborators (`memories/context.py`, `memories/storage.py`, `memories/writer.py`, plugin memory factories) keep functioning unchanged.
+`Memory(...)` keeps its historical signature and every public method (`add_message`, `create_message`, `list_sessions`, …); each one delegates to the appropriate repository. Legacy private helpers (`_has_table`, `_open_table`, `_build_where_clause`, …) are preserved as instance methods so external collaborators (`memory/context.py`, `memory/storage.py`, `memory/writer.py`, plugin memory factories) keep functioning unchanged.
 
 The split exists so alternate storage backends can implement the same Repository surface without rewriting the façade. See [`MEMORY.md`](MEMORY.md) for the on-disk layout and retrieval semantics.
 
@@ -195,7 +198,8 @@ The CLI is a **Command Pattern + Registry** in `yumi/cli/`:
 
 | File | Responsibility |
 |---|---|
-| `cli/__init__.py` | `main()` entry point (~30 lines) plus the `run_*` helper functions each command calls |
+| `cli/__init__.py` | `main()` entry point — `.env` load, parser build, cross-command validation, dispatch (re-exports the `run_*` helpers for back-compat) |
+| `cli/runners.py` | The `run_*` implementation helpers each command calls |
 | `cli/registry.py` | `Command` ABC + `CommandRegistry` |
 | `cli/commands.py` | One `Command` subclass per sub-command, plus `validate_cross_command_flags` |
 
@@ -203,7 +207,7 @@ The CLI is a **Command Pattern + Registry** in `yumi/cli/`:
 
 ## Server-Side Tools
 
-Server-side tools are Python functions decorated with `@yumi_tool` in `yumi/tools/`. They are loaded at startup via `load_tools_from_directory()` and stored in `TOOL_REGISTRY`. SDK wiring for your project typically lives in a `bootstrap` module (e.g. `yumi/tools/bootstrap.py`) that calls `init_yumi()`.
+Server-side tools are plain Python functions registered explicitly via the non-decorator `register_tool(...)` API (`yumi/core/platform/tools/tool.py`) and stored in `TOOL_REGISTRY`. The built-in tools live in `yumi/tools/` and are wired up by `init_yumi()` in `yumi/tools/bootstrap.py`, which the server calls once at startup (see `app_factory.py`). This mirrors the edge SDK's `init_yumi()` pattern, so adding your own tools is the same call from your own bootstrap module.
 
 ## Edge Tools
 
@@ -223,10 +227,12 @@ When the LLM selects an edge tool, `EdgeToolExecutor` sends a `tool_call` messag
 | `QuotaPolicy` | no-op | usage policy |
 | `BillingHook` | returns 0.0 | cost estimator |
 | `SessionScope` | identity transparent | scoped sessions |
+| `BridgeScope` | channel user = sole user; `/link` no-op | per-account link binding |
 | `BotPool` | shared singleton | scoped bot pool |
 | `MemoryFactory` | `SharedMemoryFactory` | scoped/alternate memory |
 | `EdgeScope` | name = key | scoped edge tools |
 | `AuditSink` | log only | persistent audit sink |
+| `SystemPromptExtender` | no extra blocks | deployment/app context blocks |
 | `RouteExtender` | none | mounts additional routes |
 | `MiddlewareExtender` | none | adds middleware |
 | `AdminCli` | none | injects extra sub-commands |

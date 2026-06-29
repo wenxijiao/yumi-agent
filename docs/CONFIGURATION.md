@@ -39,8 +39,8 @@ Connection and UI fields:
 
 Memory fields:
 
-- `memory_max_recent_messages`: Recent same-session messages included in context. Default: `10`.
-- `memory_max_related_messages`: Related cross-session memory snippets included in context. `0` disables cross-session related memory. Default: `5`.
+- `memory_max_recent_messages`: Recent same-session messages included in context. Default: `30`.
+- `memory_max_related_messages`: Related cross-session memory snippets included in context. `0` disables cross-session related memory. Default: `15`.
 
 Tool policy fields:
 
@@ -94,9 +94,9 @@ Proactive messaging fields:
 
 Speech-to-text fields:
 
-- `stt_provider`: Speech-to-text provider. `disabled` by default. `whisper` runs locally; `openai`, `gemini`, and `dashscope` are no-download cloud backends that reuse the matching provider API key (`openai_api_key`, `gemini_api_key`, and the shared DashScope `tts_api_key` / `DASHSCOPE_API_KEY` respectively).
+- `stt_provider`: Speech-to-text provider. `disabled` by default. `whisper` runs locally; `openai`, `gemini`, `dashscope`, and `grok` are no-download cloud backends that reuse the matching provider API key (`openai_api_key`, `gemini_api_key`, the shared DashScope `tts_api_key` / `DASHSCOPE_API_KEY`, and `grok_api_key` / `XAI_API_KEY` respectively).
 - `stt_backend`: Whisper backend (only used when `stt_provider = whisper`). Default: `faster-whisper`.
-- `stt_model`: Model name. Whisper: `base`, `small`, `turbo`, … ; OpenAI: `gpt-4o-mini-transcribe` (default), `gpt-4o-transcribe`, `whisper-1`; Gemini: `gemini-2.5-flash` (default); DashScope: `qwen3-asr-flash`.
+- `stt_model`: Model name. Whisper: `base`, `small`, `turbo`, … ; OpenAI: `gpt-4o-mini-transcribe` (default), `gpt-4o-transcribe`, `whisper-1`; Gemini: `gemini-2.5-flash` (default); DashScope: `qwen3-asr-flash`; Grok auto-detects and ignores this field.
 - `stt_model_dir`: Optional Whisper model cache directory. `null` uses Yumi's default (cloud providers ignore it).
 - `stt_language`: Language hint. Default: `auto`.
 
@@ -190,7 +190,7 @@ For a more frequent companion-style setup, prefer editing the same keys in `~/.y
 
 | Variable | Description |
 |---|---|
-| `YUMI_STT_PROVIDER` | STT provider (`disabled`, `whisper`, `openai`, `gemini`, or `dashscope`; default `disabled`) |
+| `YUMI_STT_PROVIDER` | STT provider (`disabled`, `whisper`, `openai`, `gemini`, `dashscope`, or `grok`; default `disabled`) |
 | `YUMI_STT_BACKEND` | Whisper backend (`faster-whisper`; default) |
 | `YUMI_STT_MODEL` | Multilingual Whisper model (`tiny`, `base`, `small`, `medium`, `large`, or `turbo`) |
 | `YUMI_STT_MODEL_DIR` | Model cache directory (default `~/.yumi/models/whisper`) |
@@ -203,7 +203,7 @@ Speech-to-text is optional and disabled by default. Run `yumi --setup` to enable
 
 `pip install yumi-agent` includes the Whisper runtime, but **model weight files** are large and are not in the git repository or wheel. When you pick an STT model in `yumi --setup`, Yumi **downloads the weights to** `~/.yumi/models/whisper` (or your chosen directory) so the first real voice message is not stuck waiting on the network.
 
-The **cloud STT providers** (`openai`, `gemini`, `dashscope`) need no extra and no model download — they ship in the base install and reuse the API key you already configured for that provider. Pick one in `yumi --setup` when you want transcription without local model weights; `openai` additionally honors `openai_base_url` (`OPENAI_BASE_URL`) for OpenAI-compatible proxy / Azure endpoints.
+The **cloud STT providers** (`openai`, `gemini`, `dashscope`, `grok`) need no extra and no model download — they ship in the base install and reuse the API key you already configured for that provider. Pick one in `yumi --setup` when you want transcription without local model weights; `openai` additionally honors `openai_base_url` (`OPENAI_BASE_URL`) for OpenAI-compatible proxy / Azure endpoints.
 
 The setup wizard exposes only multilingual Whisper models: `tiny`, `base`, `small`, `medium`, `large`, and `turbo`. `base` is the recommended starter choice; `tiny` is lighter, while `small` and above trade more disk/CPU/GPU resources for better accuracy.
 
@@ -401,16 +401,18 @@ Yumi can speak its replies. In voice mode (`--server --voice`) replies are spoke
 |---|---|---|
 | `system` | OS speech command (Windows SAPI, macOS `say`, Linux `espeak`/`espeak-ng`) | nothing (zero-dependency default) |
 | `openai` | OpenAI TTS (`gpt-4o-mini-tts` / `tts-1` / `tts-1-hd`) | `openai_api_key` (no extra; in the base install) |
+| `gemini` | Gemini native audio TTS (`gemini-3.1-flash-tts-preview`) | `gemini_api_key` / `GEMINI_API_KEY` (no extra; in the base install) |
 | `dashscope` | Qwen3-TTS via the Alibaba Cloud DashScope API | `DASHSCOPE_API_KEY` (no extra; in the base install) |
+| `grok` | xAI/Grok voice TTS | `grok_api_key` / `XAI_API_KEY` (no extra; in the base install) |
 | `qwen` | Qwen3-TTS run locally | a GPU + PyTorch (see note); `pip install yumi-agent[tts-local]` |
 
-For `system`, `openai`, and `dashscope`, `pip install yumi-agent` includes the required Python packages. **Local `qwen` is the one exception**: it runs on PyTorch, and GPU-specific builds are large and platform-specific, so they cannot be part of the default install. Install PyTorch for your device from <https://pytorch.org/get-started/locally/> **first**; then `yumi --setup` will install `qwen-tts` on top. CUDA/NVIDIA is the fastest and most reliable path. Apple MPS can work on some Apple Silicon Macs, but is more experimental and usually slower. The provider auto-detects the device (CUDA → Apple MPS → CPU), and the first synthesis downloads the model weights (~GBs, with a progress bar).
+For `system`, `openai`, `gemini`, `dashscope`, and `grok`, `pip install yumi-agent` includes the required Python packages. **Local `qwen` is the one exception**: it runs on PyTorch, and GPU-specific builds are large and platform-specific, so they cannot be part of the default install. Install PyTorch for your device from <https://pytorch.org/get-started/locally/> **first**; then `yumi --setup` will install `qwen-tts` on top. CUDA/NVIDIA is the fastest and most reliable path. Apple MPS can work on some Apple Silicon Macs, but is more experimental and usually slower. The provider auto-detects the device (CUDA → Apple MPS → CPU), and the first synthesis downloads the model weights (~GBs, with a progress bar).
 
 ### Config keys
 
-- `tts_provider` — `disabled` (default) / `system` / `openai` / `dashscope` / `qwen`.
-- `tts_voice` — voice/speaker name. OpenAI: `alloy` (default), `nova`, `shimmer`, … ; DashScope: `Cherry`, `Serena`, `Ethan`, … ; local qwen: `Ryan`, `Vivian`, `Serena`, … ; `system` uses the OS default unless set.
-- `tts_model` — backend model id. OpenAI defaults to `gpt-4o-mini-tts`; DashScope to `qwen3-tts-flash`; local qwen to `Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice`.
+- `tts_provider` — `disabled` (default) / `system` / `openai` / `gemini` / `dashscope` / `grok` / `qwen`.
+- `tts_voice` — voice/speaker name. OpenAI: `alloy` (default), `nova`, `shimmer`, … ; Gemini: `Kore` (default), … ; DashScope: `Cherry`, `Serena`, `Ethan`, … ; Grok: `eve` (default), `ara`, `rex`, … ; local qwen: `Ryan`, `Vivian`, `Serena`, … ; `system` uses the OS default unless set.
+- `tts_model` — backend model id. OpenAI defaults to `gpt-4o-mini-tts`; Gemini to `gemini-3.1-flash-tts-preview`; DashScope to `qwen3-tts-flash`; local qwen to `Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice`. Grok has no model setting.
 - `tts_api_key` — DashScope key (or set `DASHSCOPE_API_KEY`). OpenAI TTS reuses `openai_api_key`, not this field.
 - `tts_language` — `auto` (default) or a language name (`English`, `Chinese`, …).
 

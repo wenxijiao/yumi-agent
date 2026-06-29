@@ -46,5 +46,5 @@ Commit the regenerated `yumi/ui/static/` so the package ships the latest UI.
 - `src/components/chat/` — chat view, composer, messages, sessions sidebar
 - `src/pages/` — one file per route (chat, tools, stats, settings, timers, memory, setup)
 - `src/hooks/` — `use-chat`, react-query hooks, theme
-- `src/store/` — small Zustand stores (app + theme)
+- `src/store/` — small Zustand store (app)
 - `src/index.css` — design tokens (dark-first) + Tailwind v4 theme

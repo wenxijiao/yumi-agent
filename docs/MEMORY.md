@@ -19,12 +19,12 @@ yumi/core/features/memory/
     └── summaries.py       # SessionSummaryRepository — session_summaries
 ```
 
-Every public method on `Memory` (e.g. `add_message`, `create_session`, `list_long_term_memories`) is a one-line delegate to the appropriate repository. The `Memory` constructor signature has not changed; existing call sites (`YumiBot.session_memory(...)`, plugin memory factories, tests that pass `storage_dir=tmpdir`) keep working unchanged.
+Public methods on `Memory` (e.g. `add_message`, `create_session`, `list_long_term_memories`) stay thin: reads delegate to the appropriate repository, while canonical writes commit to SQLite first and then best-effort update the matching LanceDB repository. The `Memory` constructor signature has not changed; existing call sites (`YumiBot.session_memory(...)`, plugin memory factories, tests that pass `storage_dir=tmpdir`) keep working unchanged.
 
 ## Storage
 
-- Chat messages (per `session_id`) are stored under the user memory directory (see `migrate_legacy_memory_dir()`), in **LanceDB** tables: `chat_history` and `chat_sessions`.
-- `YumiBot` keeps an in-memory LRU of at most **64** `Memory` instances; evicting one **does not delete** LanceDB rows. The next request for that session reloads from disk.
+- Chat messages and sessions (per `session_id`) are stored canonically in **SQLite** at `~/.yumi/yumi.db` — the single source of truth (see `db_path_for_memory_storage()`). **LanceDB** is a *derived, rebuildable* vector index under the user memory directory (see `migrate_legacy_memory_dir()`), holding the `chat_history` and `chat_sessions` tables: canonical writes commit to SQLite first and then best-effort update the index, which can be rebuilt from SQLite at any time (e.g. on an embedding-model change).
+- `YumiBot` keeps an in-memory LRU of at most **64** `Memory` instances; evicting one **does not delete** persisted data. The next request for that session reloads from disk.
 - Structured memory is stored separately from raw chat rows:
   - `session_summaries` keeps a rolling summary per session.
   - `long_term_memories` stores durable facts, preferences, decisions, task state, and summaries.
@@ -36,7 +36,7 @@ To delete persisted memory without wiping the rest of Yumi config, run:
 yumi --cleanup-memory
 ```
 
-This removes the current memory directory (`~/.yumi/memory/`) plus any legacy on-repo memory store if it still exists.
+This clears the canonical memory tables in `~/.yumi/yumi.db`, removes the derived index directory (`~/.yumi/memory/`), and removes any legacy on-repo memory store if it still exists.
 
 ## What is persisted
 

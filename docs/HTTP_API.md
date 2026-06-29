@@ -125,7 +125,6 @@ All paths are relative to the core base URL (e.g. `http://127.0.0.1:8000`).
 | `POST` | `/tools/toggle` | Enable/disable tool: `{"tool_name":"...","disabled":true}` |
 | `POST` | `/tools/set-confirmation` | Tool confirmation policy |
 | `POST` | `/tools/confirm` | Respond to `tool_confirmation` stream events |
-| Various | `/tools/...`, `/tools/edge/...` | Tool source and Edge file CRUD (see OpenAPI) |
 
 ### Error responses (structured `detail`)
 
@@ -160,7 +159,7 @@ Traces may be mirrored to `~/.yumi/tool_traces.jsonl` on disk (append-only); the
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/stt/transcribe` | Transcribe audio to text. JSON body: `session_id`, `filename`, `content_base64`, optional `language`. Returns `{ text, language, duration_seconds }`. |
-| `POST` | `/tts/synthesize` | Synthesize speech from text using the configured TTS provider. JSON body: `text` (required), optional `session_id`, `voice`, `language`. Returns audio bytes (`audio/wav`) for a browser `<audio>` element. `400` if TTS is not configured, `503` on provider error. |
+| `POST` | `/tts/synthesize` | Synthesize speech from text using the configured TTS provider. JSON body: `text` (required), optional `session_id`, `voice`, `language`. Returns audio bytes for a browser `<audio>` element; the `Content-Type` reflects the provider's audio format (`audio/wav`, `audio/mpeg`, or `audio/ogg`). `400` if TTS is not configured, `503` on provider error. |
 
 ### Timer events (NDJSON stream)
 

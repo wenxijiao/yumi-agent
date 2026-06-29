@@ -42,6 +42,7 @@ register_tool(
     proactive_context=False,
     proactive_context_args=None,
     proactive_context_description=None,
+    default_require_confirmation=False,
 ) -> None
 ```
 
@@ -56,6 +57,7 @@ Parameters:
 - `proactive_context`: Calls this tool before proactive message generation and injects its result as read-only context. Default: `false`.
 - `proactive_context_args`: Fixed arguments used for proactive context calls.
 - `proactive_context_description`: Label shown when injecting proactive context, for example `Current weather`.
+- `default_require_confirmation`: If `true`, the tool is added to the runtime confirmation set on startup (unless the user has opted into `local_tools_always_allow`). Use for high-blast-radius tools such as filesystem or network mutations. Default: `false`.
 
 Type hints are converted into JSON schema. Supported common types include `str`, `int`, `float`, `bool`, `list`, `dict`, and simple optional types. Parameters without defaults are required.
 

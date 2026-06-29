@@ -25,7 +25,8 @@ Connect your own app:
 
 ```bash
 cd my_project
-yumi --edge --lang python    # also: typescript, swift, go, rust, kotlin, dart, java, csharp, cpp, ue5
+yumi --edge                  # interactive wizard: languages, edge name, connection code
+yumi --edge --lang python    # or jump straight to a language (also: typescript, swift, go, rust, kotlin, dart, java, csharp, cpp, ue5)
 ```
 
 `yumi --edge` scaffolds a `yumi_tools/` directory. Edit the generated setup file, call its init function from your app entry point, and your functions appear as AI tools. Full walkthrough in [Getting Started](docs/GETTING_STARTED.md).
@@ -157,8 +158,8 @@ Your app connects to the Yumi server over WebSocket and registers functions as t
 - **Telegram** — chat with Yumi from a Telegram bot. Get a token from [@BotFather](https://t.me/BotFather), then run `yumi --server --telegram` (single machine) or `yumi --telegram` (bot only). Token, allowlist, and timer-push details: [Configuration → Telegram](docs/CONFIGURATION.md#telegram).
 - **Discord** — chat with Yumi from a Discord bot. Create an application + bot in the [Discord Developer Portal](https://discord.com/developers/applications), enable the Message Content intent, then run `yumi --server --discord` (single machine) or `yumi --discord` (bot only). Token, allowlist, and timer-push details: [Configuration → Discord](docs/CONFIGURATION.md#discord).
 - **LINE** — chat from LINE via the Messaging API webhook. Run `yumi --server --line` (single machine, default port 8788) or `yumi --line` (webhook sidecar only). Credentials and webhook setup: [Configuration → LINE](docs/CONFIGURATION.md#line).
-- **Voice** — talk to Yumi through your microphone. Say the wake word ("hi yumi") and Yumi transcribes the rest of your sentence and runs it as a chat turn. Transcription runs locally with Whisper, or with no model download through a cloud provider that reuses your existing key — `openai`, `gemini`, or `dashscope` (Qwen3-ASR). Coexists with Telegram / `--chat` / `--ui` so the same Yumi instance can listen and type at once, and recent voice/Telegram/CLI turns are merged into each prompt. Mic capture needs a Picovoice access key. Setup: [Configuration → Voice](docs/CONFIGURATION.md#voice).
-- **Spoken replies (TTS)** — Yumi can talk back. Pick a backend in `yumi --setup`: `system` (Windows SAPI, macOS `say`, or Linux `espeak`), `openai` (OpenAI TTS, reuses your `openai_api_key`), `dashscope` (Qwen3-TTS via the DashScope API), or `qwen` (Qwen3-TTS run locally on a GPU via the optional `[tts-local]` extra). In voice mode replies are spoken automatically; on Telegram / Discord, `/voice on` (`!voice on`) switches a chat to audio replies. Test any time with `yumi --speak "hello"`.
+- **Voice** — talk to Yumi through your microphone. Say the wake word ("hi yumi") and Yumi transcribes the rest of your sentence and runs it as a chat turn. Transcription runs locally with Whisper, or with no model download through a cloud provider that reuses your existing key — `openai`, `gemini`, `grok`, or `dashscope` (Qwen3-ASR). Coexists with Telegram / `--chat` / `--ui` so the same Yumi instance can listen and type at once, and recent voice/Telegram/CLI turns are merged into each prompt. Mic capture needs a Picovoice access key. Setup: [Configuration → Voice](docs/CONFIGURATION.md#voice).
+- **Spoken replies (TTS)** — Yumi can talk back. Pick a backend in `yumi --setup`: `system` (Windows SAPI, macOS `say`, or Linux `espeak`), `openai` (OpenAI TTS, reuses your `openai_api_key`), `gemini` (Gemini TTS, reuses your `gemini_api_key`), `grok` (xAI Grok TTS, reuses your `grok_api_key`), `dashscope` (Qwen3-TTS via the DashScope API), or `qwen` (Qwen3-TTS run locally on a GPU via the optional `[tts-local]` extra). In voice mode replies are spoken automatically; on Telegram / Discord, `/voice on` (`!voice on`) switches a chat to audio replies. Test any time with `yumi --speak "hello"`.
 
 ## Supported Providers
 

@@ -21,8 +21,9 @@ change to switch.
 
 The OSS core defines a **plugin port** layer at
 [`yumi/core/platform/plugins/`](../yumi/core/platform/plugins/) — small abstract interfaces
-for identity, quotas, billing, session scoping, bot pooling, memory
-factory, edge scoping, audit, route extension, and middleware extension.
+for identity, quotas, billing, session scoping, bridge scoping, bot
+pooling, memory factory, edge scoping, audit, system-prompt extension,
+route extension, middleware extension, and admin CLI.
 The OSS package registers permissive single-user defaults for every port.
 `yumi-enterprise` ships an `entry_point` (group `yumi.plugins`) named
 `enterprise` that, on first import of the OSS app, swaps in real
@@ -100,7 +101,7 @@ mode at any time.
 
 ## Compatibility promise
 
-`yumi-enterprise` pins a narrow OSS range (`yumi-agent>=0.3,<0.4`).
+`yumi-enterprise` pins a narrow OSS range (`yumi-agent>=0.0.1,<0.1`).
 Within that range the OSS team commits to:
 
 - not removing or renaming any class in `yumi.core.platform.plugins`

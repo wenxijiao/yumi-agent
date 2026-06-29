@@ -541,7 +541,7 @@ If the model does not call a tool:
 - Use a more meaningful `EDGE_NAME`.
 - Ask with wording that matches the tool's purpose.
 - Check whether dynamic routing is hiding the tool.
-- Consider `always_include` only for critical, low-volume tools.
+- Consider `mode="pinned"` only for critical, low-volume tools.
 
 If a tool call fails:
 

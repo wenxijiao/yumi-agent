@@ -2,7 +2,7 @@
 
 ## Quick Start
 
-1. Run `yumi --edge --lang kotlin` (or `yumi --edge`) from your project root.
+1. Run `yumi --edge` (or `yumi --edge --lang kotlin`) from your project root.
 2. Edit `yumi_tools/kotlin/src/main/kotlin/io/yumi/edge/YumiSetup.kt`.
 3. From `yumi_tools/kotlin/`:
 
