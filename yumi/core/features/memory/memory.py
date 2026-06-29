@@ -28,6 +28,7 @@ What moved
 
 from __future__ import annotations
 
+import threading
 import uuid as _uuid
 
 from yumi.core.features.config import load_model_config, migrate_legacy_memory_dir
@@ -59,6 +60,13 @@ from yumi.core.platform.storage.sqlite_store import SQLiteStore, db_path_for_mem
 from yumi.logging_config import get_logger
 
 logger = get_logger(__name__)
+
+# Process-wide guard for LanceDB index rebuilds. While a rebuild runs, foreground
+# writes go to SQLite (the source of truth) but SKIP the LanceDB index write, so
+# they can't create duplicate rows racing the rebuild; the rebuild's catch-up
+# passes re-read SQLite and index them. ``_REBUILD_LOCK`` serializes rebuilds.
+_REBUILD_LOCK = threading.Lock()
+_REBUILD_ACTIVE = threading.Event()
 
 
 # Forensic helpers re-exported for external callers (writer.py / context.py).
@@ -163,20 +171,30 @@ class Memory:
 
     def _rebuild_messages_from_sqlite(self) -> int:
         """Repopulate the LanceDB message index from SQLite (re-embedding with the
-        current model). SQLite is the source of truth; LanceDB rows are derived."""
-        total = self.sqlite.event_count()
-        if total <= 0:
-            return 0
-        for row in self.sqlite.list_messages(limit=total):
-            self.messages.create(
-                session_id=row["session_id"],
-                role=row["role"],
-                content=row["content"],
-                timestamp=row["timestamp"],
-                timestamp_num=row["timestamp_num"],
-                message_id=row["id"],
-                thought=row.get("thought") or None,
-            )
+        current model). SQLite is the source of truth; LanceDB rows are derived.
+
+        Runs bounded catch-up passes: each pass re-reads SQLite and indexes only
+        ids not yet indexed, so messages written *during* the rebuild (which skip
+        the live index write — see ``_REBUILD_ACTIVE``) still get indexed, without
+        ever adding a row twice.
+        """
+        indexed: set[str] = set()
+        for _ in range(5):
+            rows = self.sqlite.list_messages(limit=2_000_000)
+            fresh = [r for r in rows if r["id"] not in indexed]
+            if not fresh:
+                break
+            for row in fresh:
+                self.messages.create(
+                    session_id=row["session_id"],
+                    role=row["role"],
+                    content=row["content"],
+                    timestamp=row["timestamp"],
+                    timestamp_num=row["timestamp_num"],
+                    message_id=row["id"],
+                    thought=row.get("thought") or None,
+                )
+                indexed.add(row["id"])
         for session in self.sqlite.list_sessions(status="all"):
             self.sessions_repo.update(
                 session["session_id"],
@@ -184,7 +202,7 @@ class Memory:
                 is_pinned=session["is_pinned"],
                 status=session["status"],
             )
-        return total
+        return len(indexed)
 
     def rebuild_index_from_sqlite(self) -> int:
         """Drop and rebuild the LanceDB query index entirely from SQLite.
@@ -195,9 +213,17 @@ class Memory:
         regenerated from canonical content) or to repair any drift. Returns the
         number of messages re-indexed.
         """
-        self.backend.db.drop_table(self.table_name, ignore_missing=True)
-        self.messages.init_table()
-        return self._rebuild_messages_from_sqlite()
+        if not _REBUILD_LOCK.acquire(blocking=False):
+            logger.info("Index rebuild already in progress; skipping duplicate request.")
+            return 0
+        _REBUILD_ACTIVE.set()
+        try:
+            self.backend.db.drop_table(self.table_name, ignore_missing=True)
+            self.messages.init_table()
+            return self._rebuild_messages_from_sqlite()
+        finally:
+            _REBUILD_ACTIVE.clear()
+            _REBUILD_LOCK.release()
 
     def verify_index(self) -> dict:
         """Cheap (O(1)) integrity check of the LanceDB index against SQLite.
@@ -337,10 +363,11 @@ class Memory:
     def delete_message(self, message_id: str) -> bool:
         # SQLite is authoritative; the LanceDB index is a derived best-effort mirror.
         deleted = self.sqlite.delete_message(message_id)
-        try:
-            self.messages.delete(message_id)
-        except Exception as exc:
-            logger.warning("LanceDB index delete failed (rebuildable from SQLite): %s", exc)
+        if not _REBUILD_ACTIVE.is_set():
+            try:
+                self.messages.delete(message_id)
+            except Exception as exc:
+                logger.warning("LanceDB index delete failed (rebuildable from SQLite): %s", exc)
         return deleted
 
     def list_messages(
@@ -432,18 +459,21 @@ class Memory:
         self.sqlite.upsert_event_from_message(record)
 
         # 2) Derived index — best-effort; failures are logged and reconciled later.
-        try:
-            self.messages.create(
-                session_id=record["session_id"],
-                role=record["role"],
-                content=record["content"],
-                timestamp=record["timestamp"],
-                timestamp_num=record["timestamp_num"],
-                message_id=record["id"],
-                thought=thought,
-            )
-        except Exception as exc:
-            logger.warning("LanceDB index write failed (rebuildable from SQLite): %s", exc)
+        #    Skipped while a rebuild is running (the rebuild will index this row from
+        #    SQLite), so a concurrent turn can't add a duplicate racing the rebuild.
+        if not _REBUILD_ACTIVE.is_set():
+            try:
+                self.messages.create(
+                    session_id=record["session_id"],
+                    role=record["role"],
+                    content=record["content"],
+                    timestamp=record["timestamp"],
+                    timestamp_num=record["timestamp_num"],
+                    message_id=record["id"],
+                    thought=thought,
+                )
+            except Exception as exc:
+                logger.warning("LanceDB index write failed (rebuildable from SQLite): %s", exc)
 
         # Structured-memory write hook is best-effort; runs after the commit.
         try:

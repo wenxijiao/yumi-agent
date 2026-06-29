@@ -1301,13 +1301,6 @@ _FASTEMBED_MODELS: tuple[tuple[str, str, str], ...] = (
     ),
 )
 
-_EMBEDDING_STABILITY_WARNING = (
-    "Important: keep the same embedding provider/model once Yumi starts saving memory.\n"
-    "Changing it later can make old memory and tool-routing vectors inconsistent; "
-    "run `yumi --cleanup-memory` first if you need to switch."
-)
-
-
 def _chat_config_available(config: ModelConfig) -> bool:
     if not config.chat_provider or not config.chat_model:
         return False
@@ -1764,7 +1757,6 @@ def _choose_embedding_action(config: ModelConfig) -> str:
         step="Step 2/5: Memory (text embeddings)",
         title="Current embeddings are configured.",
         message=f"{config.embedding_provider} / {config.embedding_model}",
-        warning=_EMBEDDING_STABILITY_WARNING,
         options=[
             ("keep", "Keep current", ""),
             ("reconfigure", "Reconfigure", ""),
@@ -1780,8 +1772,7 @@ def _configure_embeddings(config: ModelConfig, chat_provider: str) -> str:
             step="Step 2/5: Memory (text embeddings) · Backend",
             title="Choose an embedding backend",
             message="Embeddings improve memory search and Edge tool routing.",
-            warning=_EMBEDDING_STABILITY_WARNING,
-            options=[
+                options=[
                 ("cloud", "Cloud embeddings", ""),
                 ("local", "Local embeddings", "Yumi downloads the embedding model from the CLI"),
                 ("ollama", "Ollama embeddings", "requires Ollama already installed and running"),

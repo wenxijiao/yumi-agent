@@ -130,6 +130,56 @@ async def get_model_config_endpoint():
     return _model_config_public_dict()
 
 
+def _refresh_embeddings_and_reindex(config) -> None:
+    """Apply an embedding provider/model change without a restart.
+
+    Points the runtime embed provider at the new model, drops the cached memory
+    store so it is rebuilt with the new embedding, and (when embeddings are on)
+    rebuilds the LanceDB index from SQLite on a daemon thread — re-embedding every
+    message with the new model. SQLite (the source of truth) is untouched.
+    """
+    from yumi.core.features.config import embeddings_enabled
+    from yumi.core.features.memory.embedding_state import set_embed_provider
+    from yumi.core.features.memory.store import get_memory_store
+
+    runtime = _state.get_runtime()
+    try:
+        if embeddings_enabled(config):
+            if config.embedding_provider == config.chat_provider and runtime.bot:
+                embed_provider = runtime.bot.provider
+            else:
+                embed_provider = create_provider(config.embedding_provider)
+            set_embed_provider(embed_provider)
+        else:
+            set_embed_provider(None)
+    except Exception:
+        logger.exception("Failed to refresh embedding provider after change")
+        return
+
+    # Drop the cached Memory so the next access (and the rebuild) uses the new model.
+    runtime.memory_store = None
+    if not embeddings_enabled(config):
+        # Switched embeddings off — existing vectors go unused (keyword fallback);
+        # no re-embed needed.
+        return
+
+    def _reindex() -> None:
+        try:
+            n = get_memory_store().rebuild_index_from_sqlite()
+            logger.info(
+                "Rebuilt memory index after embedding change (provider=%s, model=%s, %s messages).",
+                config.embedding_provider,
+                config.embedding_model,
+                n,
+            )
+        except Exception:
+            logger.warning("Background memory reindex after embedding change failed", exc_info=True)
+
+    import threading
+
+    threading.Thread(target=_reindex, daemon=True, name="yumi-embed-reindex").start()
+
+
 @router.put("/config/model")
 async def update_model_config_endpoint(request: ModelConfigUpdateRequest):
     if request.chat_provider and request.chat_provider not in SUPPORTED_PROVIDERS:
@@ -141,6 +191,8 @@ async def update_model_config_endpoint(request: ModelConfigUpdateRequest):
             role="embedding", name=request.embedding_provider, supported=EMBEDDING_CAPABLE_PROVIDERS
         )
     current = load_saved_model_config()
+    prev_embedding_provider = current.embedding_provider
+    prev_embedding_model = current.embedding_model
     target_stt_provider = (request.stt_provider or current.stt_provider or "disabled").strip().lower()
     if request.stt_provider and request.stt_provider not in _SUPPORTED_STT_PROVIDERS:
         raise HTTPException(
@@ -284,6 +336,9 @@ async def update_model_config_endpoint(request: ModelConfigUpdateRequest):
         except Exception as exc:
             logger.exception("Failed to apply model change after PUT /config/model")
             raise model_apply_failed_http(phase="reload_provider_or_model", exc=exc) from exc
+
+    if config.embedding_provider != prev_embedding_provider or config.embedding_model != prev_embedding_model:
+        _refresh_embeddings_and_reindex(config)
 
     return {"status": "success", **_model_config_public_dict()}
 

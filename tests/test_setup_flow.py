@@ -464,7 +464,10 @@ def test_embedding_action_requires_config_when_missing(monkeypatch):
     )
 
 
-def test_configure_embeddings_shows_stability_warning(monkeypatch):
+def test_configure_embeddings_no_stability_warning(monkeypatch):
+    # Switching the embedding model now triggers an automatic background re-index
+    # from SQLite, so the old "keep the same model / run --cleanup-memory" warning
+    # was removed.
     captured = []
 
     def fake_select_option(**kwargs):
@@ -476,8 +479,7 @@ def test_configure_embeddings_shows_stability_warning(monkeypatch):
 
     setup_wizard._configure_embeddings(cfg, "openai")
 
-    assert "keep the same embedding provider/model" in captured[0]["warning"]
-    assert "yumi --cleanup-memory" in captured[0]["warning"]
+    assert captured[0].get("warning") is None
     assert cfg.embedding_provider == "disabled"
 
 

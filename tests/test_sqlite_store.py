@@ -126,6 +126,28 @@ def test_verify_index_detects_and_repairs_drift(tmp_path):
     assert m.verify_index()["ok"] is True
 
 
+def test_writes_during_rebuild_go_to_sqlite_and_are_caught_up(tmp_path):
+    from yumi.core.features.memory import memory as memmod
+
+    m = Memory(session_id="s", storage_dir=tmp_path, max_recent=50)
+    m.add_message("user", "one")
+
+    # Simulate a turn that writes while a rebuild is in progress: SQLite (the
+    # source of truth) gets it, but the live LanceDB index write is skipped so it
+    # can't duplicate a row the rebuild is also adding.
+    memmod._REBUILD_ACTIVE.set()
+    try:
+        m.add_message("user", "two")
+        assert m.sqlite.active_event_count() == 2
+        assert m.messages.count() == 1  # index write skipped during the rebuild
+    finally:
+        memmod._REBUILD_ACTIVE.clear()
+
+    # A real rebuild indexes everything from SQLite, with no duplicates.
+    assert m.rebuild_index_from_sqlite() == 2
+    assert m.verify_index()["ok"] is True
+
+
 def test_upload_metadata_is_recorded_in_sqlite(tmp_path, monkeypatch):
     uploads = tmp_path / "uploads"
     monkeypatch.setattr(upload_service, "uploads_root", lambda: uploads)
