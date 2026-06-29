@@ -128,6 +128,15 @@ const EMBEDDING_PROVIDERS = [
   { id: "ollama", label: "Ollama" },
 ]
 
+// A default embedding model per provider — embeddings only activate when a model
+// is set, so the wizard must supply one.
+const EMBED_DEFAULTS: Record<string, string> = {
+  fastembed: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+  openai: "text-embedding-3-small",
+  gemini: "text-embedding-004",
+  ollama: "nomic-embed-text",
+}
+
 const STEPS = ["Provider", "Model", "Review"]
 
 // ── SetupWizard ────────────────────────────────────────────────────────────
@@ -183,6 +192,10 @@ export function SetupWizard() {
         chat_model: model.trim(),
         embedding_provider: embeddingProvider,
       }
+      // Embeddings are only "on" when a model is also set, so send a sensible
+      // default for the chosen provider — otherwise memory/recall silently no-op.
+      const embModel = EMBED_DEFAULTS[embeddingProvider]
+      if (embModel) patch.embedding_model = embModel
       if (apiKey.trim() && needsKey) {
         patch[`${provider}_api_key`] = apiKey.trim()
       }

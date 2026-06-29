@@ -10,7 +10,7 @@ Register a function. AI calls it. Python, Rust, Kotlin, Dart, C++, Swift, TypeSc
 
 > Status: alpha. The core workflows are usable today, but APIs, generated templates, and UX may still change as the project stabilizes.
 
-![Yumi — one API for AI tool calling across languages and devices](assets/social-preview.png)
+![Yumi — one API for AI tool calling across languages and devices](https://raw.githubusercontent.com/wenxijiao/yumi-agent/main/assets/social-preview.png)
 
 ## Quick Start
 

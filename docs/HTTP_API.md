@@ -32,7 +32,7 @@ Behavior:
 
 - If unset, the core allows only localhost-style development origins.
 - Browser credentials are **off by default**.
-- If you set origins to `*`, Yumi forces browser credentials back off because wildcard origins and credentialed requests are incompatible in browsers.
+- Setting `YUMI_CORS_ORIGINS=*` together with `YUMI_CORS_ALLOW_CREDENTIALS=true` is rejected (the server fails to start), because wildcard origins and credentialed requests are incompatible in browsers. Use explicit origins if you need credentials. With credentials off (the default), `*` is accepted.
 
 Examples:
 

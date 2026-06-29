@@ -124,6 +124,7 @@ export interface ModelConfig {
   claude_api_key_saved?: boolean
   deepseek_api_key_saved?: boolean
   grok_api_key_saved?: boolean
+  tts_api_key_saved?: boolean
   openai_base_url?: string
   deepseek_base_url?: string
   grok_base_url?: string

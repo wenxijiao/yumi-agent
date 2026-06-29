@@ -51,7 +51,7 @@ This means:
    docker pull ${REGISTRY_URL}/yumi-enterprise:latest
 
    # Or, on a Python host (private wheel)
-   pip install yumi-agent==0.3.*           # OSS, from PyPI
+   pip install yumi-agent                  # OSS, from PyPI
    pip install /path/to/yumi_enterprise-*.whl --no-deps
    ```
 

@@ -11,6 +11,7 @@ import {
   Search,
   Settings,
   Sun,
+  Wand2,
   Wrench,
 } from "lucide-react"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
@@ -92,6 +93,7 @@ export function CommandPalette() {
               <PaletteItem icon={Clock} label="Schedules" onSelect={() => run(() => navigate("/timers"))} />
               <PaletteItem icon={Search} label="Memory search" onSelect={() => run(() => navigate("/memory"))} />
               <PaletteItem icon={Settings} label="Settings" onSelect={() => run(() => navigate("/settings"))} />
+              <PaletteItem icon={Wand2} label="Setup wizard" onSelect={() => run(() => navigate("/setup"))} />
             </Command.Group>
 
             {sessions && sessions.length > 0 && (

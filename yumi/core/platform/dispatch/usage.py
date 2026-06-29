@@ -82,21 +82,17 @@ def _persist_token_usage(
     prompt_tokens: int,
     completion_tokens: int,
 ) -> None:
-    """Write one ``token_usage`` row to the default memory store (best effort)."""
+    """Write one ``token_usage`` row to the default memory store (best effort).
+
+    Deliberately avoids ``load_model_config()`` (which runs ~7 SQLite SELECTs)
+    on the hot per-turn path; the stats dashboard groups by ``model``, not
+    ``provider``, so the provider column is left blank.
+    """
     from yumi.core.features.memory.store import get_memory_store
-
-    provider = ""
-    try:
-        from yumi.core.features.config import load_model_config
-
-        provider = (load_model_config().chat_provider or "").strip()
-    except Exception:
-        provider = ""
 
     get_memory_store().sqlite.record_token_usage(
         session_id=session_id,
         owner_user_id=owner_user_id,
-        provider=provider,
         model=model,
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,

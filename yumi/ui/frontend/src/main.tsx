@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
 import App from "./App"
+// Self-hosted Inter (no external CDN) so the UI is fully offline / local-first.
+import "@fontsource-variable/inter"
 import "./index.css"
 
 const queryClient = new QueryClient({

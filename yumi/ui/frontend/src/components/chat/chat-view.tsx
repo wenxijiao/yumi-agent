@@ -50,7 +50,7 @@ export function ChatView({ sessionId }: { sessionId: string }) {
     qc.invalidateQueries({ queryKey: qk.sessions })
   }
 
-  const showEmpty = !chat.loading && chat.messages.length === 0 && !chat.streaming
+  const showEmpty = !chat.loading && chat.messages.length === 0 && !chat.streaming && !chat.error
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">

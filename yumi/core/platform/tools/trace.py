@@ -187,9 +187,23 @@ def list_traces(
     return out
 
 
+def snapshot_traces(*, session_id: str | None = None) -> list[dict[str, Any]]:
+    """All buffered traces (newest-first), unclamped — for in-process aggregation/export.
+
+    ``list_traces`` caps at 500 for API responses; this returns the full ring
+    buffer (up to ``MAX_BUFFER``) so stats and exports are not silently truncated.
+    """
+    _bootstrap_from_disk_if_needed()
+    with _lock:
+        items = list(_buffer)
+    if session_id:
+        return [dict(r) for r in items if r.get("session_id") == session_id]
+    return [dict(r) for r in items]
+
+
 def export_traces_json_lines(session_id: str | None = None) -> str:
     """All matching traces as NDJSON (oldest first in file order for export readability)."""
-    rows = list_traces(session_id=session_id, limit=MAX_BUFFER)
+    rows = snapshot_traces(session_id=session_id)
     return "\n".join(json.dumps(r, ensure_ascii=False, default=str) for r in reversed(rows)) + "\n"
 
 

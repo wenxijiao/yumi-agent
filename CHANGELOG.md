@@ -32,6 +32,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   model weights and embedding assets are still downloaded on demand.
 - `yumi --ui` no longer requires Node.js or a Reflex dev server; it verifies the
   core server is running and opens the browser at its `/app` page.
+- Default conversation context raised to 30 recent + 15 cross-session related
+  messages.
+- Migrated PDF ingestion from the end-of-life `PyPDF2` to `pypdf`; added explicit
+  `pydantic` and `av` (PyAV) dependencies.
+
+### Fixed
+
+- Pre-release hardening (web UI + voice):
+  - Cloud STT (Gemini/DashScope/Grok) now transcodes browser WebM/MP4 recordings
+    to WAV via PyAV, and the mic upload filename matches the real container
+    (Safari/iOS), so microphone input works across providers and browsers.
+  - The mic button is disabled with a hint when STT is off; spoken-reply (TTS)
+    failures now surface a toast instead of failing silently; "Test voice" saves
+    the current selection first and no longer leaks audio URLs.
+  - Added a DashScope/Qwen API-key field to Settings → Voice (previously
+    unconfigurable from the browser).
+  - Chat: collapsing the sidebar can no longer strand you with no controls; a
+    failed message reload no longer wipes the transcript; the active session
+    persists across refreshes.
+  - The Settings "Configuration Storage" note now shows the correct path
+    (`~/.yumi/config.json`), command (`yumi --config`), and an accurate
+    (non-"encrypted") description of how keys are stored.
+  - `/stats` runs off the event loop and aggregates the full trace buffer (not a
+    500-row slice); per-turn token persistence no longer reloads the full config.
+  - The UI self-hosts the Inter font (no external CDN) and code-splits routes for
+    a lighter initial load; a server-unreachable banner and a discoverable setup
+    wizard were added.
 
 ### Removed
 

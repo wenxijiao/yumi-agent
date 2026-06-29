@@ -15,7 +15,9 @@ def create_stt_provider(config: ModelConfig | None = None) -> SpeechToTextProvid
     cfg = config or load_model_config()
     provider = (cfg.stt_provider or "disabled").strip().lower()
     if provider in ("", "disabled", "none", "off"):
-        raise SttNotConfiguredError("STT is not enabled. Run `yumi --setup` to enable voice transcription.")
+        raise SttNotConfiguredError(
+            "Speech-to-text is not enabled. Enable it in Settings → Voice (or run `yumi --setup`)."
+        )
     if provider == "openai":
         from yumi.core.features.stt.openai_provider import DEFAULT_OPENAI_STT_MODEL, OpenAiSttProvider
 
@@ -78,6 +80,13 @@ async def transcribe_audio(
 ) -> TranscriptionResult:
     global _PROVIDER_CACHE
     cfg = config or load_model_config()
+    # Cloud STT APIs reject the WebM/MP4 containers browsers record in; transcode
+    # those to WAV first. Whisper (PyAV) and OpenAI accept the originals.
+    provider = (cfg.stt_provider or "").strip().lower()
+    if provider in ("gemini", "dashscope", "grok"):
+        from yumi.core.features.stt.audio import to_wav_if_browser_audio
+
+        audio, filename = to_wav_if_browser_audio(audio, filename)
     key = _cache_key(cfg)
     if _PROVIDER_CACHE is None or _PROVIDER_CACHE[0] != key:
         _PROVIDER_CACHE = (key, create_stt_provider(cfg))

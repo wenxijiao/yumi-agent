@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { MessageSquare, MoreHorizontal, Pencil, Pin, PinOff, Plus, Search, Trash2 } from "lucide-react"
 import { toast } from "sonner"
@@ -32,11 +32,6 @@ export function SessionsSidebar() {
   const [search, setSearch] = useState("")
   const [renaming, setRenaming] = useState<Session | null>(null)
   const [renameValue, setRenameValue] = useState("")
-
-  // Pick an initial active session once data is available.
-  useEffect(() => {
-    if (!activeId && sessions.length > 0) setActiveId(sessions[0].session_id)
-  }, [activeId, sessions, setActiveId])
 
   const refresh = () => qc.invalidateQueries({ queryKey: qk.sessions })
 

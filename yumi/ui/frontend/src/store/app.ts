@@ -16,12 +16,18 @@ interface AppState {
 
 const VOICE_KEY = "yumi-voice-replies"
 const SIDEBAR_KEY = "yumi-chat-sidebar-collapsed"
+const ACTIVE_SESSION_KEY = "yumi-active-session"
 
 export const useApp = create<AppState>((set, get) => ({
   commandOpen: false,
   setCommandOpen: (v) => set({ commandOpen: v }),
-  activeSessionId: null,
-  setActiveSessionId: (id) => set({ activeSessionId: id }),
+  // Persisted so a refresh reopens the last chat instead of an empty pane.
+  activeSessionId: (typeof localStorage !== "undefined" && localStorage.getItem(ACTIVE_SESSION_KEY)) || null,
+  setActiveSessionId: (id) => {
+    if (id) localStorage.setItem(ACTIVE_SESSION_KEY, id)
+    else localStorage.removeItem(ACTIVE_SESSION_KEY)
+    set({ activeSessionId: id })
+  },
   voiceReplies: typeof localStorage !== "undefined" && localStorage.getItem(VOICE_KEY) === "1",
   setVoiceReplies: (v) => {
     localStorage.setItem(VOICE_KEY, v ? "1" : "0")

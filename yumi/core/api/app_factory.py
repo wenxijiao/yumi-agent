@@ -210,10 +210,17 @@ def _mount_spa(app: FastAPI) -> None:
     falls back to ``index.html`` for client-side routes (deep links / refresh).
     Absent a build (``yumi/ui/static``), this is a no-op so the server still runs.
     """
+    import mimetypes
     from pathlib import Path
 
     from fastapi.responses import FileResponse, RedirectResponse, Response
     from fastapi.staticfiles import StaticFiles
+
+    # Ensure correct content types regardless of the host OS mimetypes registry
+    # (Windows often lacks .woff2 / .js / .mjs).
+    mimetypes.add_type("font/woff2", ".woff2")
+    mimetypes.add_type("text/javascript", ".js")
+    mimetypes.add_type("text/javascript", ".mjs")
 
     static_dir = (Path(__file__).resolve().parents[2] / "ui" / "static").resolve()
     index_file = static_dir / "index.html"
@@ -233,7 +240,9 @@ def _mount_spa(app: FastAPI) -> None:
     async def _spa(spa_path: str = "") -> Response:
         if spa_path:
             candidate = (static_dir / spa_path).resolve()
-            if candidate.is_file() and str(candidate).startswith(str(static_dir)):
+            # True path containment (not a string prefix) so siblings like
+            # ui/static-bak can never be served via crafted ../ paths.
+            if candidate.is_file() and candidate.is_relative_to(static_dir):
                 return FileResponse(candidate)
         return FileResponse(index_file)
 

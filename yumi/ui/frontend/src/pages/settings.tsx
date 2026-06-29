@@ -102,6 +102,7 @@ export function SettingsPage() {
   const [ttsVoice, setTtsVoice] = useState("")
   const [ttsModel, setTtsModel] = useState("")
   const [ttsLanguage, setTtsLanguage] = useState("")
+  const [dashscopeKey, setDashscopeKey] = useState("")
   const [voiceSaving, setVoiceSaving] = useState(false)
   const [testingVoice, setTestingVoice] = useState(false)
 
@@ -230,19 +231,26 @@ export function SettingsPage() {
     }
   }
 
+  function voicePatch(): Record<string, unknown> {
+    const patch: Record<string, unknown> = {
+      stt_provider: sttProvider,
+      stt_model: sttModel,
+      stt_language: sttLanguage,
+      tts_provider: ttsProvider,
+      tts_voice: ttsVoice,
+      tts_model: ttsModel,
+      tts_language: ttsLanguage,
+    }
+    if (dashscopeKey.trim()) patch.tts_api_key = dashscopeKey.trim()
+    return patch
+  }
+
   async function saveVoice() {
     setVoiceSaving(true)
     try {
-      await api.updateModelConfig({
-        stt_provider: sttProvider,
-        stt_model: sttModel,
-        stt_language: sttLanguage,
-        tts_provider: ttsProvider,
-        tts_voice: ttsVoice,
-        tts_model: ttsModel,
-        tts_language: ttsLanguage,
-      })
+      await api.updateModelConfig(voicePatch())
       await qc.invalidateQueries({ queryKey: qk.modelConfig })
+      setDashscopeKey("")
       toast.success("Voice settings saved")
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to save voice settings")
@@ -254,8 +262,18 @@ export function SettingsPage() {
   async function testVoice() {
     setTestingVoice(true)
     try {
+      // Persist the current form first so the test uses the selection on screen,
+      // not whatever was last saved.
+      await api.updateModelConfig(voicePatch())
+      await qc.invalidateQueries({ queryKey: qk.modelConfig })
+      setDashscopeKey("")
       const url = await synthesizeSpeech("Hello, this is Yumi.")
-      new Audio(url).play()
+      const audio = new Audio(url)
+      audio.onended = () => URL.revokeObjectURL(url)
+      await audio.play().catch(() => {
+        URL.revokeObjectURL(url)
+        toast.error("Your browser blocked audio playback.")
+      })
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Voice test failed")
     } finally {
@@ -679,6 +697,12 @@ export function SettingsPage() {
                         />
                       </FieldRow>
                     </div>
+                    {(sttProvider || "").toLowerCase() === "whisper" && (
+                      <p className="mt-4 text-xs text-muted-foreground">
+                        Local Whisper downloads its model (~150 MB for “base”) the first time you transcribe, which can
+                        take a few minutes. The mic button will appear to spin during that download.
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -731,6 +755,32 @@ export function SettingsPage() {
                           placeholder="e.g. en, zh"
                         />
                       </FieldRow>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>DashScope API key</Label>
+                      <div className="flex items-center gap-3">
+                        <Input
+                          type="password"
+                          value={dashscopeKey}
+                          onChange={(e) => setDashscopeKey(e.target.value)}
+                          placeholder={
+                            modelConfig?.tts_api_key_saved
+                              ? "•••••••••  saved — paste a new key to replace"
+                              : "Required for the DashScope and Qwen voice providers"
+                          }
+                          className="flex-1"
+                        />
+                        {!dashscopeKey.trim() && modelConfig?.tts_api_key_saved && (
+                          <Badge variant="success" className="shrink-0 justify-center">
+                            <Check className="size-3" />
+                            Saved
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Used by the DashScope and Qwen voice providers; saved with “Save voice settings”.
+                      </p>
                     </div>
 
                     <Separator />
@@ -852,13 +902,14 @@ export function SettingsPage() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground">
-                      All settings are persisted server-side in the Yumi data directory
+                      Settings are persisted server-side in your Yumi data directory
                       (typically{" "}
-                      <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">~/.yumi/config.toml</code>
-                      ). API keys are stored encrypted and are never returned to the client in
-                      full. To find the exact path, run{" "}
-                      <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">yumi config path</code>{" "}
-                      in your terminal.
+                      <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">~/.yumi/config.json</code>
+                      ), with sessions and usage in{" "}
+                      <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">~/.yumi/yumi.db</code>. API keys
+                      are kept on the server and never returned to the browser in full. Run{" "}
+                      <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">yumi --config</code> to open the
+                      config file.
                     </p>
                   </CardContent>
                 </Card>

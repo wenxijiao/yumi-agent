@@ -6,8 +6,18 @@ import { api } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { SimpleTooltip } from "@/components/ui/tooltip"
 import { useApp } from "@/store/app"
+import { useModelConfig } from "@/hooks/queries"
 import type { PendingFile } from "@/hooks/use-chat"
 import { formatBytes } from "@/lib/format"
+
+const DISABLED_PROVIDERS = ["", "disabled", "none", "off"]
+
+function extForMime(mime: string): string {
+  if (mime.includes("mp4") || mime.includes("m4a") || mime.includes("aac")) return "m4a"
+  if (mime.includes("ogg") || mime.includes("opus")) return "ogg"
+  if (mime.includes("wav")) return "wav"
+  return "webm"
+}
 
 const MAX_BYTES = 25 * 1024 * 1024
 const AUDIO_EXT = new Set(["ogg", "oga", "mp3", "wav", "m4a", "aac", "flac", "webm"])
@@ -51,6 +61,10 @@ export function Composer({
   const chunksRef = useRef<Blob[]>([])
   const voiceReplies = useApp((s) => s.voiceReplies)
   const setVoiceReplies = useApp((s) => s.setVoiceReplies)
+  const { data: modelConfig } = useModelConfig()
+  const sttDisabled = modelConfig
+    ? DISABLED_PROVIDERS.includes((modelConfig.stt_provider || "disabled").toLowerCase())
+    : false
 
   const autoGrow = useCallback(() => {
     const ta = taRef.current
@@ -104,6 +118,12 @@ export function Composer({
   )
 
   const startRecording = useCallback(async () => {
+    // getUserMedia requires a secure context — fine on localhost, but NOT over the
+    // plain-http LAN URL the CLI also advertises.
+    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+      toast.error("Voice input needs https or localhost. Open Yumi at http://127.0.0.1:8000, not a LAN IP.")
+      return
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const rec = new MediaRecorder(stream)
@@ -111,11 +131,14 @@ export function Composer({
       rec.ondataavailable = (e) => e.data.size > 0 && chunksRef.current.push(e.data)
       rec.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop())
-        const blob = new Blob(chunksRef.current, { type: rec.mimeType || "audio/webm" })
+        const mime = rec.mimeType || "audio/webm"
+        const blob = new Blob(chunksRef.current, { type: mime })
         setTranscribing(true)
         try {
           const b64 = await fileToBase64(blob)
-          const r = await api.transcribe(sessionId, "voice.webm", b64)
+          // Filename extension must match the real container (Safari/iOS emits mp4),
+          // since cloud STT providers key off it.
+          const r = await api.transcribe(sessionId, `voice.${extForMime(mime)}`, b64)
           if (r.text) {
             setDraft((d) => (d ? `${d} ${r.text}` : r.text))
             taRef.current?.focus()
@@ -234,11 +257,19 @@ export function Composer({
               </Button>
             </SimpleTooltip>
 
-            <SimpleTooltip label={recording ? "Stop & transcribe" : "Voice input"}>
+            <SimpleTooltip
+              label={
+                sttDisabled
+                  ? "Enable speech-to-text in Settings → Voice"
+                  : recording
+                    ? "Stop & transcribe"
+                    : "Voice input"
+              }
+            >
               <Button
                 variant={recording ? "destructive" : "ghost"}
                 size="icon-sm"
-                disabled={transcribing}
+                disabled={transcribing || (sttDisabled && !recording)}
                 onClick={recording ? stopRecording : startRecording}
               >
                 {transcribing ? (

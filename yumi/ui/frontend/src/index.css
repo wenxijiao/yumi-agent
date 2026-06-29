@@ -123,7 +123,7 @@
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-border: var(--sidebar-border);
 
-  --font-sans: "Inter var", "Inter", system-ui, -apple-system, "Segoe UI", Roboto,
+  --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
   --font-mono: "JetBrains Mono", "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
 

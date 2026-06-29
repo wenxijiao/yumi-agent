@@ -90,8 +90,10 @@ export function useChat(sessionId: string | null) {
   const reload = useCallback(async (sid: string) => {
     try {
       setMessages(normalize(await api.listMessages(sid)))
-    } catch {
-      setMessages([])
+    } catch (e) {
+      // Don't wipe the transcript on a transient failure (network hiccup, server
+      // restart) — surface an error and keep whatever is on screen.
+      setError(e instanceof ApiError ? e.message : "Couldn't load messages — is the server running?")
     }
   }, [])
 
@@ -102,11 +104,10 @@ export function useChat(sessionId: string | null) {
     setError(null)
     setConfirm(null)
     setStreaming(false)
+    setMessages([]) // clear the previous session's transcript before loading the new one
     if (sessionId) {
       setLoading(true)
       reload(sessionId).finally(() => setLoading(false))
-    } else {
-      setMessages([])
     }
   }, [sessionId, reload])
 
@@ -214,9 +215,12 @@ export function useChat(sessionId: string | null) {
             .then((url) => {
               const audio = new Audio(url)
               audio.onended = () => URL.revokeObjectURL(url)
-              void audio.play().catch(() => undefined)
+              void audio.play().catch(() => {
+                URL.revokeObjectURL(url)
+                toast.error("Couldn't auto-play the spoken reply — your browser blocked autoplay.")
+              })
             })
-            .catch(() => undefined)
+            .catch((e) => toast.error(e instanceof ApiError ? e.message : "Spoken reply failed"))
         }
       } catch (e) {
         const aborted = e instanceof DOMException && e.name === "AbortError"

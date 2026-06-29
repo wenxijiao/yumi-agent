@@ -28,6 +28,8 @@ classifiers = [
 dependencies = [
     "ollama>=0.4",
     "fastapi>=0.100",
+    # Imported directly across the codebase (not just via fastapi), so pin explicitly.
+    "pydantic>=2.0",
     "uvicorn>=0.20",
     "lancedb>=0.4",
     "python-dotenv>=1.0",
@@ -47,12 +49,16 @@ dependencies = [
     "python-telegram-bot>=21.0",
     "discord.py>=2.0",
     # Document ingestion (PDF / docx).
-    "PyPDF2>=3.0",
+    "pypdf>=4.0",
     "python-docx>=1.0",
     # Core local features: these install code only. Model weights and local
     # embedding assets are still downloaded lazily/setup-time, not bundled.
     "fastembed>=0.6",
     "faster-whisper>=1.0",
+    # PyAV decodes/transcodes audio (e.g. browser webm/mp4 for cloud STT). Bundles
+    # ffmpeg libs in its wheels — no system ffmpeg needed. Pinned explicitly though
+    # faster-whisper also pulls it in.
+    "av>=11.0",
     "huggingface-hub>=0.20",
     "sounddevice>=0.4.6",
     "webrtcvad-wheels>=2.0.14",

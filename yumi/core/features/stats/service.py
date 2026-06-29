@@ -65,9 +65,9 @@ def _session_stats(store: Any) -> dict[str, Any]:
 
 
 def _trace_stats() -> dict[str, Any]:
-    from yumi.core.platform.tools.trace import list_traces
+    from yumi.core.platform.tools.trace import snapshot_traces
 
-    traces = _safe(lambda: list_traces(limit=2000), [])
+    traces = _safe(lambda: snapshot_traces(), [])
     by_status: dict[str, int] = {}
     by_tool: dict[str, int] = {}
     total_duration = 0

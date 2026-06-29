@@ -10,6 +10,9 @@ from yumi.core.platform.plugins import get_session_scope
 
 router = APIRouter()
 
+# Canonical media types per audio container (audio/mp3 is non-standard; use audio/mpeg).
+_MEDIA_TYPES = {"wav": "audio/wav", "mp3": "audio/mpeg", "ogg": "audio/ogg", "pcm": "audio/wav"}
+
 
 @router.post("/tts/synthesize")
 async def tts_synthesize_endpoint(identity: CurrentIdentity, request: TtsRequest):
@@ -27,8 +30,9 @@ async def tts_synthesize_endpoint(identity: CurrentIdentity, request: TtsRequest
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except TtsError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+    fmt = (audio.format or "wav").lower()
     return Response(
         content=audio.data,
-        media_type=f"audio/{audio.format or 'wav'}",
+        media_type=_MEDIA_TYPES.get(fmt, "application/octet-stream"),
         headers={"Cache-Control": "no-store"},
     )
