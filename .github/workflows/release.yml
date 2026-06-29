@@ -61,10 +61,16 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
 
       - name: Publish to PyPI
         if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.target == 'pypi') }}
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # Don't fail the run if this version was already uploaded (e.g. a manual
+          # twine upload, or a re-run). Trusted Publishing must be configured on
+          # PyPI for this repo (see the header comment) for the upload itself.
+          skip-existing: true
 
   publish-npm:
     name: Publish TypeScript SDK to npm
