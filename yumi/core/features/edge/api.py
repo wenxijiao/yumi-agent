@@ -54,6 +54,10 @@ def _mount_edge_tools(connection_key: str, tool_prefix: str, tools: list) -> lis
             "schema": schema_copy,
             "timeout": schema_copy.pop("timeout", None),
             "require_confirmation": bool(schema_copy.pop("require_confirmation", False)),
+            # Optional per-tool entitlement key (popped so it never reaches the LLM
+            # schema). A plugin's EdgeScope may use it to gate individual tools by
+            # subscription (e.g. an app's Pro-only tools), not just the whole edge.
+            "entitlement": schema_copy.pop("entitlement", None),
             "always_include": bool(schema_copy.pop("always_include", False)),
             "allow_proactive": bool(schema_copy.pop("allow_proactive", False)),
             "proactive_context": bool(schema_copy.pop("proactive_context", False)),
