@@ -549,6 +549,7 @@ async def handle_line_message_event(
                 "Yumi LINE bridge\n\n"
                 "Send a message to chat (images/files; voice when STT is enabled).\n"
                 "Commands:\n"
+                "/link <code> — connect this chat to your Yumi account\n"
                 "/clear — clear this session\n"
                 "/model — view or switch model\n"
                 "/start_log — debug: log this session's chat to ~/.yumi/debug/chat_trace/\n"
@@ -556,6 +557,16 @@ async def handle_line_message_event(
                 "/system — session system prompt (see /system help)\n"
                 "/help — this message"
             )
+            return
+        if lower.startswith("/link"):
+            from yumi.core.platform.plugins import get_bridge_scope
+
+            parts = raw.split(None, 1)
+            code = parts[1].strip() if len(parts) > 1 else ""
+            # Resolved by the active BridgeScope: the single-user default is a no-op,
+            # while an identity plugin redeems the connection code and binds this LINE
+            # account to the user (so their history + tools follow them here).
+            await reply_text(get_bridge_scope().link("line", user_id, code))
             return
         if lower.startswith("/clear"):
             ok, err = await _post_clear_session(connection, session_id)
