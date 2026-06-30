@@ -301,6 +301,27 @@ class ToolDispatcher:
             duration_ms=dt_ms,
             result_preview=str(result.result)[:500],
         )
+        # Opt-in persistent tool-call audit (off by default → no overhead unless set).
+        # When YUMI_AUDIT_TOOL_CALLS is on, the active AuditSink records who called
+        # which tool, powering e.g. a tenant-admin tool-call history view.
+        import os
+
+        if os.getenv("YUMI_AUDIT_TOOL_CALLS", "").strip().lower() in ("1", "true", "yes"):
+            try:
+                from yumi.core.platform.plugins import get_audit_sink, get_identity_provider
+
+                _ident = get_identity_provider().current()
+                get_audit_sink().event(
+                    "tool_call",
+                    getattr(_ident, "user_id", None),
+                    tool=display,
+                    kind=inv.kind,
+                    edge=inv.target_edge,
+                    status=result.status,
+                    duration_ms=dt_ms,
+                )
+            except Exception:
+                pass
         return result
 
     async def _run_one(self, inv: ToolInvocation) -> ToolResult:
