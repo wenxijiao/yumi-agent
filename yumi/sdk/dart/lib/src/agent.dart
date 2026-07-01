@@ -225,9 +225,17 @@ class YumiAgent {
 
 String _resolveEnvPath(String? explicit) {
   if (explicit != null && explicit.isNotEmpty) return explicit;
-  final cwd = Directory.current.path;
-  final a = File('$cwd/yumi_tools/.env');
-  final b = File('$cwd/.env');
-  if (a.existsSync()) return a.path;
-  return b.path;
+  // Walk up from cwd so the edge finds yumi_tools/.env regardless of which
+  // subdir it is launched from (e.g. cwd = <workspace>/yumi_tools/dart).
+  var dir = Directory.current.absolute;
+  while (true) {
+    final a = File('${dir.path}/yumi_tools/.env');
+    if (a.existsSync()) return a.path;
+    final b = File('${dir.path}/.env');
+    if (b.existsSync()) return b.path;
+    final parent = dir.parent;
+    if (parent.path == dir.path) break; // reached filesystem root
+    dir = parent;
+  }
+  return '${Directory.current.path}/.env';
 }

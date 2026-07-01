@@ -17,6 +17,8 @@ Two ways to run::
 Requires: pip install websockets
 """
 
+import os
+
 try:
     from .yumi_sdk import YumiAgent
 except ImportError:
@@ -28,11 +30,16 @@ except ImportError:
 
 
 def init_yumi():
-    # name + connection code were written to yumi_tools/.env by `yumi --edge`,
-    # and YumiAgent() reads them automatically — leave it empty. Only pass these
-    # to override in code (e.g. one process running several edges):
+    # `yumi --edge` wrote your edge name, connection code, and server to
+    # yumi_tools/.env. Point YumiAgent at that file by its location on disk (not
+    # the current working directory), so it loads no matter where you launch from
+    # — VS Code's Run button, a different folder, etc. Pass args only to override
+    # in code (e.g. one process running several edges):
     #   YumiAgent(edge_name="weather-pi", connection_code="yumi-lan_...")
-    agent = YumiAgent()
+    env_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"
+    )
+    agent = YumiAgent(env_path=env_path)
 
     # ── Register tools: func + description ──
     # The description tells the AI when and how to use the tool.
@@ -62,7 +69,10 @@ def init_yumi():
 
 
 if __name__ == "__main__":
+    import logging
     import sys
 
+    # Surface the SDK's connection logs ("Connected as [name] with N tool(s).").
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     print("Yumi edge running (standalone). Press Ctrl+C to stop.", file=sys.stderr)
     init_yumi().run()

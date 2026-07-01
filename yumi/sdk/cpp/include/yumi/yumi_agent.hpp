@@ -915,10 +915,23 @@ private:
             char cwdBuf[4096];
             if (getcwd(cwdBuf, sizeof(cwdBuf))) cwd = cwdBuf;
 #endif
-            std::string mtEnv = cwd + "/yumi_tools/.env";
-            std::string rootEnv = cwd + "/.env";
-            std::ifstream testMt(mtEnv);
-            envFile = testMt.good() ? mtEnv : rootEnv;
+            // Walk up from cwd so the edge finds yumi_tools/.env regardless of
+            // which subdir (e.g. yumi_tools/cpp) it launches from — .env lives in
+            // the PARENT of the language dir.
+            auto fileExists = [](const std::string& p) { std::ifstream f(p); return f.good(); };
+            std::string dir = cwd;
+            envFile = cwd + "/yumi_tools/.env"; // safe default if nothing is found
+            for (;;) {
+                std::string mtEnv = dir + "/yumi_tools/.env";
+                std::string rootEnv = dir + "/.env";
+                if (fileExists(mtEnv)) { envFile = mtEnv; break; }
+                if (fileExists(rootEnv)) { envFile = rootEnv; break; }
+                auto slash = dir.find_last_of("/\\");
+                if (slash == std::string::npos) break;
+                std::string parent = dir.substr(0, slash);
+                if (parent.empty() || parent == dir) break; // hit filesystem root
+                dir = parent;
+            }
         }
 
         detail::loadEnvFile(envFile);

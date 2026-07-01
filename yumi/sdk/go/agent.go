@@ -39,6 +39,27 @@ type YumiAgent struct {
 	closed bool
 }
 
+// findEnvFile walks up from startDir looking for yumi_tools/.env (preferred) or a
+// bare .env at each level, so the edge finds its config regardless of which subdir
+// it is launched from (e.g. cwd = <workspace>/yumi_tools/go while .env lives at
+// <workspace>/yumi_tools/.env). Falls back to <startDir>/.env when nothing is found.
+func findEnvFile(startDir string) string {
+	dir := startDir
+	for {
+		if p := filepath.Join(dir, "yumi_tools", ".env"); fileExists(p) {
+			return p
+		}
+		if p := filepath.Join(dir, ".env"); fileExists(p) {
+			return p
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return filepath.Join(startDir, ".env")
+		}
+		dir = parent
+	}
+}
+
 // NewAgent creates a new YumiAgent with the given options.
 func NewAgent(opts AgentOptions) *YumiAgent {
 	var envFile string
@@ -46,13 +67,7 @@ func NewAgent(opts AgentOptions) *YumiAgent {
 		envFile = opts.EnvPath
 	} else {
 		cwd, _ := os.Getwd()
-		yumiToolsEnv := filepath.Join(cwd, "yumi_tools", ".env")
-		rootEnv := filepath.Join(cwd, ".env")
-		if fileExists(yumiToolsEnv) {
-			envFile = yumiToolsEnv
-		} else {
-			envFile = rootEnv
-		}
+		envFile = findEnvFile(cwd)
 	}
 
 	LoadEnvFile(envFile)

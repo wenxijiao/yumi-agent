@@ -367,13 +367,26 @@ fn resolve_env_path(explicit: Option<String>) -> String {
         }
     }
     let cwd = std::env::current_dir().unwrap_or_else(|_| Path::new(".").to_path_buf());
-    let yumi_tools = cwd.join("yumi_tools").join(".env");
-    let root = cwd.join(".env");
-    if yumi_tools.is_file() {
-        yumi_tools.to_string_lossy().to_string()
-    } else {
-        root.to_string_lossy().to_string()
+    // Walk up from cwd so the edge finds its config regardless of which subdir it
+    // is launched from (e.g. cwd = <workspace>/yumi_tools/rust while .env lives at
+    // <workspace>/yumi_tools/.env).
+    let mut dir = cwd.as_path();
+    loop {
+        let yumi_tools = dir.join("yumi_tools").join(".env");
+        if yumi_tools.is_file() {
+            return yumi_tools.to_string_lossy().to_string();
+        }
+        let root = dir.join(".env");
+        if root.is_file() {
+            return root.to_string_lossy().to_string();
+        }
+        match dir.parent() {
+            Some(parent) => dir = parent,
+            None => break,
+        }
     }
+    // Preserve the prior default so policy_base_dir stays stable when nothing found.
+    cwd.join(".env").to_string_lossy().to_string()
 }
 
 fn add_jitter(base: std::time::Duration) -> std::time::Duration {

@@ -67,6 +67,22 @@ public class YumiAgent {
         this(connectionCode, edgeName, null);
     }
 
+    // Walk up from the working directory for yumi_tools/.env (preferred) or a bare
+    // .env at each level, so the edge finds its config regardless of which subdir it
+    // is launched from (e.g. cwd = <workspace>/yumi_tools/java while .env lives at
+    // <workspace>/yumi_tools/.env). Falls back to <cwd>/.env when nothing is found.
+    private static String findEnvFile() {
+        Path dir = Path.of(System.getProperty("user.dir")).toAbsolutePath();
+        while (dir != null) {
+            Path yumiToolsEnv = dir.resolve("yumi_tools").resolve(".env");
+            if (Files.isRegularFile(yumiToolsEnv)) return yumiToolsEnv.toString();
+            Path bareEnv = dir.resolve(".env");
+            if (Files.isRegularFile(bareEnv)) return bareEnv.toString();
+            dir = dir.getParent();
+        }
+        return Path.of(System.getProperty("user.dir"), ".env").toString();
+    }
+
     /**
      * Create a new agent with optional .env file path.
      */
@@ -75,10 +91,7 @@ public class YumiAgent {
         if (envPath != null && !envPath.isEmpty()) {
             envFile = envPath;
         } else {
-            String cwd = System.getProperty("user.dir");
-            String yumiToolsEnv = Path.of(cwd, "yumi_tools", ".env").toString();
-            String rootEnv = Path.of(cwd, ".env").toString();
-            envFile = Files.isRegularFile(Path.of(yumiToolsEnv)) ? yumiToolsEnv : rootEnv;
+            envFile = findEnvFile();
         }
 
         EnvParser.loadEnvFile(envFile);

@@ -157,10 +157,28 @@ async function loadDotEnvFileIfNode(opts: YumiAgentOptions): Promise<{
     if (opts.envPath) {
       envFile = opts.envPath;
     } else {
+      // Walk up from cwd so the edge finds yumi_tools/.env regardless of which
+      // subdir it is launched from (e.g. cwd = <workspace>/yumi_tools/typescript,
+      // with .env at <workspace>/yumi_tools/.env — the PARENT of the lang dir).
       const cwd = process.cwd();
-      const yumiToolsEnv = path.join(cwd, "yumi_tools", ".env");
-      const rootEnv = path.join(cwd, ".env");
-      envFile = fs.existsSync(yumiToolsEnv) ? yumiToolsEnv : rootEnv;
+      let dir = cwd;
+      let found = "";
+      for (;;) {
+        const yumiToolsEnv = path.join(dir, "yumi_tools", ".env");
+        if (fs.existsSync(yumiToolsEnv)) {
+          found = yumiToolsEnv;
+          break;
+        }
+        const rootEnv = path.join(dir, ".env");
+        if (fs.existsSync(rootEnv)) {
+          found = rootEnv;
+          break;
+        }
+        const parent = path.dirname(dir);
+        if (parent === dir) break; // reached filesystem root
+        dir = parent;
+      }
+      envFile = found || path.join(cwd, ".env");
     }
 
     if (!fs.existsSync(envFile)) {

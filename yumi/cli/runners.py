@@ -54,6 +54,10 @@ from yumi.edge.client import init_workspace
 
 SERVER_URL = os.getenv("YUMI_SERVER_URL", "http://127.0.0.1:8000")
 
+# When a remote/account connection code carries no host, `yumi --edge` offers
+# this as the one-tap "Yumi Nexus" server so users don't have to type the URL.
+YUMI_NEXUS_EDGE_SERVER = "https://api.yumi.nexus"
+
 
 def server_health_url(base_url: str | None = None) -> str:
     target_base = (base_url or SERVER_URL).rstrip("/")
@@ -905,13 +909,29 @@ def _edge_connection_step(env_path: str, interactive: bool) -> str:
         return "set (direct)"
     # A remote/account connection code carries no host — ask which server hosts
     # Yumi so the edge knows where to connect. The code just identifies the user.
-    server = _framed_prompt(
-        "Edge server",
+    # Offer Yumi Nexus as a one-tap default so users don't have to type the URL.
+    server_choice = _select_option(
         step="Step 3/3: Connection · Server",
         title="Where should this edge connect?",
-        context="The server that hosts Yumi (e.g. https://api.yumi.nexus). Your code identifies you to it.",
-        hint="enter for a local server (ws://127.0.0.1:8000)",
+        message="Your connection code identifies you; pick the server that hosts Yumi.",
+        options=[
+            ("nexus", "Yumi Nexus", f"{YUMI_NEXUS_EDGE_SERVER} · hosted"),
+            ("custom", "Custom server", "enter your own URL"),
+            ("local", "Local server", "ws://127.0.0.1:8000"),
+        ],
     )
+    if server_choice == "nexus":
+        server = YUMI_NEXUS_EDGE_SERVER
+    elif server_choice == "custom":
+        server = _framed_prompt(
+            "Edge server",
+            step="Step 3/3: Connection · Server",
+            title="Custom Yumi server",
+            context="The server that hosts Yumi (e.g. https://api.yumi.nexus). Your code identifies you to it.",
+            hint="enter for a local server (ws://127.0.0.1:8000)",
+        )
+    else:
+        server = ""
     if server and server.strip():
         _write_env_var(env_path, "YUMI_EDGE_SERVER", server.strip())
         _note(f"Connection code saved (server → {server.strip()}).")

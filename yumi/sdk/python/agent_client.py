@@ -234,6 +234,28 @@ def _load_env_file(path: str) -> None:
         pass
 
 
+def _find_env_file(start_dir: str) -> str:
+    """Walk up from ``start_dir`` for ``yumi_tools/.env`` (preferred) or a bare ``.env``.
+
+    Lets an edge find its config no matter which subdir it is launched from (e.g.
+    cwd = ``<workspace>/yumi_tools/python`` while ``.env`` lives at
+    ``<workspace>/yumi_tools/.env``). Falls back to ``<start_dir>/.env`` when
+    nothing is found, so ``_policy_base_dir`` stays stable.
+    """
+    directory = os.path.abspath(start_dir)
+    while True:
+        candidate = os.path.join(directory, "yumi_tools", ".env")
+        if os.path.isfile(candidate):
+            return candidate
+        bare = os.path.join(directory, ".env")
+        if os.path.isfile(bare):
+            return bare
+        parent = os.path.dirname(directory)
+        if parent == directory:
+            return os.path.join(os.path.abspath(start_dir), ".env")
+        directory = parent
+
+
 # ── tool schema builder ──
 
 
@@ -389,9 +411,7 @@ class YumiAgent:
         if env_path:
             env_file = env_path
         else:
-            yumi_tools_env = os.path.join(os.getcwd(), "yumi_tools", ".env")
-            root_env = os.path.join(os.getcwd(), ".env")
-            env_file = yumi_tools_env if os.path.isfile(yumi_tools_env) else root_env
+            env_file = _find_env_file(os.getcwd())
 
         _load_env_file(env_file)
 

@@ -264,10 +264,17 @@ class YumiAgent(opts: AgentOptions) {
 
     private fun resolveEnvPath(explicit: String?): String {
         if (!explicit.isNullOrEmpty()) return explicit
-        val cwd = Path.of(System.getProperty("user.dir", "."))
-        val a = cwd.resolve("yumi_tools").resolve(".env")
-        val b = cwd.resolve(".env")
-        return if (Files.isRegularFile(a)) a.toString() else b.toString()
+        // Walk up from cwd so the edge finds yumi_tools/.env regardless of which
+        // subdir it is launched from (e.g. cwd = <workspace>/yumi_tools/kotlin).
+        var dir: Path? = Path.of(System.getProperty("user.dir", ".")).toAbsolutePath().normalize()
+        while (dir != null) {
+            val a = dir.resolve("yumi_tools").resolve(".env")
+            if (Files.isRegularFile(a)) return a.toString()
+            val b = dir.resolve(".env")
+            if (Files.isRegularFile(b)) return b.toString()
+            dir = dir.parent
+        }
+        return Path.of(System.getProperty("user.dir", "."), ".env").toString()
     }
 
     private class RegisteredTool(

@@ -33,22 +33,36 @@ public sealed class YumiAgent : IDisposable
     private readonly CancellationTokenSource _cts = new();
     private Task? _connectTask;
 
+    // Walk up from startDir for yumi_tools/.env (preferred) or a bare .env at each
+    // level, so the edge finds its config regardless of which subdir it launches
+    // from (e.g. cwd = <workspace>/yumi_tools/csharp while .env lives at
+    // <workspace>/yumi_tools/.env). Returns null when nothing is found.
+    private static string? FindEnvFile(string startDir)
+    {
+        for (var dir = new DirectoryInfo(startDir); dir != null; dir = dir.Parent)
+        {
+            var yumiToolsEnv = Path.Combine(dir.FullName, "yumi_tools", ".env");
+            if (File.Exists(yumiToolsEnv)) return yumiToolsEnv;
+            var bareEnv = Path.Combine(dir.FullName, ".env");
+            if (File.Exists(bareEnv)) return bareEnv;
+        }
+        return null;
+    }
+
     /// <summary>
     /// Create a new agent with an explicit connection code and edge name.
     /// </summary>
     public YumiAgent(string? connectionCode, string? edgeName, string? envPath = null)
     {
         string envFile;
+        var cwd = Directory.GetCurrentDirectory();
         if (!string.IsNullOrEmpty(envPath))
         {
             envFile = envPath;
         }
         else
         {
-            var cwd = Directory.GetCurrentDirectory();
-            var yumiToolsEnv = Path.Combine(cwd, "yumi_tools", ".env");
-            var rootEnv = Path.Combine(cwd, ".env");
-            envFile = File.Exists(yumiToolsEnv) ? yumiToolsEnv : rootEnv;
+            envFile = FindEnvFile(cwd) ?? Path.Combine(cwd, ".env");
         }
 
         EnvParser.LoadEnvFile(envFile);
