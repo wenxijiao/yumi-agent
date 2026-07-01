@@ -8,6 +8,7 @@ import { useModelConfig } from "@/hooks/queries"
 // Code-split the non-chat pages (recharts, forms, etc.) out of the initial chat load.
 const ToolsPage = lazy(() => import("@/pages/tools").then((m) => ({ default: m.ToolsPage })))
 const StatsPage = lazy(() => import("@/pages/stats").then((m) => ({ default: m.StatsPage })))
+const DebugPage = lazy(() => import("@/pages/debug").then((m) => ({ default: m.DebugPage })))
 const SettingsPage = lazy(() => import("@/pages/settings").then((m) => ({ default: m.SettingsPage })))
 const TimersPage = lazy(() => import("@/pages/timers").then((m) => ({ default: m.TimersPage })))
 const MemoryPage = lazy(() => import("@/pages/memory").then((m) => ({ default: m.MemoryPage })))
@@ -52,6 +53,7 @@ export default function App() {
           <Route path="/" element={<ChatPage />} />
           <Route path="/tools" element={<ToolsPage />} />
           <Route path="/stats" element={<StatsPage />} />
+          <Route path="/debug" element={<DebugPage />} />
           <Route path="/timers" element={<TimersPage />} />
           <Route path="/memory" element={<MemoryPage />} />
           <Route path="/settings" element={<SettingsPage />} />

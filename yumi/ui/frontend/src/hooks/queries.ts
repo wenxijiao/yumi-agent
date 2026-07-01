@@ -7,6 +7,7 @@ export const qk = {
   messages: (id: string) => ["messages", id] as const,
   tools: ["tools"] as const,
   stats: ["stats"] as const,
+  observability: ["observability"] as const,
   topology: ["topology"] as const,
   traces: (sid?: string) => ["traces", sid ?? "all"] as const,
   timers: ["timers"] as const,
@@ -27,6 +28,14 @@ export function useStats(refetchMs = 0) {
   return useQuery({
     queryKey: qk.stats,
     queryFn: api.stats,
+    refetchInterval: refetchMs || false,
+  })
+}
+
+export function useObservability(refetchMs = 0) {
+  return useQuery({
+    queryKey: qk.observability,
+    queryFn: () => api.observability(),
     refetchInterval: refetchMs || false,
   })
 }

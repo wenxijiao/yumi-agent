@@ -1,6 +1,7 @@
 import type {
   ChatEvent,
   ModelConfig,
+  Observability,
   SearchResult,
   Session,
   SessionPrompt,
@@ -122,6 +123,9 @@ export const api = {
 
   // ── stats ──
   stats: () => request<Stats>("GET", "/stats"),
+
+  // ── debug / observability ──
+  observability: (limit = 50) => request<Observability>("GET", `/debug/observability?limit=${limit}`),
 
   // ── timers ──
   timers: () => request<{ timers: Timer[] }>("GET", "/timers").then((r) => r.timers || []),

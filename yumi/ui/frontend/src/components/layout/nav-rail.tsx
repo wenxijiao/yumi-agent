@@ -1,5 +1,16 @@
 import { NavLink } from "react-router-dom"
-import { Activity, BarChart3, Clock, MessagesSquare, Moon, Search, Settings, Sun, Wrench } from "lucide-react"
+import {
+  Activity,
+  BarChart3,
+  Clock,
+  MessagesSquare,
+  Moon,
+  Search,
+  Settings,
+  Stethoscope,
+  Sun,
+  Wrench,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { SimpleTooltip } from "@/components/ui/tooltip"
@@ -11,6 +22,7 @@ const NAV = [
   { to: "/", label: "Chat", icon: MessagesSquare, end: true },
   { to: "/tools", label: "Tools", icon: Wrench },
   { to: "/stats", label: "Stats", icon: BarChart3 },
+  { to: "/debug", label: "Debug", icon: Stethoscope },
   { to: "/timers", label: "Schedules", icon: Clock },
   { to: "/memory", label: "Memory", icon: Search },
   { to: "/settings", label: "Settings", icon: Settings },

@@ -205,3 +205,53 @@ export interface SearchResult {
   score?: number
   [k: string]: unknown
 }
+
+// ── /debug/observability payload ──
+
+export interface ObservabilityEdgeTool {
+  name: string
+  full_name: string
+  always_include: boolean
+  require_confirmation: boolean
+}
+
+export interface ObservabilityEdge {
+  connection_key: string
+  edge_name: string
+  owner_user_id: string | null
+  online: boolean
+  tool_count: number
+  tools: ObservabilityEdgeTool[]
+}
+
+export interface RoutingTrace {
+  id?: string
+  ts: string
+  session_id: string
+  query_preview?: string
+  core_count?: number
+  total_edge_count?: number
+  selected_edge_count?: number
+  selected_edge_tools?: string[]
+  dynamic_routing_enabled?: boolean
+  elapsed_ms?: number
+}
+
+export interface ObservabilityDiagnosis {
+  level: "ok" | "warning" | "info"
+  message: string
+}
+
+export interface Observability {
+  identity: { user_id: string | null }
+  config: {
+    dynamic_routing_enabled?: boolean
+    edge_tools_retrieval_limit?: number
+    edge_tools_always_expose_below?: number
+    embedding_model_set?: boolean
+  }
+  edges: ObservabilityEdge[]
+  routing_traces: RoutingTrace[]
+  tool_calls: Trace[]
+  diagnosis: ObservabilityDiagnosis[]
+}
