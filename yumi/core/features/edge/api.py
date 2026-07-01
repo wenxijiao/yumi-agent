@@ -277,7 +277,14 @@ async def handle_edge_peer(peer):
         except Exception as exc:
             logger.debug("EdgeScope.on_edge_register raised: %s", exc)
 
-        logger.info("Edge connected: device [%s] with %s mounted tools.", edge_name, len(tools))
+        logger.info(
+            "Edge connected: device [%s] owner=%r key=%r with %s mounted tool(s). "
+            "(A chat only sees this edge if its identity resolves to this owner.)",
+            edge_name,
+            owner_user_id,
+            connection_key,
+            len(tools),
+        )
 
         while True:
             data = await peer.receive_json()

@@ -62,7 +62,13 @@ def _restore_tool_registry(monkeypatch):
     )
     monkeypatch.setattr(
         "yumi.core.platform.tools.routing.load_model_config",
-        lambda: ModelConfig(edge_tools_enable_dynamic_routing=True, edge_tools_retrieval_limit=3),
+        # always_expose_below=0 keeps these tests exercising the ranking/limit path;
+        # the small-edge always-expose guarantee is covered by its own tests below.
+        lambda: ModelConfig(
+            edge_tools_enable_dynamic_routing=True,
+            edge_tools_retrieval_limit=3,
+            edge_tools_always_expose_below=0,
+        ),
     )
     clear_tool_routing_traces()
     yield
@@ -162,6 +168,7 @@ def test_embedding_routing_is_preferred_over_lexical_matching(monkeypatch):
             embedding_model="fake-embedding",
             edge_tools_enable_dynamic_routing=True,
             edge_tools_retrieval_limit=1,
+            edge_tools_always_expose_below=0,
         ),
     )
     monkeypatch.setattr("yumi.core.platform.tools.routing.get_embed_provider", lambda: FakeEmbedProvider())
@@ -249,7 +256,11 @@ def test_disabled_tools_are_not_loaded():
 def test_dynamic_routing_can_be_disabled(monkeypatch):
     monkeypatch.setattr(
         "yumi.core.platform.tools.routing.load_model_config",
-        lambda: ModelConfig(edge_tools_enable_dynamic_routing=False, edge_tools_retrieval_limit=3),
+        lambda: ModelConfig(
+            edge_tools_enable_dynamic_routing=False,
+            edge_tools_retrieval_limit=3,
+            edge_tools_always_expose_below=0,
+        ),
     )
 
     decision = select_tool_schemas(
@@ -266,7 +277,11 @@ def test_dynamic_routing_can_be_disabled(monkeypatch):
 def test_zero_edge_limit_hides_unforced_edge_tools(monkeypatch):
     monkeypatch.setattr(
         "yumi.core.platform.tools.routing.load_model_config",
-        lambda: ModelConfig(edge_tools_enable_dynamic_routing=True, edge_tools_retrieval_limit=0),
+        lambda: ModelConfig(
+            edge_tools_enable_dynamic_routing=True,
+            edge_tools_retrieval_limit=0,
+            edge_tools_always_expose_below=0,
+        ),
     )
 
     decision = select_tool_schemas(
@@ -284,7 +299,11 @@ def test_zero_edge_limit_hides_unforced_edge_tools(monkeypatch):
 def test_always_include_edge_tool_bypasses_dynamic_routing_limit(monkeypatch):
     monkeypatch.setattr(
         "yumi.core.platform.tools.routing.load_model_config",
-        lambda: ModelConfig(edge_tools_enable_dynamic_routing=True, edge_tools_retrieval_limit=0),
+        lambda: ModelConfig(
+            edge_tools_enable_dynamic_routing=True,
+            edge_tools_retrieval_limit=0,
+            edge_tools_always_expose_below=0,
+        ),
     )
     registry = _edge_registry(12)
     registry["lab"]["edge_lab__set_kitchen_lights"]["always_include"] = True
@@ -331,3 +350,67 @@ def test_edge_tool_routing_scales_to_large_registries(count):
     assert "edge_lab__set_kitchen_lights" in selected
     assert len(selected) <= 3
     assert len(decision.tools) <= len(TOOL_REGISTRY) + 3
+
+
+def test_small_edge_is_always_exposed_even_when_limit_is_zero(monkeypatch):
+    # Blackout-prevention guarantee: a freshly scaffolded edge with a few tools
+    # stays fully callable even if an operator sets the retrieval limit to 0.
+    monkeypatch.setattr(
+        "yumi.core.platform.tools.routing.load_model_config",
+        lambda: ModelConfig(
+            edge_tools_enable_dynamic_routing=True,
+            edge_tools_retrieval_limit=0,
+            edge_tools_always_expose_below=10,
+        ),
+    )
+    decision = select_tool_schemas(
+        identity=LOCAL_IDENTITY,
+        query="something totally unrelated to any tool",
+        session_id="s1",
+        disabled_tools=set(),
+        edge_registry=_edge_registry(2),  # 3 edge tools total (<= 10)
+    )
+
+    assert len(decision.selected_edge_tools) == 3
+    assert "edge_lab__set_kitchen_lights" in [e.name for e in decision.selected_edge_tools]
+
+
+def test_small_edge_below_threshold_bypasses_ranking(monkeypatch):
+    monkeypatch.setattr(
+        "yumi.core.platform.tools.routing.load_model_config",
+        lambda: ModelConfig(
+            edge_tools_enable_dynamic_routing=True,
+            edge_tools_retrieval_limit=1,
+            edge_tools_always_expose_below=10,
+        ),
+    )
+    decision = select_tool_schemas(
+        identity=LOCAL_IDENTITY,
+        query="an unrelated query",
+        session_id="s1",
+        disabled_tools=set(),
+        edge_registry=_edge_registry(3),  # 4 edge tools total (<= 10)
+    )
+
+    assert len(decision.selected_edge_tools) == 4
+
+
+def test_large_edge_above_threshold_is_still_ranked(monkeypatch):
+    monkeypatch.setattr(
+        "yumi.core.platform.tools.routing.load_model_config",
+        lambda: ModelConfig(
+            edge_tools_enable_dynamic_routing=True,
+            edge_tools_retrieval_limit=3,
+            edge_tools_always_expose_below=10,
+        ),
+    )
+    decision = select_tool_schemas(
+        identity=LOCAL_IDENTITY,
+        query="Adjust the kitchen lights",
+        session_id="s1",
+        disabled_tools=set(),
+        edge_registry=_edge_registry(15),  # 16 edge tools total (> 10): still ranked
+    )
+
+    assert len(decision.selected_edge_tools) == 3
+    assert "edge_lab__set_kitchen_lights" in [e.name for e in decision.selected_edge_tools]

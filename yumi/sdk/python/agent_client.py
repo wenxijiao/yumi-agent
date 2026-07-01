@@ -572,13 +572,13 @@ class YumiAgent:
                 on the edge.
             mode: Exposure mode — "dynamic" (default), "pinned", or "autorun"
                 (see above).
-            context_args: Fixed arguments for a ``mode="context"`` tool.
-            context_label: Label shown when a ``mode="context"`` result is
+            context_args: Fixed arguments for a ``mode="autorun"`` tool.
+            context_label: Label shown when a ``mode="autorun"`` result is
                 injected (defaults to the tool name).
             allow_proactive: If True, this read-only tool may be used by
                 proactive messaging. Defaults to False.
-            always_include: Deprecated — use ``mode="always"``.
-            proactive_context: Deprecated — use ``mode="context"``.
+            always_include: Deprecated — use ``mode="pinned"``.
+            proactive_context: Deprecated — use ``mode="autorun"``.
             proactive_context_args: Deprecated — use ``context_args``.
             proactive_context_description: Deprecated — use ``context_label``.
         """

@@ -58,6 +58,10 @@ _EMBED_CACHE_LOCK = threading.Lock()
 _TOKEN_RE = re.compile(r"[\w.-]+", re.UNICODE)
 _NON_ASCII_RE = re.compile(r"[^\x00-\x7f]")
 
+# Log once (not per request) when the ranking path runs without an embedding model,
+# so the operator learns dynamic routing has no cross-lingual capability.
+_WARNED_LEXICAL_ONLY = False
+
 
 @dataclass(frozen=True)
 class ToolCatalogEntry:
@@ -187,6 +191,13 @@ def _split_alias_terms(value: str) -> list[str]:
     compact = re.sub(r"[_\s:/.-]+", "", raw).strip()
     if compact and compact not in terms:
         terms.append(compact)
+    # Also emit the individual words of a multi-word name, so a user who refers to
+    # a "my macbook" device by just "macbook" still matches the device. Skip very
+    # short/generic words (e.g. "my") to avoid noisy matches.
+    for word in re.split(r"[_\s:/.-]+", raw):
+        word = word.strip()
+        if len(word) >= 3 and word not in terms:
+            terms.append(word)
     return terms
 
 
@@ -419,6 +430,21 @@ class ToolCatalog:
         )
         allowed_names = {_tool_name(schema) for schema in allowed if _tool_name(schema)}
         if not allowed_names:
+            total_registered = sum(len(tools) for tools in self.edge_registry.values())
+            if total_registered:
+                # Edges ARE connected, but the scope filter hid all of them from this
+                # request's identity. On a multi-tenant server this is the classic
+                # "edge registered under account A, chat runs as account B (or unlinked)"
+                # mismatch — otherwise invisible. Make it greppable.
+                logger.warning(
+                    "Edge registry has %d tool(s) across %d device(s) but 0 are visible to "
+                    "identity %r — likely an owner/account mismatch (edge registered under a "
+                    "different account than this chat, or the channel is not linked). Edge keys: %s",
+                    total_registered,
+                    len(self.edge_registry),
+                    getattr(self.identity, "user_id", None),
+                    list(self.edge_registry.keys()),
+                )
             return []
 
         out: list[ToolCatalogEntry] = []
@@ -467,11 +493,17 @@ def select_tool_schemas(
 
     dynamic_enabled = bool(cfg.edge_tools_enable_dynamic_routing)
     edge_limit = max(0, min(200, int(cfg.edge_tools_retrieval_limit)))
+    always_expose_below = max(0, min(200, int(getattr(cfg, "edge_tools_always_expose_below", 0))))
     forced_names = set(force_edge_tool_names or set())
     always_entries = [entry for entry in edge_entries if entry.always_include]
     always_names = {entry.name for entry in always_entries}
 
     if not dynamic_enabled:
+        selected_edge = edge_entries
+    elif edge_entries and len(edge_entries) <= always_expose_below:
+        # A small edge is always fully exposed: a freshly scaffolded edge with a few
+        # tools stays callable even if the retrieval limit is 0 or misconfigured, so
+        # onboarding never depends on the user choosing an exposure mode.
         selected_edge = edge_entries
     elif edge_limit <= 0:
         selected_edge = always_entries + [
@@ -480,6 +512,16 @@ def select_tool_schemas(
     elif len(edge_entries) <= edge_limit:
         selected_edge = edge_entries
     else:
+        global _WARNED_LEXICAL_ONLY
+        if not cfg.embedding_model and not _WARNED_LEXICAL_ONLY:
+            _WARNED_LEXICAL_ONLY = True
+            logger.warning(
+                "Dynamic edge-tool routing is ranking %d tools with NO embedding model "
+                "(embedding_model is unset): retrieval falls back to lexical matching, which "
+                "cannot match a query to a tool across languages. Set embedding_model, or raise "
+                "edge_tools_always_expose_below, for reliable multilingual routing.",
+                len(edge_entries),
+            )
         forced = [entry for entry in edge_entries if entry.name in forced_names and entry.name not in always_names]
         base = _dedupe_entries(always_entries + forced)
         base_name_set = {entry.name for entry in base}
@@ -523,10 +565,20 @@ def record_tool_routing_trace(
     }
     with _ROUTING_TRACE_LOCK:
         _ROUTING_TRACES.appendleft(rec)
-    if decision.total_edge_tools > len(decision.selected_edge_tools):
+    selected_n = len(decision.selected_edge_tools)
+    if decision.total_edge_tools > 0 and selected_n == 0:
+        logger.warning(
+            "Tool routing selected 0 of %s visible edge tool(s) for session %s — every edge "
+            "tool was capped or filtered out this turn (check edge_tools_retrieval_limit; "
+            "dynamic_routing=%s).",
+            decision.total_edge_tools,
+            session_id,
+            decision.dynamic_routing_enabled,
+        )
+    elif decision.total_edge_tools > selected_n:
         logger.debug(
             "Tool routing selected %s/%s edge tools for session %s in %sms",
-            len(decision.selected_edge_tools),
+            selected_n,
             decision.total_edge_tools,
             session_id,
             decision.elapsed_ms,

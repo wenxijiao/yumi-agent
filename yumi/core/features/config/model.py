@@ -42,6 +42,12 @@ class ModelConfig(BaseModel):
     # Tool routing: core server tools stay loaded; edge tools are ranked and capped per turn.
     edge_tools_enable_dynamic_routing: bool = True
     edge_tools_retrieval_limit: int = Field(default=20, ge=0, le=200)
+    # A small edge is always fully exposed to the model regardless of the retrieval
+    # limit / dynamic routing, so a freshly scaffolded edge with a handful of tools is
+    # reliably callable without the user picking an exposure mode — and stays callable
+    # even if an operator sets edge_tools_retrieval_limit to 0. Only edges with MORE
+    # than this many tools fall back to ranked retrieval.
+    edge_tools_always_expose_below: int = Field(default=10, ge=0, le=200)
     core_tools_always_include: bool = True
     core_tools_allow_disable: bool = True
     # Telegram bot (optional): token in config or TELEGRAM_BOT_TOKEN; empty allowed_user_ids = no restriction
