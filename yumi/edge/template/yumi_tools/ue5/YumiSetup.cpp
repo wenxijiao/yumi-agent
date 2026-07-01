@@ -6,6 +6,20 @@ FYumiAgent* InitYumi()
 
     // ── Register tools ──
 
+    // Example tool — replace with your own. Registered live in "pinned" mode.
+    FYumiRegisterOptions PingOpts;
+    PingOpts.Name = TEXT("ping");
+    PingOpts.Description = TEXT("Ping the edge and echo a message back");
+    PingOpts.Mode = TEXT("pinned");
+    PingOpts.Parameters = {
+        { TEXT("message"), TEXT("string"), TEXT("Text to echo back."), false },
+    };
+    PingOpts.Handler.BindLambda([](const FYumiToolArguments& Args) -> FString {
+        FString Message = Args.GetString(TEXT("message"), TEXT("hello"));
+        return TEXT("pong: ") + Message;
+    });
+    Agent->RegisterTool(MoveTemp(PingOpts));
+
     // FYumiRegisterOptions JumpOpts;
     // JumpOpts.Name = TEXT("jump");
     // JumpOpts.Description = TEXT("Make the character jump");

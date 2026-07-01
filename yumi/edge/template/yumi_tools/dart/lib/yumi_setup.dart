@@ -25,5 +25,27 @@ void initYumi() {
       // proactiveContext: true,
     ),
   );
+
+  // Example tool — replace with your own. Pinned mode keeps its schema
+  // exposed to the model every turn so you can confirm the edge is connected.
+  agent.register(
+    RegisterOptions(
+      name: 'ping',
+      description: 'Ping the edge and echo a message back',
+      mode: 'pinned',
+      parameters: [
+        ToolParameter(
+          name: 'message',
+          typeName: 'string',
+          description: 'Text to echo back.',
+        ),
+      ],
+      handler: (args) {
+        final message = args.string('message');
+        return 'pong: ${message.isEmpty ? 'hello' : message}';
+      },
+    ),
+  );
+
   agent.runInBackground();
 }

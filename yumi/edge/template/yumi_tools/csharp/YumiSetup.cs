@@ -18,6 +18,22 @@ public static class YumiSetup
 
         // Register your tools below.
 
+        // Example tool — replace with your own. Echoes a message back so you can
+        // confirm the edge is connected. Pinned so it's always exposed to the agent.
+        agent.Register(new RegisterOptions()
+            .SetName("ping")
+            .SetDescription("Ping the edge and echo a message back")
+            .SetMode("pinned")
+            .SetParameters(
+                new ToolParameter("message", "string", "Text to echo back", required: false)
+            )
+            .SetHandler(args =>
+            {
+                var message = args.GetString("message", "hello");
+                return $"pong: {message}";
+            })
+        );
+
         agent.Register(new RegisterOptions()
             .SetName("hello")
             .SetDescription("Say hello to someone")

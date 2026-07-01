@@ -24,6 +24,20 @@ func initYumi() -> YumiAgent {
 
     // MARK: - Register tools: name + description + parameters + handler
 
+    // Example tool — replace with your own. Pinned mode keeps it exposed to
+    // the model on every turn. Delete this once you add real tools.
+    try? agent.register(
+        name: "ping",
+        description: "Ping the edge and echo a message back",
+        parameters: [
+            .init("message", type: .string, description: "Text to echo back.", required: false),
+        ],
+        mode: "pinned"
+    ) { args in
+        let message = args.string("message") ?? "hello"
+        return "pong: \(message)"
+    }
+
     // agent.register(
     //     name: "jump",
     //     description: "Make the character jump",

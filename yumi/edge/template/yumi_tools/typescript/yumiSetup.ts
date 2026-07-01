@@ -30,6 +30,21 @@ export function initYumi(): YumiAgent {
 
   // ── Register tools: name + description + parameters + handler ──
 
+  // Example tool — replace with your own. "pinned" keeps its schema exposed
+  // to the model every turn so you can confirm the edge is connected.
+  agent.register({
+    name: "ping",
+    description: "Ping the edge and echo a message back",
+    mode: "pinned",
+    parameters: [
+      { name: "message", type: "string", description: "Text to echo back." },
+    ],
+    handler: (args) => {
+      const message = args.string("message") ?? "hello";
+      return `pong: ${message}`;
+    },
+  });
+
   // agent.register({
   //   name: "jump",
   //   description: "Make the character jump",

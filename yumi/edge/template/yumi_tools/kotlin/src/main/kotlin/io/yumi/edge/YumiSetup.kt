@@ -28,5 +28,23 @@ fun initYumi() {
             handler = ToolHandler { args -> "Hello, ${args.string("name")}!" },
         ),
     )
+    // Example tool — replace with your own. Registered in "pinned" exposure mode
+    // so it is always exposed to the agent.
+    agent.register(
+        RegisterOptions(
+            name = "ping",
+            description = "Ping the edge and echo a message back",
+            parameters = listOf(
+                ToolParameter(
+                    name = "message",
+                    typeName = "string",
+                    description = "Text to echo back.",
+                    isRequired = false,
+                ),
+            ),
+            mode = "pinned",
+            handler = ToolHandler { args -> "pong: ${args.string("message")}" },
+        ),
+    )
     agent.runInBackground()
 }

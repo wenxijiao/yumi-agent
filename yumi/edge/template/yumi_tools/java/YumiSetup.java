@@ -19,15 +19,17 @@ public class YumiSetup {
 
         // Register your tools below.
 
+        // Example tool — replace this with your own tools.
         agent.register(new RegisterOptions()
-            .name("hello")
-            .description("Say hello to someone")
+            .name("ping")
+            .description("Ping the edge and echo a message back")
+            .mode("pinned")
             .parameters(
-                new ToolParameter("name", "string", "Person to greet")
+                new ToolParameter("message", "string", "Text to echo back")
             )
             .handler(args -> {
-                String name = args.getString("name", "World");
-                return "Hello, " + name + "!";
+                String message = args.getString("message", "hello");
+                return "pong: " + message;
             })
         );
 

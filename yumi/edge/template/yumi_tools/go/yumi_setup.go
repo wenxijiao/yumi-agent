@@ -23,6 +23,24 @@ func InitYumi() {
 	// Register your tools below.
 	// Each tool needs a name, description, parameters, and a handler function.
 
+	// Example tool — replace this with your own tools.
+	// Pinned mode ("pinned") exposes the schema to the model every turn.
+	agent.Register(yumi.RegisterOptions{
+		Name:        "ping",
+		Description: "Ping the edge and echo a message back",
+		Mode:        "pinned",
+		Parameters: []yumi.ToolParameter{
+			{Name: "message", Type: "string", Description: "Text to echo back."},
+		},
+		Handler: func(args yumi.ToolArguments) string {
+			message := args.String("message")
+			if message == "" {
+				message = "hello"
+			}
+			return fmt.Sprintf("pong: %s", message)
+		},
+	})
+
 	agent.Register(yumi.RegisterOptions{
 		Name:        "hello",
 		Description: "Say hello to someone",

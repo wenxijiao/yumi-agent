@@ -29,6 +29,19 @@ except ImportError:
 # from my_app.actions import jump, run
 
 
+# ── Example tool (replace with your own) ──
+# A minimal tool so a freshly scaffolded edge is testable right away: run this
+# script, then ask Yumi to "ping my edge" — it calls ping() and shows the
+# returned text. Delete it once your own tools work.
+def ping(message: str = "hello") -> str:
+    """Echo a message back so you can confirm the edge is connected.
+
+    Args:
+        message: Text to echo back.
+    """
+    return f"pong: {message}"
+
+
 def init_yumi():
     # `yumi --edge` wrote your edge name, connection code, and server to
     # yumi_tools/.env. Point YumiAgent at that file by its location on disk (not
@@ -44,6 +57,10 @@ def init_yumi():
     # ── Register tools: func + description ──
     # The description tells the AI when and how to use the tool.
     # Tool name and parameter types are auto-extracted from the function.
+    #
+    # This example is registered in "pinned" mode so the model always sees it
+    # (handy for a first end-to-end test). Replace it with your own tools.
+    agent.register(ping, "Ping the edge and echo a message back", mode="pinned")
     #
     # agent.register(jump, "Make the character jump")
     # agent.register(run, "Make the character run at a given speed")

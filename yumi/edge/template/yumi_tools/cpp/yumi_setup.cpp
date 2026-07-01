@@ -24,6 +24,20 @@ yumi::YumiAgent* initYumi() {
 
     // ── Register tools: name + description + parameters + handler ──
 
+    // Example tool — replace with your own. Confirms the edge is connected.
+    yumi::RegisterOptions ping;
+    ping.name = "ping";
+    ping.description = "Ping the edge and echo a message back";
+    ping.mode = "pinned";
+    ping.parameters = {
+        {"message", "string", "Text to echo back"},
+    };
+    ping.handler = [](const yumi::ToolArguments& args) -> std::string {
+        std::string message = args.string("message").value_or("hello");
+        return "pong: " + message;
+    };
+    agent->registerTool(std::move(ping));
+
     // yumi::RegisterOptions jump;
     // jump.name = "jump";
     // jump.description = "Make the character jump";
