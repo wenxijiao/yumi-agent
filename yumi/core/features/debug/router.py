@@ -11,8 +11,9 @@ single-user admin surface; a multi-tenant plugin scopes it per identity.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 from yumi.core.platform.http.dependencies import CurrentIdentity
+from yumi.core.platform.plugins import has_admin_scope
 from yumi.core.platform.runtime.accessors import ACTIVE_CONNECTIONS, EDGE_TOOLS_REGISTRY
 from yumi.core.platform.runtime.edge_naming import parse_edge_connection_key, split_edge_prefixed_tool
 from yumi.core.platform.tools.routing import list_tool_routing_traces
@@ -147,6 +148,10 @@ async def debug_observability_endpoint(
     identity: CurrentIdentity,
     limit: int = Query(default=50, ge=1, le=500),
 ):
+    # Global view (all edges/traces across tenants) — admin only. In OSS single-user
+    # the local identity always has admin scope, so this is a no-op there.
+    if not has_admin_scope(identity):
+        raise HTTPException(status_code=403, detail="Admin scope required for debug observability.")
     edges = _edges_snapshot()
     routing_traces = _routing_traces(limit)
     tool_calls = list_traces(limit=limit)
