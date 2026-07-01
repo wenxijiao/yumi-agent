@@ -228,7 +228,11 @@ async def handle_edge_peer(peer):
             raise ValueError("Expected a register message from the edge client.")
 
         edge_name = auth_msg.get("edge_name", "Unknown_Edge")
-        owner_user_id = _owner_user_id_from_register(auth_msg)
+        # Trusted owner resolution: a plugin (multi-tenant) may derive the owner
+        # server-side from the register payload (e.g. a connection code) so it isn't
+        # client-asserted; otherwise fall back to the client-supplied owner_user_id.
+        _resolver = getattr(get_edge_scope(), "resolve_owner_user_id", None)
+        owner_user_id = (_resolver(auth_msg) if callable(_resolver) else None) or _owner_user_id_from_register(auth_msg)
         connection_key = edge_connection_key(owner_user_id, edge_name)
         tool_prefix = edge_tool_register_prefix(owner_user_id, edge_name)
 

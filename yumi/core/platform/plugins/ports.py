@@ -152,6 +152,17 @@ class EdgeScope(Protocol):
         disabled: set[str],
     ) -> list: ...
 
+    def resolve_owner_user_id(self, auth_msg: dict) -> str | None:
+        """Resolve the TRUSTED owner user_id for a registering edge from the raw
+        register payload, or ``None`` to let the caller fall back to the
+        client-supplied ``owner_user_id``.
+
+        Multi-tenant plugins derive it server-side (e.g. by resolving a connection
+        code against the store) so edge ownership is not client-asserted. Default:
+        ``None`` (single-user / LAN edges keep using the self-declared owner).
+        """
+        ...
+
     def on_edge_register(self, connection_key: str, auth_msg: dict) -> None:
         """Called once after a successful edge register handshake.
 

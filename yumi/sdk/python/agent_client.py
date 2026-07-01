@@ -399,6 +399,11 @@ class YumiAgent:
 
         self._connection_code = connection_code or os.getenv("YUMI_CONNECTION_CODE") or os.getenv("BRAIN_URL")
         self._edge_name = edge_name or os.getenv("EDGE_NAME") or socket.gethostname()
+        # Optional explicit edge server (host of a remote /ws/edge). When set, the
+        # connection code is forwarded VERBATIM in register as an opaque credential
+        # the server resolves — the client never interprets it. Keeps this SDK
+        # generic across deployments (no hardcoded host / code format).
+        self._edge_server = os.getenv("YUMI_EDGE_SERVER")
 
         self._tools: dict[str, dict[str, Any]] = {}
         self._thread: threading.Thread | None = None
@@ -410,6 +415,7 @@ class YumiAgent:
         # os.environ) so two agents in the same process never see each other's.
         self._relay_url: str | None = None
         self._relay_access_token: str | None = None
+        self._register_connection_code: str | None = None
 
     def _confirmation_policy_path(self) -> str:
         override = (os.getenv("YUMI_TOOL_CONFIRMATION_PATH") or "").strip()
@@ -681,6 +687,23 @@ class YumiAgent:
                 access_token=access_token,
             )
 
+        # Explicit edge server + opaque connection code: connect straight to the
+        # given server's /ws/edge and forward the code verbatim in register (the
+        # server resolves it to the owning user). The client never interprets the
+        # code, so this works for any deployment and sidesteps the yumi_ prefix clash.
+        server = (self._edge_server or "").strip()
+        if server:
+            if server.startswith(("ws://", "wss://")):
+                ws_url = server.rstrip("/")
+            elif server.startswith(("http://", "https://")):
+                ws_url = _http_to_ws(server.rstrip("/"))
+            else:
+                ws_url = "wss://" + server.rstrip("/")
+            if not ws_url.endswith("/ws/edge"):
+                ws_url = ws_url.rstrip("/") + "/ws/edge"
+            self._register_connection_code = (self._connection_code or "").strip() or None
+            return _ConnectionConfig(mode="direct", base_url=ws_url)
+
         code = self._connection_code or ""
 
         if code.startswith(("ws://", "wss://")):
@@ -737,6 +760,8 @@ class YumiAgent:
                 }
                 if connection.access_token:
                     register_payload["access_token"] = connection.access_token
+                if self._register_connection_code:
+                    register_payload["connection_code"] = self._register_connection_code
 
                 async with websockets.connect(ws_url) as ws:
                     reconnect_delay = 3

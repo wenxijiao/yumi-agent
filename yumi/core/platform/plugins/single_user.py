@@ -184,6 +184,11 @@ class FlatEdgeScope:
                     out.append(entry["schema"])
         return out
 
+    def resolve_owner_user_id(self, auth_msg: dict) -> str | None:  # noqa: ARG002
+        # Single-user / OSS: no server-side ownership resolution; the caller falls
+        # back to the client-supplied owner_user_id.
+        return None
+
     def on_edge_register(self, connection_key: str, auth_msg: dict) -> None:  # noqa: ARG002
         return None
 

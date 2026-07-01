@@ -900,8 +900,24 @@ def _edge_connection_step(env_path: str, interactive: bool) -> str:
         except ValueError as exc:
             _note(f"Saved, but the code looks invalid: {exc}")
             return "set (unverified)"
-    _note("Connection code saved.")
-    return "set"
+    if code.startswith(("ws://", "wss://", "http://", "https://")):
+        _note("Connection code saved (direct URL).")
+        return "set (direct)"
+    # A remote/account connection code carries no host — ask which server hosts
+    # Yumi so the edge knows where to connect. The code just identifies the user.
+    server = _framed_prompt(
+        "Edge server",
+        step="Step 3/3: Connection · Server",
+        title="Where should this edge connect?",
+        context="The server that hosts Yumi (e.g. https://api.yumi.nexus). Your code identifies you to it.",
+        hint="enter for a local server (ws://127.0.0.1:8000)",
+    )
+    if server and server.strip():
+        _write_env_var(env_path, "YUMI_EDGE_SERVER", server.strip())
+        _note(f"Connection code saved (server → {server.strip()}).")
+        return f"→ {server.strip()}"
+    _note("Connection code saved (local server).")
+    return "set (local)"
 
 
 def _render_edge_summary(*, workspace: str, lang, edge_name: str, connection: str) -> None:
@@ -1206,6 +1222,24 @@ def run_edge_standalone(lang: str | list[str] | None = None) -> None:
             lang_keys = [_prompt_run_edge_language(available)]
 
     _run_edge_commands(workspace, lang_keys)
+
+
+def _write_env_var(env_path: str, key: str, value: str) -> None:
+    """Insert or update ``KEY=value`` in an .env file (create it if missing)."""
+    line = f"{key}={value}"
+    if os.path.isfile(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        if f"{key}=" in content:
+            new_lines = [line if ln.startswith(f"{key}=") else ln for ln in content.splitlines()]
+            content = "\n".join(new_lines) + "\n"
+        else:
+            content += f"\n{line}\n"
+        with open(env_path, "w", encoding="utf-8") as f:
+            f.write(content)
+    else:
+        with open(env_path, "w", encoding="utf-8") as f:
+            f.write(line + "\n")
 
 
 def _write_connection_code(env_path: str, code: str) -> None:
