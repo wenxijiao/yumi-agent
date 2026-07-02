@@ -71,6 +71,7 @@ async def _drain_line_pending_tasks():
 def test_line_webhook_text_message_single_user(monkeypatch):
     """Signed text event in single-user mode → 200 (chat stream mocked)."""
     monkeypatch.setenv("YUMI_LINE_INCORE", "1")
+    monkeypatch.setenv("YUMI_BRIDGE_ALLOW_ALL", "1")
     monkeypatch.setenv("LINE_CHANNEL_SECRET", "sec")
     monkeypatch.setenv("LINE_CHANNEL_ACCESS_TOKEN", "token")
 
@@ -99,6 +100,7 @@ def test_line_webhook_text_message_single_user(monkeypatch):
 def test_line_webhook_audio_message_transcribes_single_user(monkeypatch):
     """Signed audio event in single-user mode → STT text is passed to chat."""
     monkeypatch.setenv("YUMI_LINE_INCORE", "1")
+    monkeypatch.setenv("YUMI_BRIDGE_ALLOW_ALL", "1")
     monkeypatch.setenv("LINE_CHANNEL_SECRET", "sec")
     monkeypatch.setenv("LINE_CHANNEL_ACCESS_TOKEN", "token")
 
