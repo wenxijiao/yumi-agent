@@ -135,8 +135,7 @@ def _diagnose(edges: list[dict], routing_traces: list[dict], identity) -> list[d
             {
                 "level": "ok",
                 "message": (
-                    f"Edge tools are connected and reaching the model ({max_selected} selected in a "
-                    "recent turn)."
+                    f"Edge tools are connected and reaching the model ({max_selected} selected in a recent turn)."
                 ),
             }
         )

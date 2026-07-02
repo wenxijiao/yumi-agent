@@ -1,5 +1,6 @@
 """In-core LINE webhook (OSS single-user): signature + empty events + happy text."""
 
+import asyncio
 import base64
 import hashlib
 import hmac
@@ -58,6 +59,15 @@ async def _stream_one_text(*_a, **_k):
     yield {"type": "text", "content": "ok"}
 
 
+async def _drain_line_pending_tasks():
+    for _ in range(10):
+        tasks = set(getattr(api.app.state, "line_pending_tasks", set()) or ())
+        if not tasks:
+            return
+        await asyncio.gather(*tasks, return_exceptions=True)
+        await asyncio.sleep(0)
+
+
 def test_line_webhook_text_message_single_user(monkeypatch):
     """Signed text event in single-user mode → 200 (chat stream mocked)."""
     monkeypatch.setenv("YUMI_LINE_INCORE", "1")
@@ -82,6 +92,7 @@ def test_line_webhook_text_message_single_user(monkeypatch):
     sig = _sign(body, "sec")
     with TestClient(api.app) as client:
         r = client.post("/line/webhook", content=body, headers={"X-Line-Signature": sig})
+        client.portal.call(_drain_line_pending_tasks)
     assert r.status_code == 200
 
 
@@ -130,5 +141,6 @@ def test_line_webhook_audio_message_transcribes_single_user(monkeypatch):
     sig = _sign(body, "sec")
     with TestClient(api.app) as client:
         r = client.post("/line/webhook", content=body, headers={"X-Line-Signature": sig})
+        client.portal.call(_drain_line_pending_tasks)
     assert r.status_code == 200
     assert seen == ["transcribed text"]

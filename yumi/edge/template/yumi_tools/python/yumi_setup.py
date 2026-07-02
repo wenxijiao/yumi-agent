@@ -49,9 +49,7 @@ def init_yumi():
     # — VS Code's Run button, a different folder, etc. Pass args only to override
     # in code (e.g. one process running several edges):
     #   YumiAgent(edge_name="weather-pi", connection_code="yumi-lan_...")
-    env_path = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"
-    )
+    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
     agent = YumiAgent(env_path=env_path)
 
     # ── Register tools: func + description ──
