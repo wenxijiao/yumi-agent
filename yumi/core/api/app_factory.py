@@ -25,9 +25,9 @@ from yumi.core.features.config import (
     ensure_embedding_provider_supported,
 )
 from yumi.core.features.config.router import router as config_router
+from yumi.core.features.debug.router import router as debug_router
 from yumi.core.features.edge.api import apply_local_tool_confirmation_from_saved_config
 from yumi.core.features.edge.router import router as edge_router
-from yumi.core.features.debug.router import router as debug_router
 from yumi.core.features.health.router import router as health_router
 from yumi.core.features.memory.embedding_state import set_embed_provider
 from yumi.core.features.memory.router import router as memory_router
@@ -35,7 +35,6 @@ from yumi.core.features.monitor.router import router as monitor_router
 from yumi.core.features.proactive.router import router as timers_router
 from yumi.core.features.proactive.scheduler import cancel_timer, schedule_timer
 from yumi.core.features.proactive.timer_tools import restore_schedules, set_timer_callbacks
-from yumi.core.features.stats.router import router as stats_router
 from yumi.core.features.stt.router import router as stt_router
 from yumi.core.features.tools.router import router as tools_router
 from yumi.core.features.tts.router import router as tts_router
@@ -212,7 +211,6 @@ def _include_core_routers(app: FastAPI) -> None:
     app.include_router(monitor_router)
     app.include_router(tools_router)
     app.include_router(tts_router)
-    app.include_router(stats_router)
 
 
 def _mount_spa(app: FastAPI) -> None:

@@ -7,6 +7,8 @@
 *.egg-info
 yumi/ui/.web
 yumi/ui/.states
+yumi/ui/frontend/node_modules
+yumi/ui/frontend/dist
 yumi/sdk/**/node_modules
 yumi/sdk/**/build
 yumi/sdk/**/dist

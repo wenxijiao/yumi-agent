@@ -1,9 +1,4 @@
-"""Tool listing and policy routes.
-
-Like the other admin routes, tool toggle/confirm have no per-request auth:
-yumi-agent is a single-user agent for a trusted local machine (binds 127.0.0.1
-by default — see SECURITY.md). Don't expose the API on an untrusted network.
-"""
+"""Tool listing and policy routes."""
 
 from __future__ import annotations
 
@@ -15,6 +10,7 @@ from yumi.core.platform.http.schemas import (
     ToolConfirmationToggleRequest,
     ToolToggleRequest,
 )
+from yumi.core.platform.plugins import has_admin_scope
 from yumi.core.platform.runtime.accessors import (
     ACTIVE_CONNECTIONS,
     ALWAYS_ALLOWED_TOOLS,
@@ -29,8 +25,14 @@ from yumi.core.platform.tools.tool import TOOL_REGISTRY
 router = APIRouter()
 
 
+def _require_admin(identity) -> None:
+    if not has_admin_scope(identity):
+        raise HTTPException(status_code=403, detail="Admin scope required for tool policy changes.")
+
+
 @router.post("/tools/toggle")
-async def toggle_tool_endpoint(request: ToolToggleRequest):
+async def toggle_tool_endpoint(identity: CurrentIdentity, request: ToolToggleRequest):
+    _require_admin(identity)
     if request.disabled:
         DISABLED_TOOLS.add(request.tool_name)
     else:
@@ -39,7 +41,8 @@ async def toggle_tool_endpoint(request: ToolToggleRequest):
 
 
 @router.post("/tools/set-confirmation")
-async def set_tool_confirmation_endpoint(request: ToolConfirmationToggleRequest):
+async def set_tool_confirmation_endpoint(identity: CurrentIdentity, request: ToolConfirmationToggleRequest):
+    _require_admin(identity)
     if request.require_confirmation:
         ALWAYS_ALLOWED_TOOLS.discard(request.tool_name)
         CONFIRMATION_TOOLS.add(request.tool_name)

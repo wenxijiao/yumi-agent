@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "yumi-agent"
-version = "0.0.1"
+version = "0.0.2"
 description = "Yumi — open-source self-hosted AI agent framework: cross-language tool edges + Telegram/LINE/Discord chat"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]

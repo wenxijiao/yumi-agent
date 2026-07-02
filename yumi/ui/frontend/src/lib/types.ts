@@ -131,59 +131,6 @@ export interface ModelConfig {
   [k: string]: unknown
 }
 
-// ── /stats payload ──
-
-export interface StatModelUsage {
-  model: string
-  turns: number
-  prompt_tokens: number
-  completion_tokens: number
-  total_tokens: number
-}
-
-export interface StatDailyUsage {
-  day: string
-  prompt_tokens: number
-  completion_tokens: number
-  total_tokens: number
-  turns: number
-}
-
-export interface Stats {
-  generated_at: string
-  tools: {
-    server_total: number
-    server_enabled: number
-    server_disabled: number
-    require_confirmation: number
-    edge_total: number
-    edge_devices: number
-    edge_online: number
-    total: number
-  }
-  sessions: {
-    active: number
-    total_messages: number
-    total_turns: number
-    avg_messages: number
-  }
-  tool_calls: {
-    total: number
-    edge_calls: number
-    by_status: Record<string, number>
-    top_tools: { name: string; count: number }[]
-    avg_duration_ms: number
-  }
-  tokens: {
-    total: number
-    prompt: number
-    completion: number
-    turns: number
-    by_model: StatModelUsage[]
-    daily: StatDailyUsage[]
-  }
-}
-
 export interface SystemPrompt {
   system_prompt: string
   is_default: boolean

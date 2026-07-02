@@ -143,6 +143,8 @@ class EdgeScope(Protocol):
     ``handle_edge_peer``; the default implementations do nothing.
     """
 
+    requires_trusted_owner: bool
+
     def connection_key(self, owner_user_id: str | None, edge_name: str) -> str: ...
     def tool_register_prefix(self, owner_user_id: str | None, edge_name: str) -> str: ...
     def filter_edge_tool_schemas(
@@ -157,7 +159,7 @@ class EdgeScope(Protocol):
         register payload, or ``None`` to let the caller fall back to the
         client-supplied ``owner_user_id``.
 
-        Multi-tenant plugins derive it server-side (e.g. by resolving a connection
+        Shared-service plugins derive it server-side (e.g. by resolving a connection
         code against the store) so edge ownership is not client-asserted. Default:
         ``None`` (single-user / LAN edges keep using the self-declared owner).
         """

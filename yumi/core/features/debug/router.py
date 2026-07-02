@@ -6,7 +6,7 @@ many edge tools were VISIBLE vs SELECTED each turn), recent tool calls, and
 an auto-diagnosis that turns those raw signals into a plain-language verdict.
 
 All data here is process-global and unauthenticated, matching the rest of the
-single-user admin surface; a multi-tenant plugin scopes it per identity.
+single-user admin surface; identity plugins can scope it per user.
 """
 
 from __future__ import annotations
@@ -148,7 +148,7 @@ async def debug_observability_endpoint(
     identity: CurrentIdentity,
     limit: int = Query(default=50, ge=1, le=500),
 ):
-    # Global view (all edges/traces across tenants) — admin only. In OSS single-user
+    # Global view (all edges/traces across users) — admin only. In OSS single-user
     # the local identity always has admin scope, so this is a no-op there.
     if not has_admin_scope(identity):
         raise HTTPException(status_code=403, detail="Admin scope required for debug observability.")

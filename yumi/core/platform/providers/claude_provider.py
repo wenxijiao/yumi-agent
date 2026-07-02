@@ -34,6 +34,25 @@ def _build_claude_messages(messages: list[dict[str, Any]]) -> tuple[str | None, 
     """
     system_parts: list[str] = []
     claude_messages: list[dict] = []
+    pending_tool_uses: list[dict[str, str]] = []
+
+    def _take_tool_use_id(tool_msg: dict[str, Any]) -> str:
+        explicit = tool_msg.get("tool_call_id")
+        if isinstance(explicit, str) and explicit.strip():
+            explicit = explicit.strip()
+            for idx, item in enumerate(pending_tool_uses):
+                if item.get("id") == explicit:
+                    pending_tool_uses.pop(idx)
+                    break
+            return explicit
+        tool_name = str(tool_msg.get("name") or "").strip()
+        if tool_name:
+            for idx, item in enumerate(pending_tool_uses):
+                if item.get("name") == tool_name:
+                    return pending_tool_uses.pop(idx).get("id") or tool_name
+        if pending_tool_uses:
+            return pending_tool_uses.pop(0).get("id") or tool_name or "unknown"
+        return tool_name or "unknown"
 
     for msg in messages:
         role = msg.get("role", "user")
@@ -45,7 +64,7 @@ def _build_claude_messages(messages: list[dict[str, Any]]) -> tuple[str | None, 
             continue
 
         if role == "tool":
-            tool_use_id = msg.get("tool_call_id") or msg.get("name") or "unknown"
+            tool_use_id = _take_tool_use_id(msg)
             claude_messages.append(
                 {
                     "role": "user",
@@ -73,6 +92,7 @@ def _build_claude_messages(messages: list[dict[str, Any]]) -> tuple[str | None, 
                     except (json.JSONDecodeError, TypeError):
                         args = {}
                 tc_id = tc.get("id") or fn.get("name") or "unknown"
+                pending_tool_uses.append({"id": str(tc_id), "name": str(fn.get("name", ""))})
                 blocks.append(
                     {
                         "type": "tool_use",
@@ -88,6 +108,13 @@ def _build_claude_messages(messages: list[dict[str, Any]]) -> tuple[str | None, 
 
     system_text = "\n".join(system_parts) if system_parts else None
     return system_text, claude_messages
+
+
+def _max_tokens_for_model(model: str) -> int:
+    normalized = (model or "").lower()
+    if normalized.startswith("claude-3-opus"):
+        return 4096
+    return 8192
 
 
 class ClaudeProvider(BaseLLMProvider):
@@ -118,7 +145,7 @@ class ClaudeProvider(BaseLLMProvider):
         kwargs: dict[str, Any] = {
             "model": model,
             "messages": claude_messages,
-            "max_tokens": 8192,
+            "max_tokens": _max_tokens_for_model(model),
         }
 
         if system_text:

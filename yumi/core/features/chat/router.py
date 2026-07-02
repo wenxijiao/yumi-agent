@@ -32,14 +32,17 @@ async def chat_endpoint(request: Request, identity: CurrentIdentity, body: ChatR
     if not tok_ok:
         raise HTTPException(status_code=429, detail=tok_err)
     sid = get_session_scope().qualify_session_http(identity, body.session_id)
-    quota.record_chat_turn(identity)
     audit_event("chat_request", identity.user_id, session_id=sid)
 
     async def generate():
         # Tests monkey-patch ``yumi.core.features.chat.router.generate_chat_events``
         # to substitute a fake generator. The lookup happens here (via module
         # globals) so the patch is honored on every request.
+        charged = False
         async for event in generate_chat_events(body.prompt, sid, think=body.think):
+            if not charged and event.get("type") != "error":
+                quota.record_chat_turn(identity)
+                charged = True
             yield stream_event(event["type"], **{k: v for k, v in event.items() if k != "type"})
 
     return StreamingResponse(generate(), media_type="application/x-ndjson")

@@ -1,4 +1,4 @@
-"""Backend additions for the rebuilt web UI: token usage, /stats, /tts."""
+"""Backend additions for the rebuilt web UI: token usage persistence and /tts."""
 
 from __future__ import annotations
 
@@ -8,8 +8,6 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
-from fastapi.testclient import TestClient
-from yumi.core.api import app
 from yumi.core.platform.http.schemas import TtsRequest
 from yumi.core.platform.plugins import LOCAL_IDENTITY
 from yumi.core.platform.storage.sqlite_store import SQLiteStore
@@ -95,19 +93,6 @@ def test_usage_recorder_skips_zero_tokens(tmp_path, monkeypatch):
     with usage_mod.UsageRecorder(ctx, bot=None, owner_uid="owner"):
         pass
     assert store.token_usage_summary()["turns"] == 0
-
-
-# ── /stats endpoint ──────────────────────────────────────────────────────
-
-
-def test_stats_endpoint_shape():
-    client = TestClient(app)
-    r = client.get("/stats")
-    assert r.status_code == 200
-    data = r.json()
-    for key in ("generated_at", "tools", "sessions", "tool_calls", "tokens"):
-        assert key in data
-    assert "total" in data["tools"]
 
 
 # ── /tts/synthesize endpoint ─────────────────────────────────────────────

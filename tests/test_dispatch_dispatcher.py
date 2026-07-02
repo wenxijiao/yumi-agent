@@ -68,6 +68,7 @@ def test_prepare_local_tool_classified_as_local(dispatcher, monkeypatch):
     assert events == []
     assert len(invs) == 1
     assert invs[0].kind == "local"
+    assert invs[0].tool_call_id == "c1"
     assert invs[0].args == {"a": 1}
     monkeypatch.delitem(TOOL_REGISTRY, "echo", raising=False)
 
@@ -79,6 +80,7 @@ def test_prepare_unknown_tool_yields_error_and_message(dispatcher):
     assert len(events) == 1
     assert events[0].status == "error"
     assert ctx.ephemeral_messages and ctx.ephemeral_messages[-1]["role"] == "tool"
+    assert ctx.ephemeral_messages[-1]["tool_call_id"] == "c1"
 
 
 def test_prepare_unknown_tool_records_trace(dispatcher, isolated_tool_trace):

@@ -151,9 +151,9 @@ def test_persist_tool_ephemeral_spans_persists_every_completed_tool_turn():
     messages = [
         {"role": "system", "content": "ambient"},
         {"role": "assistant", "content": "", "tool_calls": [{"function": {"name": "first", "arguments": {}}}]},
-        {"role": "tool", "content": "one", "name": "first"},
+        {"role": "tool", "tool_call_id": "call-first", "content": "one", "name": "first"},
         {"role": "assistant", "content": "", "tool_calls": [{"function": {"name": "second", "arguments": {}}}]},
-        {"role": "tool", "content": "two", "name": "second"},
+        {"role": "tool", "tool_call_id": "call-second", "content": "two", "name": "second"},
     ]
     persisted = []
 
@@ -169,7 +169,9 @@ def test_persist_tool_ephemeral_spans_persists_every_completed_tool_turn():
 
     assert [[row["role"] for row in turn] for turn in persisted] == [["assistant", "tool"], ["assistant", "tool"]]
     assert persisted[0][0]["tool_calls"][0]["function"]["name"] == "first"
+    assert persisted[0][1]["tool_call_id"] == "call-first"
     assert persisted[1][0]["tool_calls"][0]["function"]["name"] == "second"
+    assert persisted[1][1]["tool_call_id"] == "call-second"
     assert messages == [{"role": "system", "content": "ambient"}]
 
 

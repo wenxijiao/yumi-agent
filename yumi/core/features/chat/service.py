@@ -16,6 +16,7 @@ Layering:
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator
 
 from yumi.core.features.chat.context import reset_chat_owner_user_id, set_chat_owner_user_id
@@ -245,7 +246,7 @@ class ChatTurnService:
                     yield event
                 return
 
-            tools = self._select_tools(ctx, routing_query)
+            tools = await self._select_tools(ctx, routing_query)
             ctx.last_tools = tools
 
             tool_calls_to_process, streamed_text, streamed_reasoning = None, "", ""
@@ -385,16 +386,25 @@ class ChatTurnService:
                         content += f" Diagnostic saved to: {diag}"
                     yield sink.emit(ToolStatusEvent(status="error", content=content))
 
-                ctx.ephemeral_messages.append({"role": "tool", "content": result.result, "name": inv.tool_message_name})
+                ctx.ephemeral_messages.append(
+                    {
+                        "role": "tool",
+                        "content": result.result,
+                        "name": inv.tool_message_name,
+                        "tool_call_id": inv.tool_call_id,
+                    }
+                )
 
+            _persist_tool_ephemeral_spans(ctx.ephemeral_messages, ctx.session_id, active_bot)
             current_prompt = None  # subsequent iterations use ephemeral_messages only
 
     # ---- helper paths -------------------------------------------------------
 
-    def _select_tools(self, ctx: TurnContext, routing_query: str) -> list | None:
+    async def _select_tools(self, ctx: TurnContext, routing_query: str) -> list | None:
         ident = get_current_identity()
         try:
-            decision = select_tool_schemas(
+            decision = await asyncio.to_thread(
+                select_tool_schemas,
                 identity=ident,
                 query=routing_query,
                 session_id=ctx.session_id,

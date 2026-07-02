@@ -48,6 +48,7 @@ class ToolInvocation:
     func_name: str
     tool_message_name: str
     args: dict
+    tool_call_id: str = ""
     target_edge: str | None = None
     original_tool_name: str | None = None
     peer: Any | None = None

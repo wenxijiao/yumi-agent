@@ -1,7 +1,6 @@
 import { NavLink } from "react-router-dom"
 import {
   Activity,
-  BarChart3,
   Clock,
   MessagesSquare,
   Moon,
@@ -21,7 +20,6 @@ import { useHealth } from "@/hooks/queries"
 const NAV = [
   { to: "/", label: "Chat", icon: MessagesSquare, end: true },
   { to: "/tools", label: "Tools", icon: Wrench },
-  { to: "/stats", label: "Stats", icon: BarChart3 },
   { to: "/debug", label: "Debug", icon: Stethoscope },
   { to: "/timers", label: "Schedules", icon: Clock },
   { to: "/memory", label: "Memory", icon: Search },

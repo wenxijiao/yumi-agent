@@ -1,10 +1,10 @@
 """Configuration routes.
 
-These admin routes (model, system prompt, …) have no per-request auth: yumi-agent
-is a personal single-user agent and the API is meant for a trusted local machine
-(it binds 127.0.0.1 by default — see SECURITY.md). Don't expose it on an
-untrusted network. Identity is resolved through a plugin port, so the same routes
-can carry per-user authorization under other deployment models.
+Read endpoints expose non-secret configuration needed by the local UI and bots.
+Write endpoints require admin scope. The single-user default identity is admin
+on a trusted local machine (the server binds 127.0.0.1 by default; see
+SECURITY.md), while plugins can provide per-user authorization under other
+deployment models.
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ from yumi.core.platform.http.schemas import (
     SystemPromptUpdateRequest,
     UIPreferencesRequest,
 )
-from yumi.core.platform.plugins import get_session_scope
+from yumi.core.platform.plugins import get_session_scope, has_admin_scope
 from yumi.core.platform.providers import SUPPORTED_PROVIDERS, create_provider
 from yumi.logging_config import get_logger
 
@@ -51,8 +51,13 @@ _SUPPORTED_TTS_PROVIDERS = ("disabled", "system", "dashscope", "qwen", "openai",
 _CLOUD_VOICE_PROVIDERS = ("openai", "gemini", "grok")
 
 
+def _require_admin(identity) -> None:
+    if not has_admin_scope(identity):
+        raise HTTPException(status_code=403, detail="Admin scope required for server configuration.")
+
+
 @router.get("/config/system-prompt")
-async def get_system_prompt_endpoint():
+async def get_system_prompt_endpoint(identity: CurrentIdentity):
     system_prompt = get_system_prompt()
     return {
         "system_prompt": system_prompt,
@@ -61,7 +66,8 @@ async def get_system_prompt_endpoint():
 
 
 @router.put("/config/system-prompt")
-async def update_system_prompt_endpoint(request: SystemPromptUpdateRequest):
+async def update_system_prompt_endpoint(identity: CurrentIdentity, request: SystemPromptUpdateRequest):
+    _require_admin(identity)
     try:
         system_prompt = set_system_prompt(request.system_prompt)
     except ValueError as exc:
@@ -70,7 +76,8 @@ async def update_system_prompt_endpoint(request: SystemPromptUpdateRequest):
 
 
 @router.delete("/config/system-prompt")
-async def reset_system_prompt_endpoint():
+async def reset_system_prompt_endpoint(identity: CurrentIdentity):
+    _require_admin(identity)
     system_prompt = reset_system_prompt()
     return {"status": "success", "system_prompt": system_prompt, "is_default": True}
 
@@ -126,7 +133,7 @@ def _model_config_public_dict() -> dict:
 
 
 @router.get("/config/model")
-async def get_model_config_endpoint():
+async def get_model_config_endpoint(identity: CurrentIdentity):
     return _model_config_public_dict()
 
 
@@ -181,7 +188,9 @@ def _refresh_embeddings_and_reindex(config) -> None:
 
 
 @router.put("/config/model")
-async def update_model_config_endpoint(request: ModelConfigUpdateRequest):
+async def update_model_config_endpoint(request: ModelConfigUpdateRequest, identity: CurrentIdentity = None):
+    if identity is not None:
+        _require_admin(identity)
     if request.chat_provider and request.chat_provider not in SUPPORTED_PROVIDERS:
         raise unknown_provider_http(role="chat", name=request.chat_provider, supported=SUPPORTED_PROVIDERS)
     if request.embedding_provider and request.embedding_provider not in (*EMBEDDING_CAPABLE_PROVIDERS, "disabled"):
@@ -369,13 +378,14 @@ async def delete_session_prompt_endpoint(identity: CurrentIdentity, session_id: 
 
 
 @router.get("/config/ui")
-async def get_ui_preferences_endpoint():
+async def get_ui_preferences_endpoint(identity: CurrentIdentity):
     config = load_saved_model_config()
     return {"dark_mode": config.ui_dark_mode}
 
 
 @router.put("/config/ui")
-async def update_ui_preferences_endpoint(request: UIPreferencesRequest):
+async def update_ui_preferences_endpoint(identity: CurrentIdentity, request: UIPreferencesRequest):
+    _require_admin(identity)
     config = load_saved_model_config()
     config.ui_dark_mode = request.dark_mode
     save_model_config(config)

@@ -3,7 +3,6 @@ import { Command } from "cmdk"
 import { useNavigate } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
 import {
-  BarChart3,
   Clock,
   MessagesSquare,
   Moon,
@@ -89,7 +88,6 @@ export function CommandPalette() {
             <Command.Group heading="Go to" className="mt-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground">
               <PaletteItem icon={MessagesSquare} label="Chat" onSelect={() => run(() => navigate("/"))} />
               <PaletteItem icon={Wrench} label="Tools" onSelect={() => run(() => navigate("/tools"))} />
-              <PaletteItem icon={BarChart3} label="Stats" onSelect={() => run(() => navigate("/stats"))} />
               <PaletteItem icon={Clock} label="Schedules" onSelect={() => run(() => navigate("/timers"))} />
               <PaletteItem icon={Search} label="Memory search" onSelect={() => run(() => navigate("/memory"))} />
               <PaletteItem icon={Settings} label="Settings" onSelect={() => run(() => navigate("/settings"))} />

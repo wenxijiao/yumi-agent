@@ -97,7 +97,12 @@ class ConfirmationGate:
 
             if decision == "deny":
                 ctx.ephemeral_messages.append(
-                    {"role": "tool", "content": "Tool execution was denied by the user.", "name": fn}
+                    {
+                        "role": "tool",
+                        "tool_call_id": inv.tool_call_id,
+                        "content": "Tool execution was denied by the user.",
+                        "name": fn,
+                    }
                 )
                 ctx.tool_loop_events.append(
                     {

@@ -14,7 +14,6 @@ const API_PREFIXES = [
   "/config",
   "/tools",
   "/monitor",
-  "/stats",
   "/stt",
   "/tts",
   "/timers",

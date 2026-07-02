@@ -14,12 +14,16 @@ from yumi.core.api import app
 from yumi.core.features.edge.api import handle_edge_peer
 from yumi.core.features.edge.peers import EdgePeerDisconnected
 from yumi.core.platform.plugins import get_edge_scope, register_plugin
+from yumi.core.platform.plugins.single_user import FlatEdgeScope
 from yumi.core.platform.runtime.accessors import ACTIVE_CONNECTIONS, EDGE_TOOLS_REGISTRY
 
 
 @pytest.fixture(autouse=True)
 def _cleanup_edge_state():
+    previous_scope = get_edge_scope()
+    register_plugin(edge_scope=FlatEdgeScope())
     yield
+    register_plugin(edge_scope=previous_scope)
     ACTIVE_CONNECTIONS.clear()
     EDGE_TOOLS_REGISTRY.clear()
 
@@ -114,7 +118,8 @@ def test_edge_duplicate_name_is_rejected():
             ws2.send_json(_register("dup-device"))
             msg = ws2.receive_json()
             assert msg["type"] == "register_rejected"
-            assert "dup-device" in msg["reason"]
+            assert msg["reason"] == "edge_name_already_in_use"
+            assert "dup-device" in msg["message"]
 
         # The original edge is untouched and still the active connection.
         assert ACTIVE_CONNECTIONS.get("dup-device") is first_peer
@@ -189,3 +194,60 @@ def test_edge_registration_uses_scope_for_connection_key_and_tool_prefix():
     assert scope.prefix_args == [("u42", "garage")]
     assert scope.registered == [("u:u42::garage", ["edge_u42_garage__ping"])]
     assert scope.disconnected == ["u:u42::garage"]
+
+
+def test_trusted_edge_scope_rejects_bare_owner_user_id():
+    class TrustedScope:
+        requires_trusted_owner = True
+
+        def resolve_owner_user_id(self, auth_msg: dict) -> str | None:  # noqa: ARG002
+            return None
+
+        def connection_key(self, owner_user_id: str | None, edge_name: str) -> str:  # noqa: ARG002
+            raise AssertionError("untrusted registration must not create a connection")
+
+        def tool_register_prefix(self, owner_user_id: str | None, edge_name: str) -> str:  # noqa: ARG002
+            raise AssertionError("untrusted registration must not register tools")
+
+        def filter_edge_tool_schemas(self, identity, registry: dict[str, dict], disabled: set[str]) -> list:  # noqa: ARG002
+            return []
+
+    class FakePeer:
+        def __init__(self):
+            self.sent = []
+            self.closed = False
+            self.close_code = None
+
+        async def receive_json(self):
+            return {
+                "type": "register",
+                "owner_user_id": "victim-user",
+                "edge_name": "garage",
+                "tools": [],
+            }
+
+        async def send_json(self, payload):
+            self.sent.append(payload)
+
+        async def close(self, code=1000, reason=""):  # noqa: ARG002
+            self.closed = True
+            self.close_code = code
+
+    previous_scope = get_edge_scope()
+    peer = FakePeer()
+    register_plugin(edge_scope=TrustedScope())
+    try:
+        asyncio.run(handle_edge_peer(peer))
+    finally:
+        register_plugin(edge_scope=previous_scope)
+
+    assert peer.sent == [
+        {
+            "type": "register_rejected",
+            "reason": "owner_not_verified",
+            "message": "Edge registration requires a valid connection_code or access_token. Client-supplied owner_user_id is ignored in trusted-owner mode.",
+        }
+    ]
+    assert peer.closed is True
+    assert peer.close_code == 4401
+    assert "garage" not in ACTIVE_CONNECTIONS

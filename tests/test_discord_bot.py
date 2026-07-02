@@ -9,6 +9,7 @@ import asyncio
 
 import yumi.discord.bot as bot
 from yumi.core.platform.http.events import ErrorEvent, TextEvent, ToolConfirmationEvent
+from yumi.core.platform.plugins.single_user import SingleUserBridgeScope
 from yumi.core.platform.security.connection import ConnectionConfig
 
 
@@ -64,8 +65,21 @@ def test_session_id_for_user():
 # ── allowed-user gating ─────────────────────────────────────────────────────
 
 
-def test_authorized_no_allowlist_allows_everyone(monkeypatch):
+def test_authorized_no_allowlist_requires_explicit_allow_all(monkeypatch):
     monkeypatch.setattr(bot, "get_discord_allowed_user_ids", lambda: [])
+    monkeypatch.setattr("yumi.core.platform.plugins.get_bridge_scope", lambda: SingleUserBridgeScope())
+    monkeypatch.delenv("YUMI_BRIDGE_ALLOW_ALL", raising=False)
+    assert bot._authorized(123) is False
+    monkeypatch.setenv("YUMI_BRIDGE_ALLOW_ALL", "true")
+    assert bot._authorized(123) is True
+
+
+def test_authorized_no_allowlist_allows_enterprise_bridge_scope(monkeypatch):
+    class _EnterpriseBridgeScope:
+        pass
+
+    monkeypatch.setattr(bot, "get_discord_allowed_user_ids", lambda: [])
+    monkeypatch.setattr("yumi.core.platform.plugins.get_bridge_scope", lambda: _EnterpriseBridgeScope())
     assert bot._authorized(123) is True
 
 

@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from yumi.core.platform.http.dependencies import CurrentIdentity
-from yumi.core.platform.plugins import get_session_scope
+from yumi.core.platform.plugins import get_session_scope, has_admin_scope
 from yumi.core.platform.runtime.accessors import ACTIVE_CONNECTIONS, DISABLED_TOOLS, EDGE_TOOLS_REGISTRY
 from yumi.core.platform.tools.tool import TOOL_REGISTRY
 from yumi.core.platform.tools.trace import export_traces_json_lines, list_traces
@@ -13,8 +13,14 @@ from yumi.core.platform.tools.trace import export_traces_json_lines, list_traces
 router = APIRouter()
 
 
+def _require_admin(identity) -> None:
+    if not has_admin_scope(identity):
+        raise HTTPException(status_code=403, detail="Admin scope required for monitoring traces.")
+
+
 @router.get("/monitor/topology")
-async def monitor_topology_endpoint(identity: CurrentIdentity):  # noqa: ARG001
+async def monitor_topology_endpoint(identity: CurrentIdentity):
+    _require_admin(identity)
     edges: list[dict] = []
     for edge_key, tools_map in EDGE_TOOLS_REGISTRY.items():
         edges.append(
@@ -39,6 +45,7 @@ async def monitor_traces_endpoint(
     session_id: str | None = None,
     limit: int = Query(default=100, ge=1, le=500),
 ):
+    _require_admin(identity)
     scope = get_session_scope()
     sid = scope.qualify_session_http(identity, session_id) if session_id else None
     return {"traces": list_traces(session_id=sid, limit=limit)}
@@ -46,6 +53,7 @@ async def monitor_traces_endpoint(
 
 @router.get("/monitor/traces/export")
 async def monitor_traces_export_endpoint(identity: CurrentIdentity, session_id: str | None = None):
+    _require_admin(identity)
     scope = get_session_scope()
     sid = scope.qualify_session_http(identity, session_id) if session_id else None
     body = export_traces_json_lines(session_id=sid)

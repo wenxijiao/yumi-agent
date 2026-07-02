@@ -84,11 +84,14 @@ class ToolDispatcher:
         events: list[ChatEvent] = []
 
         for tc in tcalls:
+            tool_call_id = str(tc.get("id") or "")
             raw_call_name = str(tc["function"]["name"]).strip()
             raw_arguments = tc["function"].get("arguments")
             args, parse_err = self._parse_arguments(raw_arguments, raw_call_name)
             if parse_err is not None:
-                ctx.ephemeral_messages.append({"role": "tool", "content": parse_err, "name": raw_call_name})
+                ctx.ephemeral_messages.append(
+                    {"role": "tool", "content": parse_err, "name": raw_call_name, "tool_call_id": tool_call_id}
+                )
                 ctx.tool_loop_events.append(
                     {
                         "loop": ctx.loop_count,
@@ -126,12 +129,13 @@ class ToolDispatcher:
                         kind="local",
                         func_name=func_name,
                         tool_message_name=raw_call_name,
+                        tool_call_id=tool_call_id,
                         args=args,
                     )
                 )
                 continue
 
-            edge_inv, edge_event = self._resolve_edge_invocation(raw_call_name, func_name, args, ctx)
+            edge_inv, edge_event = self._resolve_edge_invocation(raw_call_name, func_name, tool_call_id, args, ctx)
             if edge_event is not None:
                 events.append(edge_event)
             if edge_inv is not None:
@@ -195,6 +199,7 @@ class ToolDispatcher:
         self,
         raw_call_name: str,
         func_name: str,
+        tool_call_id: str,
         args: dict,
         ctx: TurnContext,
     ) -> tuple[ToolInvocation | None, ChatEvent | None]:
@@ -215,7 +220,9 @@ class ToolDispatcher:
                     f"(resolved as '{func_name}'). Restart the server after upgrading, "
                     "and check the Tools page that it is not disabled."
                 )
-            ctx.ephemeral_messages.append({"role": "tool", "content": f"Error: {err}", "name": raw_call_name})
+            ctx.ephemeral_messages.append(
+                {"role": "tool", "content": f"Error: {err}", "name": raw_call_name, "tool_call_id": tool_call_id}
+            )
             ctx.tool_loop_events.append(
                 {
                     "loop": ctx.loop_count,
@@ -240,7 +247,12 @@ class ToolDispatcher:
         peer = self.runtime.edge_registry.active_connections.get(target_edge)
         if peer is None:
             ctx.ephemeral_messages.append(
-                {"role": "tool", "content": "Error: Device offline or tool not found.", "name": raw_call_name}
+                {
+                    "role": "tool",
+                    "content": "Error: Device offline or tool not found.",
+                    "name": raw_call_name,
+                    "tool_call_id": tool_call_id,
+                }
             )
             ctx.tool_loop_events.append(
                 {
@@ -271,6 +283,7 @@ class ToolDispatcher:
                 kind="edge",
                 func_name=func_name,
                 tool_message_name=raw_call_name,
+                tool_call_id=tool_call_id,
                 args=args,
                 target_edge=target_edge,
                 original_tool_name=original_tool_name,
@@ -303,7 +316,7 @@ class ToolDispatcher:
         )
         # Opt-in persistent tool-call audit (off by default → no overhead unless set).
         # When YUMI_AUDIT_TOOL_CALLS is on, the active AuditSink records who called
-        # which tool, powering e.g. a tenant-admin tool-call history view.
+        # which tool, powering e.g. an admin tool-call history view.
         import os
 
         if os.getenv("YUMI_AUDIT_TOOL_CALLS", "").strip().lower() in ("1", "true", "yes"):

@@ -161,6 +161,8 @@ class SharedMemoryFactory:
 class FlatEdgeScope:
     """OSS edge scope: no per-user prefix; all edges share the global namespace."""
 
+    requires_trusted_owner = False
+
     def connection_key(self, owner_user_id: str | None, edge_name: str) -> str:  # noqa: ARG002
         return edge_name
 

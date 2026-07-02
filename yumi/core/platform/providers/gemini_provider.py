@@ -402,7 +402,7 @@ class GeminiProvider(BaseLLMProvider):
         gemini_tools = _convert_tools_to_gemini(tools)
 
         try:
-            response = self._client.models.generate_content_stream(
+            response = self._client.aio.models.generate_content_stream(
                 model=model,
                 contents=contents,
                 config=types.GenerateContentConfig(
@@ -412,11 +412,13 @@ class GeminiProvider(BaseLLMProvider):
                 if (config or gemini_tools)
                 else None,
             )
+            if hasattr(response, "__await__"):
+                response = await response
 
             collected_tool_calls: list[dict] = []
             last_usage = None
 
-            for chunk in response:
+            async for chunk in response:
                 um = getattr(chunk, "usage_metadata", None)
                 if um is not None:
                     last_usage = um

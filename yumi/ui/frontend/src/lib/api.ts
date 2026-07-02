@@ -5,7 +5,6 @@ import type {
   SearchResult,
   Session,
   SessionPrompt,
-  Stats,
   SystemPrompt,
   Timer,
   Topology,
@@ -120,9 +119,6 @@ export const api = {
     if (sessionId) q.set("session_id", sessionId)
     return request<{ traces: Trace[] }>("GET", `/monitor/traces?${q.toString()}`).then((r) => r.traces || [])
   },
-
-  // ── stats ──
-  stats: () => request<Stats>("GET", "/stats"),
 
   // ── debug / observability ──
   observability: (limit = 50) => request<Observability>("GET", `/debug/observability?limit=${limit}`),

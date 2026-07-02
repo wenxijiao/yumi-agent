@@ -70,7 +70,6 @@ class EmbeddingProcessor:
             return self.embed_provider.embed(self.embed_model, text)
         except Exception as exc:
             logger.warning("Embedding generation failed: %s", exc)
-            self.embedding_available = False
             return [0.0] * self.fallback_vector_size
 
     def normalise_vector(self, vector, content: str) -> list[float]:

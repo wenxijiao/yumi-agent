@@ -100,6 +100,15 @@ def _owner_user_id_from_register(auth_msg: dict) -> str | None:
 # ── edge tool confirmation helpers ──
 
 
+async def _reject_edge_register(peer, edge_name: str, *, code: int, reason: str, message: str) -> None:
+    logger.warning("Rejecting edge connection [%s]: %s", edge_name, message)
+    try:
+        await peer.send_json({"type": "register_rejected", "reason": reason, "message": message})
+        await peer.close(code=code, reason=reason)
+    except Exception as reject_exc:
+        logger.debug("Error rejecting edge connection: %s", reject_exc)
+
+
 def _clear_edge_confirmation_state_for_prefix(tool_prefix: str) -> None:
     for s in list(ALWAYS_ALLOWED_TOOLS):
         if s.startswith(tool_prefix):
@@ -228,11 +237,25 @@ async def handle_edge_peer(peer):
             raise ValueError("Expected a register message from the edge client.")
 
         edge_name = auth_msg.get("edge_name", "Unknown_Edge")
-        # Trusted owner resolution: a plugin (multi-tenant) may derive the owner
-        # server-side from the register payload (e.g. a connection code) so it isn't
-        # client-asserted; otherwise fall back to the client-supplied owner_user_id.
-        _resolver = getattr(get_edge_scope(), "resolve_owner_user_id", None)
-        owner_user_id = (_resolver(auth_msg) if callable(_resolver) else None) or _owner_user_id_from_register(auth_msg)
+        # Trusted owner resolution: a plugin may derive the owner
+        # server-side from a connection code or credential. In scopes that declare
+        # ``requires_trusted_owner``, a client-supplied owner_user_id is never enough.
+        edge_scope = get_edge_scope()
+        _resolver = getattr(edge_scope, "resolve_owner_user_id", None)
+        resolved_owner_user_id = _resolver(auth_msg) if callable(_resolver) else None
+        if getattr(edge_scope, "requires_trusted_owner", False) and not resolved_owner_user_id:
+            await _reject_edge_register(
+                peer,
+                edge_name,
+                code=4401,
+                reason="owner_not_verified",
+                message=(
+                    "Edge registration requires a valid connection_code or access_token. "
+                    "Client-supplied owner_user_id is ignored in trusted-owner mode."
+                ),
+            )
+            return
+        owner_user_id = resolved_owner_user_id or _owner_user_id_from_register(auth_msg)
         connection_key = edge_connection_key(owner_user_id, edge_name)
         tool_prefix = edge_tool_register_prefix(owner_user_id, edge_name)
 
@@ -247,20 +270,13 @@ async def handle_edge_peer(peer):
             # which made two same-named edges ping-pong-kick each other on every
             # reconnect.) A genuine reconnect still works: the old socket closing
             # clears ACTIVE_CONNECTIONS, after which the name is free again.
-            logger.warning(
-                "Rejecting edge connection: name [%s] is already in use by an active edge.",
+            await _reject_edge_register(
+                peer,
                 edge_name,
+                code=4409,
+                reason="edge_name_already_in_use",
+                message=f"An edge named '{edge_name}' is already connected. Use a unique edge_name.",
             )
-            try:
-                await peer.send_json(
-                    {
-                        "type": "register_rejected",
-                        "reason": (f"An edge named '{edge_name}' is already connected. Use a unique edge_name."),
-                    }
-                )
-                await peer.close(code=4409, reason="edge_name already in use")
-            except Exception as reject_exc:
-                logger.debug("Error rejecting duplicate edge connection: %s", reject_exc)
             return
 
         ACTIVE_CONNECTIONS[connection_key] = peer

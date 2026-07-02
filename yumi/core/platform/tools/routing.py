@@ -433,7 +433,7 @@ class ToolCatalog:
             total_registered = sum(len(tools) for tools in self.edge_registry.values())
             if total_registered:
                 # Edges ARE connected, but the scope filter hid all of them from this
-                # request's identity. On a multi-tenant server this is the classic
+                # request's identity. On a shared-account server this is the classic
                 # "edge registered under account A, chat runs as account B (or unlinked)"
                 # mismatch — otherwise invisible. Make it greppable.
                 logger.warning(

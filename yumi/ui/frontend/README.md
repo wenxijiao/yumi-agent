@@ -24,7 +24,7 @@ npm run dev          # Vite dev server on http://localhost:5173
 ```
 
 The dev server proxies all API paths (`/chat`, `/memory`, `/config`, `/tools`,
-`/monitor`, `/stats`, `/stt`, `/tts`, `/timers`, `/timer-events`, `/uploads`,
+`/monitor`, `/stt`, `/tts`, `/timers`, `/timer-events`, `/uploads`,
 `/health`, `/clear`) to `http://127.0.0.1:8000` (override with `YUMI_SERVER_URL`).
 So run `yumi --server` in another terminal first.
 
@@ -44,7 +44,7 @@ Commit the regenerated `yumi/ui/static/` so the package ships the latest UI.
 - `src/components/ui/` — shadcn-style primitives (Button, Dialog, Tabs, …)
 - `src/components/layout/` — nav rail, app shell, page header
 - `src/components/chat/` — chat view, composer, messages, sessions sidebar
-- `src/pages/` — one file per route (chat, tools, stats, settings, timers, memory, setup)
+- `src/pages/` — one file per route (chat, tools, debug, settings, timers, memory, setup)
 - `src/hooks/` — `use-chat`, react-query hooks, theme
 - `src/store/` — small Zustand store (app)
 - `src/index.css` — design tokens (dark-first) + Tailwind v4 theme

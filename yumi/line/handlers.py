@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+import os
 import uuid
 from collections.abc import AsyncIterator
 from typing import Any
@@ -77,7 +78,11 @@ def line_session_client_id(line_user_id: str) -> str:
 def _authorized(line_user_id: str) -> bool:
     allowed = get_line_allowed_user_ids()
     if not allowed:
-        return True
+        from yumi.core.platform.plugins import get_bridge_scope
+
+        if type(get_bridge_scope()).__name__ != "SingleUserBridgeScope":
+            return True
+        return os.getenv("YUMI_BRIDGE_ALLOW_ALL", "").strip().lower() in {"1", "true", "yes"}
     return str(line_user_id).strip() in allowed
 
 

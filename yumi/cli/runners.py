@@ -55,7 +55,7 @@ from yumi.edge.client import init_workspace
 SERVER_URL = os.getenv("YUMI_SERVER_URL", "http://127.0.0.1:8000")
 
 # When a remote/account connection code carries no host, `yumi --edge` offers
-# this as the one-tap "Yumi Nexus" server so users don't have to type the URL.
+# this as the one-tap hosted Yumi server so users don't have to type the URL.
 YUMI_NEXUS_EDGE_SERVER = "https://api.yumi.nexus"
 
 
@@ -909,18 +909,18 @@ def _edge_connection_step(env_path: str, interactive: bool) -> str:
         return "set (direct)"
     # A remote/account connection code carries no host — ask which server hosts
     # Yumi so the edge knows where to connect. The code just identifies the user.
-    # Offer Yumi Nexus as a one-tap default so users don't have to type the URL.
+    # Offer the hosted Yumi endpoint as a one-tap default so users don't have to type the URL.
     server_choice = _select_option(
         step="Step 3/3: Connection · Server",
         title="Where should this edge connect?",
         message="Your connection code identifies you; pick the server that hosts Yumi.",
         options=[
-            ("nexus", "Yumi Nexus", f"{YUMI_NEXUS_EDGE_SERVER} · hosted"),
+            ("hosted", "Hosted Yumi", f"{YUMI_NEXUS_EDGE_SERVER} · hosted"),
             ("custom", "Custom server", "enter your own URL"),
             ("local", "Local server", "ws://127.0.0.1:8000"),
         ],
     )
-    if server_choice == "nexus":
+    if server_choice == "hosted":
         server = YUMI_NEXUS_EDGE_SERVER
     elif server_choice == "custom":
         server = _framed_prompt(

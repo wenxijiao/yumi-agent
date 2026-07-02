@@ -22,7 +22,7 @@ __all__ = ["__version__", "YumiAgent", "register", "run", "run_in_background", "
 try:
     __version__ = version("yumi-agent")
 except PackageNotFoundError:
-    __version__ = "0.0.1"
+    __version__ = "0.0.2"
 
 if TYPE_CHECKING:
     from yumi.sdk import YumiAgent

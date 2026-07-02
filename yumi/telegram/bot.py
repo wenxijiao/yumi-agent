@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+import os
 import uuid
 from collections.abc import Awaitable, Callable
 from typing import Any
@@ -318,7 +319,11 @@ def _authorized(user_id: int | None) -> bool:
         return False
     allowed = get_telegram_allowed_user_ids()
     if not allowed:
-        return True
+        from yumi.core.platform.plugins import get_bridge_scope
+
+        if type(get_bridge_scope()).__name__ != "SingleUserBridgeScope":
+            return True
+        return os.getenv("YUMI_BRIDGE_ALLOW_ALL", "").strip().lower() in {"1", "true", "yes"}
     return user_id in allowed
 
 

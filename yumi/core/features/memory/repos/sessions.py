@@ -224,16 +224,46 @@ class SessionRepository:
         self.put_row(row)
         return row
 
+    def _message_stats(self, session_id: str) -> tuple[int, dict | None, dict | None] | None:
+        if not self.messages.table_exists():
+            return 0, None, None
+        where = self.backend.build_where_clause("session_id", session_id)
+        try:
+            table = self.messages.open_table()
+            count = int(table.count_rows(where))
+            if count <= 0:
+                return 0, None, None
+            latest_rows = (
+                table.search(query=None, ordering_field_name="timestamp_num")
+                .where(where)
+                .offset(max(count - 1, 0))
+                .limit(1)
+                .to_list()
+            )
+            user_where = where + " AND " + self.backend.build_where_clause("role", "user")
+            first_user_rows = (
+                table.search(query=None, ordering_field_name="timestamp_num").where(user_where).limit(1).to_list()
+            )
+            return count, (latest_rows[0] if latest_rows else None), (first_user_rows[0] if first_user_rows else None)
+        except Exception:
+            return None
+
     def refresh_stats(self, session_id: str, title_candidate: str | None = None) -> dict:
         session = self.ensure_row(session_id)
-        rows = self.messages.query_rows(where_clause=self.backend.build_where_clause("session_id", session_id))
         now = self.backend.format_timestamp()
         now_num = self.backend.current_timestamp_num()
         updated = dict(session)
+        stats = self._message_stats(session_id)
 
-        if rows:
-            latest = max(rows, key=lambda row: int(row.get("timestamp_num", 0)))
+        if stats is None:
+            rows = self.messages.query_rows(where_clause=self.backend.build_where_clause("session_id", session_id))
+            count = len(rows)
+            latest = max(rows, key=lambda row: int(row.get("timestamp_num", 0))) if rows else None
             first_user = next((row for row in rows if row.get("role") == "user"), None)
+        else:
+            count, latest, first_user = stats
+
+        if latest is not None:
             title = session["title"]
             if title == DEFAULT_SESSION_TITLE:
                 source = title_candidate or (first_user.get("content", "") if first_user else "")
@@ -241,7 +271,7 @@ class SessionRepository:
             updated.update(
                 {
                     "title": title,
-                    "message_count": len(rows),
+                    "message_count": count,
                     "last_message_at": latest["timestamp"],
                     "last_message_at_num": int(latest["timestamp_num"]),
                     "updated_at": now,
