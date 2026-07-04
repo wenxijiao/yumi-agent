@@ -46,6 +46,7 @@ from yumi.logging_config import get_logger
 router = APIRouter()
 logger = get_logger(__name__)
 
+_SUPPORTED_SEARCH_PROVIDERS = ("auto", "tavily", "brave", "serper", "searxng", "duckduckgo")
 _SUPPORTED_STT_PROVIDERS = ("disabled", "whisper", "openai", "gemini", "dashscope", "grok")
 _SUPPORTED_TTS_PROVIDERS = ("disabled", "system", "dashscope", "qwen", "openai", "gemini", "grok")
 _CLOUD_VOICE_PROVIDERS = ("openai", "gemini", "grok")
@@ -129,6 +130,11 @@ def _model_config_public_dict() -> dict:
         "openai_base_url": saved.openai_base_url or "",
         "deepseek_base_url": saved.deepseek_base_url or "",
         "grok_base_url": saved.grok_base_url or "",
+        "search_provider": runtime.search_provider,
+        "tavily_api_key_saved": bool(saved.tavily_api_key and str(saved.tavily_api_key).strip()),
+        "brave_search_api_key_saved": bool(saved.brave_search_api_key and str(saved.brave_search_api_key).strip()),
+        "serper_api_key_saved": bool(saved.serper_api_key and str(saved.serper_api_key).strip()),
+        "searxng_base_url": saved.searxng_base_url or "",
     }
 
 
@@ -223,6 +229,11 @@ async def update_model_config_endpoint(request: ModelConfigUpdateRequest, identi
             status_code=400,
             detail=f"Unsupported TTS provider. Use one of: {', '.join(_SUPPORTED_TTS_PROVIDERS)}.",
         )
+    if request.search_provider and request.search_provider.strip().lower() not in _SUPPORTED_SEARCH_PROVIDERS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported search provider. Use one of: {', '.join(_SUPPORTED_SEARCH_PROVIDERS)}.",
+        )
 
     backup_before = CONFIG_PATH.read_text(encoding="utf-8") if CONFIG_PATH.exists() else None
 
@@ -302,6 +313,17 @@ async def update_model_config_endpoint(request: ModelConfigUpdateRequest, identi
         v = request.grok_base_url.strip()
         config.grok_base_url = v if v else None
         keys_or_base_changed = True
+    if request.search_provider is not None and request.search_provider.strip():
+        config.search_provider = request.search_provider.strip().lower()
+    if request.tavily_api_key is not None and request.tavily_api_key.strip():
+        config.tavily_api_key = request.tavily_api_key.strip()
+    if request.brave_search_api_key is not None and request.brave_search_api_key.strip():
+        config.brave_search_api_key = request.brave_search_api_key.strip()
+    if request.serper_api_key is not None and request.serper_api_key.strip():
+        config.serper_api_key = request.serper_api_key.strip()
+    if request.searxng_base_url is not None:
+        v = request.searxng_base_url.strip()
+        config.searxng_base_url = v if v else None
 
     try:
         ensure_embedding_provider_supported(config.embedding_provider)

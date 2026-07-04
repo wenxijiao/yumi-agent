@@ -21,6 +21,14 @@ class ModelConfig(BaseModel):
     grok_api_key: str | None = None
     grok_base_url: str | None = None
     connection_code: str | None = None
+    # web_search tool provider: auto | tavily | brave | serper | searxng | duckduckgo.
+    # "auto" tries the first configured of tavily > brave > serper > searxng; the
+    # keyless DuckDuckGo HTML endpoint is always the final fallback either way.
+    search_provider: str = "auto"
+    tavily_api_key: str | None = None
+    brave_search_api_key: str | None = None
+    serper_api_key: str | None = None
+    searxng_base_url: str | None = None
     session_prompts: dict[str, str] = {}
     ui_dark_mode: bool = True
     lan_secret: str | None = None
@@ -121,6 +129,14 @@ class ModelConfig(BaseModel):
     tts_model: str | None = None
     tts_api_key: str | None = None
     tts_language: str = "auto"
+
+    @field_validator("search_provider")
+    @classmethod
+    def _normalize_search_provider(cls, v: Any) -> str:
+        s = (v or "auto").strip().lower()
+        if s not in ("auto", "tavily", "brave", "serper", "searxng", "duckduckgo"):
+            return "auto"
+        return s
 
     @field_validator("proactive_mode")
     @classmethod

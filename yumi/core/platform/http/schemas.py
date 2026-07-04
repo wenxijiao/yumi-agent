@@ -108,6 +108,12 @@ class ModelConfigUpdateRequest(BaseModel):
     deepseek_base_url: str | None = None
     grok_api_key: str | None = None
     grok_base_url: str | None = None
+    # web_search provider settings; keys are write-only like the LLM keys above.
+    search_provider: str | None = None
+    tavily_api_key: str | None = None
+    brave_search_api_key: str | None = None
+    serper_api_key: str | None = None
+    searxng_base_url: str | None = None
 
 
 class ChatDebugRequest(BaseModel):

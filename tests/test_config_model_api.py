@@ -109,6 +109,74 @@ def test_model_config_public_dict_includes_key_flags(monkeypatch, tmp_path: Path
     assert d["tts_model"] == ""
     assert d["tts_voice"] == ""
     assert d["tts_api_key_saved"] is False
+    assert d["search_provider"] == "auto"
+    assert d["tavily_api_key_saved"] is False
+    assert d["brave_search_api_key_saved"] is False
+    assert d["serper_api_key_saved"] is False
+    assert d["searxng_base_url"] == ""
+
+
+def test_put_config_model_rejects_unknown_search_provider(monkeypatch, tmp_path: Path) -> None:
+    p = _patch_config_path(monkeypatch, tmp_path)
+    p.write_text(
+        json.dumps(
+            {
+                "chat_provider": "ollama",
+                "chat_model": "m",
+                "embedding_provider": "ollama",
+                "embedding_model": "m",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    async def _run():
+        with pytest.raises(HTTPException) as ei:
+            await update_model_config_endpoint(ModelConfigUpdateRequest(search_provider="bing"))
+        return ei.value
+
+    exc = asyncio.run(_run())
+    assert exc.status_code == 400
+    assert "unsupported search provider" in str(exc.detail).lower()
+
+
+def test_put_config_model_saves_search_provider_without_echoing_keys(monkeypatch, tmp_path: Path) -> None:
+    p = _patch_config_path(monkeypatch, tmp_path)
+    p.write_text(
+        json.dumps(
+            {
+                "chat_provider": "ollama",
+                "chat_model": "m",
+                "embedding_provider": "ollama",
+                "embedding_model": "m",
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("yumi.core.features.config.router.ensure_provider_available", lambda provider: None)
+
+    import yumi.core.platform.runtime.accessors as api_state
+
+    monkeypatch.setattr(api_state, "bot", None)
+
+    async def _run():
+        return await update_model_config_endpoint(
+            ModelConfigUpdateRequest(
+                search_provider="brave",
+                brave_search_api_key="brave-key",
+                searxng_base_url="https://search.example",
+            )
+        )
+
+    response = asyncio.run(_run())
+    saved = json.loads(p.read_text(encoding="utf-8"))
+    assert response["search_provider"] == "brave"
+    assert response["brave_search_api_key_saved"] is True
+    assert "brave_search_api_key" not in response
+    assert response["searxng_base_url"] == "https://search.example"
+    assert saved["search_provider"] == "brave"
+    assert saved["brave_search_api_key"] == "brave-key"
+    assert saved["searxng_base_url"] == "https://search.example"
 
 
 def test_create_provider_deepseek_wraps_openai_provider():

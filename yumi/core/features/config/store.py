@@ -122,6 +122,21 @@ def load_model_config() -> ModelConfig:
         except ValueError:
             pass
 
+    search_provider = os.getenv("YUMI_SEARCH_PROVIDER")
+    if search_provider and search_provider.strip():
+        s = search_provider.strip().lower()
+        if s in ("auto", "tavily", "brave", "serper", "searxng", "duckduckgo"):
+            config.search_provider = s
+    for env_name, attr in (
+        ("TAVILY_API_KEY", "tavily_api_key"),
+        ("BRAVE_SEARCH_API_KEY", "brave_search_api_key"),
+        ("SERPER_API_KEY", "serper_api_key"),
+        ("SEARXNG_BASE_URL", "searxng_base_url"),
+    ):
+        value = os.getenv(env_name)
+        if value and value.strip():
+            setattr(config, attr, value.strip())
+
     tg_token = os.getenv("TELEGRAM_BOT_TOKEN")
     if tg_token and tg_token.strip():
         config.telegram_bot_token = tg_token.strip()

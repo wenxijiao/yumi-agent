@@ -10,7 +10,7 @@ from yumi.core.features.proactive.timer_tools import cancel_timer, list_timers, 
 from yumi.core.platform.tools.tool import register_tool
 from yumi.tools.file_tools import list_files, read_file
 from yumi.tools.user_context_tools import forget_user_context, list_user_context, remember_user_context
-from yumi.tools.web_tools import get_weather, web_search
+from yumi.tools.web_tools import fetch_webpage, get_weather, web_search
 
 
 def init_yumi() -> None:
@@ -134,12 +134,37 @@ def init_yumi() -> None:
 
     register_tool(
         web_search,
-        "Search the web for recent information and return a concise summary.",
+        (
+            "Search the live web (news, current events, prices, docs, anything). "
+            "Uses the configured search provider (Tavily / Brave / Serper / SearXNG) and "
+            "falls back to DuckDuckGo automatically. For time-sensitive questions — recent "
+            "news, 'latest X', today's events — pass time_range='day' or 'week'. "
+            "Results are snippets; call fetch_webpage on a result URL to read the full page."
+        ),
         params={
-            "query": "The search keywords or question to look up",
+            "query": "The search keywords or question to look up (any language)",
             "max_results": "Maximum number of results to return, between 1 and 10",
+            "time_range": (
+                "Optional recency filter: 'day', 'week', 'month', or 'year'. "
+                "Use 'day'/'week' for news and current events. Empty = no filter."
+            ),
         },
-        returns="Numbered list of search results with titles, descriptions, and URLs",
+        returns="Numbered list of live search results with titles, snippets, URLs, and dates when available",
+    )
+
+    register_tool(
+        fetch_webpage,
+        (
+            "Fetch a web page by URL and return its readable text content. "
+            "Only public http(s) URLs are allowed; local, private-network, and cloud metadata URLs are blocked. "
+            "Use this after web_search to read the full article behind a promising result, "
+            "or whenever the user shares a link."
+        ),
+        params={
+            "url": "The public http(s) URL to fetch",
+            "max_chars": "Maximum characters of page text to return (500–30000, default 6000)",
+        },
+        returns="The page title and extracted text, truncated to max_chars",
     )
 
     register_tool(

@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Real web search** — `web_search` now runs on a pluggable provider layer
+  (Tavily / Brave / Serper / self-hosted SearXNG, with a keyless DuckDuckGo
+  HTML fallback) instead of the DuckDuckGo Instant Answer API, so live news
+  and current events actually turn up. New optional `time_range` argument
+  (`day|week|month|year`) for recency filtering. Configure via
+  `search_provider` + provider keys in `~/.yumi/config.json`, env vars
+  (`TAVILY_API_KEY`, `BRAVE_SEARCH_API_KEY`, `SERPER_API_KEY`,
+  `SEARXNG_BASE_URL`, `YUMI_SEARCH_PROVIDER`), or `PUT /config/model`.
+  See `docs/WEB_SEARCH.md`.
+- **`fetch_webpage` tool** — fetches a public URL and returns readable page text
+  so the model can read full articles behind search results; local,
+  private-network, and cloud metadata URLs are blocked.
+
 ## [0.0.1] - Unreleased
 
 ### Added
