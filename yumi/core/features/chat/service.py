@@ -20,6 +20,7 @@ import asyncio
 from collections.abc import AsyncIterator
 
 from yumi.core.features.chat.context import reset_chat_owner_user_id, set_chat_owner_user_id
+from yumi.core.features.chat.language import build_turn_language_note
 from yumi.core.features.chat.trace_sink import ChatTraceSink
 from yumi.core.platform.dispatch import (
     LOCAL_TOOL_TIMEOUT_DEFAULT,
@@ -100,6 +101,16 @@ def _persist_tool_ephemeral_spans(messages: list[dict], session_id: str, bot) ->
         memory.persist_openai_messages(turn)
     for i, j in reversed(spans):
         del messages[i:j]
+
+
+def _append_system_note(ctx: TurnContext, content: str | None) -> None:
+    if not content:
+        return
+    note = {"role": "system", "content": content}
+    if ctx.ephemeral_messages is None:
+        ctx.ephemeral_messages = [note]
+    else:
+        ctx.ephemeral_messages.append(note)
 
 
 class ChatTurnService:
@@ -232,12 +243,8 @@ class ChatTurnService:
         except Exception as exc:
             logger.debug("Context prefetch failed: %s", exc)
             runtime_context = None
-        if runtime_context:
-            note = {"role": "system", "content": runtime_context}
-            if ctx.ephemeral_messages is None:
-                ctx.ephemeral_messages = [note]
-            else:
-                ctx.ephemeral_messages.insert(0, note)
+        _append_system_note(ctx, runtime_context)
+        _append_system_note(ctx, build_turn_language_note(ctx.prompt))
 
         while True:
             ctx.loop_count += 1

@@ -245,3 +245,24 @@ def test_class1_context_tool_prefetched_and_injected(runtime, install_fakes):
         assert "mood=great; plan=ship v1" in joined, f"context not injected: {eph!r}"
     finally:
         TOOL_REGISTRY.pop("get_user_context", None)
+
+
+def test_turn_language_note_injected_from_latest_prompt(runtime, install_fakes):
+    captured: dict = {}
+
+    class _CapBot(_FakeBot):
+        async def chat_stream(self, **kwargs):
+            captured["ephemeral"] = kwargs.get("ephemeral_messages")
+            async for c in super().chat_stream(**kwargs):
+                yield c
+
+    bot = _CapBot(scripted_chunks=[[{"type": "text", "content": "おやすみ"}]])
+    install_fakes(bot)
+
+    svc = ChatTurnService(runtime)
+    asyncio.run(_drain(svc.stream_chat_turn("疲れた、めっちゃ眠い", "s_lang")))
+
+    eph = captured.get("ephemeral") or []
+    joined = "\n".join(m.get("content", "") for m in eph if isinstance(m, dict))
+    assert "[Turn language]" in joined
+    assert "latest user message appears to be in Japanese" in joined
