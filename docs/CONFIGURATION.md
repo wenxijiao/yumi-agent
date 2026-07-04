@@ -47,7 +47,7 @@ Tool policy fields:
 - `local_tools_always_allow`: Server-local tool names that do not require confirmation.
 - `local_tools_force_confirm`: Server-local tool names that always require confirmation.
 - `edge_tools_enable_dynamic_routing`: Rank and cap Edge tools per turn. Default: `true`.
-- `edge_tools_retrieval_limit`: Max Edge tool schemas exposed per turn. Default: `20`.
+- `edge_tools_retrieval_limit`: Max dynamically retrieved Edge tool schemas exposed per turn. Pinned tools, forced follow-up tools, and tools on an explicitly mentioned edge may be added outside this cap. Default: `20`.
 - `core_tools_always_include`: Keep core server tools loaded when enabled. Default: `true`.
 - `core_tools_allow_disable`: Allow core tools to be disabled by tool policy/UI. Default: `true`.
 

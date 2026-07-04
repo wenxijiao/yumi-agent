@@ -56,7 +56,9 @@ Use meaningful Edge names when possible. Names like `Bedroom`, `Memory App`, or 
 
 When an Edge reconnects, updates, or removes tools, the next chat turn uses the current in-memory registry. There is no persistent per-tool routing file to clean up; embedding vectors are cached in memory only and old deleted tools are no longer referenced.
 
-For an Edge function that must be available to the model on every turn, register it with `always_include=True` (or the SDK equivalent such as `alwaysInclude: true`). This is off by default and should be reserved for small, high-value tools because it bypasses dynamic Edge-tool retrieval for that function.
+For an Edge function that must be available to the model on every turn, register it with `always_include=True` (or the SDK equivalent such as `alwaysInclude: true`). This is off by default and should be reserved for small, high-value tools because it bypasses dynamic Edge-tool retrieval for that function and spends prompt tokens every turn. Pinned tools do not consume the dynamic retrieval cap.
+
+If the user explicitly names an Edge/device in the current request, Yumi exposes that device's tools for the turn outside the dynamic retrieval cap. This lets a small personal edge such as `my windows` remain callable even when another edge owns many more tools.
 
 Configure the per-turn Edge tool budget with:
 

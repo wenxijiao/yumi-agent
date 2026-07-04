@@ -94,7 +94,7 @@ def test_core_tools_are_always_loaded_and_edge_tools_are_ranked():
     assert decision.total_edge_tools == 26
 
 
-def test_forced_edge_tool_is_kept_even_when_query_changes():
+def test_forced_edge_tool_does_not_consume_retrieval_limit():
     decision = select_tool_schemas(
         identity=LOCAL_IDENTITY,
         query="Do a generic factory operation",
@@ -106,7 +106,11 @@ def test_forced_edge_tool_is_kept_even_when_query_changes():
 
     selected = [entry.name for entry in decision.selected_edge_tools]
     assert "edge_lab__set_kitchen_lights" in selected
-    assert len(selected) == 3
+    assert len(selected) == 4
+
+    trace = list_tool_routing_traces(session_id="s1", limit=1)[0]
+    assert trace["forced_edge_count"] == 1
+    assert trace["retrieved_edge_count"] == 3
 
 
 def test_queries_match_edge_descriptions_or_lexical():
@@ -319,6 +323,68 @@ def test_always_include_edge_tool_bypasses_dynamic_routing_limit(monkeypatch):
     selected = [entry.name for entry in decision.selected_edge_tools]
     assert selected == ["edge_lab__set_kitchen_lights"]
     assert "edge_lab__set_kitchen_lights" in [tool["function"]["name"] for tool in decision.tools]
+
+
+def test_always_include_edge_tool_does_not_consume_retrieval_limit(monkeypatch):
+    monkeypatch.setattr(
+        "yumi.core.platform.tools.routing.load_model_config",
+        lambda: ModelConfig(
+            edge_tools_enable_dynamic_routing=True,
+            edge_tools_retrieval_limit=1,
+            edge_tools_always_expose_below=0,
+        ),
+    )
+    registry = _edge_registry(12)
+    registry["lab"]["edge_lab__set_kitchen_lights"]["always_include"] = True
+
+    decision = select_tool_schemas(
+        identity=LOCAL_IDENTITY,
+        query="generic factory operation",
+        session_id="s1",
+        disabled_tools=set(),
+        edge_registry=registry,
+    )
+
+    selected = [entry.name for entry in decision.selected_edge_tools]
+    assert "edge_lab__set_kitchen_lights" in selected
+    assert len(selected) == 2
+
+    trace = list_tool_routing_traces(session_id="s1", limit=1)[0]
+    assert trace["pinned_edge_count"] == 1
+    assert trace["retrieved_edge_count"] == 1
+
+
+def test_mentioned_edge_device_tools_do_not_consume_retrieval_limit(monkeypatch):
+    monkeypatch.setattr(
+        "yumi.core.platform.tools.routing.load_model_config",
+        lambda: ModelConfig(
+            edge_tools_enable_dynamic_routing=True,
+            edge_tools_retrieval_limit=1,
+            edge_tools_always_expose_below=0,
+        ),
+    )
+    registry = _edge_registry(12)
+    registry["u:u42::my windows"] = {
+        "edge_u42__my_windows__ping": {
+            "schema": _schema("edge_u42__my_windows__ping", "Print a short message on my Windows desktop.")
+        }
+    }
+
+    decision = select_tool_schemas(
+        identity=LOCAL_IDENTITY,
+        query="Use my windows to print a test message",
+        session_id="s1",
+        disabled_tools=set(),
+        edge_registry=registry,
+    )
+
+    selected = [entry.name for entry in decision.selected_edge_tools]
+    assert "edge_u42__my_windows__ping" in selected
+    assert len(selected) == 2
+
+    trace = list_tool_routing_traces(session_id="s1", limit=1)[0]
+    assert trace["mentioned_edge_count"] == 1
+    assert trace["retrieved_edge_count"] == 1
 
 
 def test_routing_and_usage_telemetry_are_recorded():

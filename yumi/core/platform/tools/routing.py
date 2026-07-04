@@ -12,7 +12,7 @@ import time
 import uuid
 from collections import Counter, deque
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
@@ -120,6 +120,10 @@ class ToolRoutingDecision:
     total_edge_tools: int
     dynamic_routing_enabled: bool
     elapsed_ms: int
+    pinned_edge_tools: list[ToolCatalogEntry] = field(default_factory=list)
+    forced_edge_tools: list[ToolCatalogEntry] = field(default_factory=list)
+    mentioned_edge_tools: list[ToolCatalogEntry] = field(default_factory=list)
+    retrieved_edge_tools: list[ToolCatalogEntry] = field(default_factory=list)
 
 
 def _tool_name(schema: dict[str, Any]) -> str:
@@ -227,6 +231,43 @@ def _tokens(text: str) -> list[str]:
             out.extend(chars)
             out.extend("".join(pair) for pair in zip(chars, chars[1:]))
     return out
+
+
+_EDGE_ALIAS_STOPWORDS = {"my", "the", "edge", "device", "tool", "tools", "local"}
+
+
+def _query_mentions_edge(query: str, entry: ToolCatalogEntry) -> bool:
+    """Return true when the user explicitly names this edge/device."""
+
+    if not (query or "").strip():
+        return False
+
+    query_folded = query.casefold()
+    query_tokens = set(_tokens(query))
+
+    for raw_alias in (entry.device_name, *entry.device_aliases):
+        alias = str(raw_alias or "").strip().casefold()
+        if not alias or alias in _EDGE_ALIAS_STOPWORDS:
+            continue
+        if len(alias) < 3 and not any(ch.isdigit() for ch in alias):
+            continue
+
+        alias_tokens = [tok for tok in _tokens(alias) if tok not in _EDGE_ALIAS_STOPWORDS]
+        if not alias_tokens:
+            continue
+
+        if len(alias_tokens) > 1:
+            if alias in query_folded:
+                return True
+            if set(alias_tokens).issubset(query_tokens):
+                return True
+            continue
+
+        token = alias_tokens[0]
+        if token in query_tokens:
+            return True
+
+    return False
 
 
 def _name_terms(name: str) -> list[str]:
@@ -495,8 +536,18 @@ def select_tool_schemas(
     edge_limit = max(0, min(200, int(cfg.edge_tools_retrieval_limit)))
     always_expose_below = max(0, min(200, int(getattr(cfg, "edge_tools_always_expose_below", 0))))
     forced_names = set(force_edge_tool_names or set())
-    always_entries = [entry for entry in edge_entries if entry.always_include]
-    always_names = {entry.name for entry in always_entries}
+    query_text = query or ""
+    pinned_entries = _dedupe_entries([entry for entry in edge_entries if entry.always_include])
+    forced_entries = _dedupe_entries([entry for entry in edge_entries if entry.name in forced_names])
+    mentioned_entries = _dedupe_entries([entry for entry in edge_entries if _query_mentions_edge(query_text, entry)])
+    base_entries = _dedupe_entries(pinned_entries + forced_entries + mentioned_entries)
+    base_name_set = {entry.name for entry in base_entries}
+    pinned_names = {entry.name for entry in pinned_entries}
+    forced_names_present = {entry.name for entry in forced_entries}
+    mentioned_only_entries = [
+        entry for entry in mentioned_entries if entry.name not in pinned_names and entry.name not in forced_names_present
+    ]
+    retrieved_entries: list[ToolCatalogEntry] = []
 
     if not dynamic_enabled:
         selected_edge = edge_entries
@@ -505,29 +556,27 @@ def select_tool_schemas(
         # tools stays callable even if the retrieval limit is 0 or misconfigured, so
         # onboarding never depends on the user choosing an exposure mode.
         selected_edge = edge_entries
-    elif edge_limit <= 0:
-        selected_edge = always_entries + [
-            entry for entry in edge_entries if entry.name in forced_names and entry.name not in always_names
-        ]
     elif len(edge_entries) <= edge_limit:
         selected_edge = edge_entries
     else:
-        global _WARNED_LEXICAL_ONLY
-        if not cfg.embedding_model and not _WARNED_LEXICAL_ONLY:
-            _WARNED_LEXICAL_ONLY = True
-            logger.warning(
-                "Dynamic edge-tool routing is ranking %d tools with NO embedding model "
-                "(embedding_model is unset): retrieval falls back to lexical matching, which "
-                "cannot match a query to a tool across languages. Set embedding_model, or raise "
-                "edge_tools_always_expose_below, for reliable multilingual routing.",
-                len(edge_entries),
-            )
-        forced = [entry for entry in edge_entries if entry.name in forced_names and entry.name not in always_names]
-        base = _dedupe_entries(always_entries + forced)
-        base_name_set = {entry.name for entry in base}
         remaining = [entry for entry in edge_entries if entry.name not in base_name_set]
-        scored = _score_edge_tools(query or "", remaining, embed_model=cfg.embedding_model)
-        selected_edge = base + [entry for _, entry in scored[: max(0, edge_limit - len(base))]]
+        if edge_limit > 0 and remaining:
+            if len(remaining) <= edge_limit:
+                retrieved_entries = remaining
+            else:
+                global _WARNED_LEXICAL_ONLY
+                if not cfg.embedding_model and not _WARNED_LEXICAL_ONLY:
+                    _WARNED_LEXICAL_ONLY = True
+                    logger.warning(
+                        "Dynamic edge-tool routing is ranking %d tools with NO embedding model "
+                        "(embedding_model is unset): retrieval falls back to lexical matching, which "
+                        "cannot match a query to a tool across languages. Set embedding_model, or raise "
+                        "edge_tools_always_expose_below, for reliable multilingual routing.",
+                        len(edge_entries),
+                    )
+                scored = _score_edge_tools(query_text, remaining, embed_model=cfg.embedding_model)
+                retrieved_entries = [entry for _, entry in scored[:edge_limit]]
+        selected_edge = base_entries + retrieved_entries
         selected_edge = _dedupe_entries(selected_edge)
 
     elapsed_ms = int((time.perf_counter() - started) * 1000)
@@ -538,6 +587,10 @@ def select_tool_schemas(
         total_edge_tools=len(edge_entries),
         dynamic_routing_enabled=dynamic_enabled,
         elapsed_ms=elapsed_ms,
+        pinned_edge_tools=pinned_entries,
+        forced_edge_tools=[entry for entry in forced_entries if entry.name not in pinned_names],
+        mentioned_edge_tools=mentioned_only_entries,
+        retrieved_edge_tools=retrieved_entries,
     )
     record_tool_routing_trace(session_id=session_id, query=query, decision=decision)
     return decision
@@ -562,6 +615,14 @@ def record_tool_routing_trace(
         "dynamic_routing_enabled": decision.dynamic_routing_enabled,
         "elapsed_ms": decision.elapsed_ms,
         "selected_edge_tools": [entry.name for entry in decision.selected_edge_tools],
+        "pinned_edge_count": len(decision.pinned_edge_tools),
+        "forced_edge_count": len(decision.forced_edge_tools),
+        "mentioned_edge_count": len(decision.mentioned_edge_tools),
+        "retrieved_edge_count": len(decision.retrieved_edge_tools),
+        "pinned_edge_tools": [entry.name for entry in decision.pinned_edge_tools],
+        "forced_edge_tools": [entry.name for entry in decision.forced_edge_tools],
+        "mentioned_edge_tools": [entry.name for entry in decision.mentioned_edge_tools],
+        "retrieved_edge_tools": [entry.name for entry in decision.retrieved_edge_tools],
     }
     with _ROUTING_TRACE_LOCK:
         _ROUTING_TRACES.appendleft(rec)

@@ -37,8 +37,8 @@ other provider wire formats.
 
 6. **Callable tools**
    - Passed through the provider's tool/function API. Pinned tools are exposed
-     every turn; dynamic tools are selected by routing; autorun tools are not
-     exposed as callable tools for that turn.
+     every turn outside the dynamic retrieval cap; dynamic tools are selected by
+     routing; autorun tools are not exposed as callable tools for that turn.
 
 7. **Tool results**
    - Added only after the model requests a tool call and the runtime executes it.
