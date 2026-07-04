@@ -108,7 +108,7 @@ const MODEL_PLACEHOLDER: Record<string, string> = {
   openai: "gpt-4o",
   gemini: "gemini-1.5-pro",
   claude: "claude-sonnet-4-6",
-  deepseek: "deepseek-chat",
+  deepseek: "deepseek-v4-pro",
   grok: "grok-2",
 }
 
@@ -117,7 +117,7 @@ const MODEL_HINT: Record<string, string> = {
   openai: "gpt-4o is recommended. gpt-3.5-turbo is faster and lower-cost.",
   gemini: "gemini-1.5-flash is great value; gemini-1.5-pro for long context.",
   claude: "claude-sonnet-4-6 offers the best balance of speed and capability.",
-  deepseek: "deepseek-chat for general tasks; deepseek-coder for code.",
+  deepseek: "deepseek-v4-pro for production chat.",
   grok: "grok-2 is the latest model with real-time knowledge.",
 }
 
