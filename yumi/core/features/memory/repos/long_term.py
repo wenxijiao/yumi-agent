@@ -128,6 +128,22 @@ class LongTermMemoryRepository:
         rows.sort(key=lambda row: int(row.get("updated_at_num") or 0), reverse=True)
         return [self.serialize(row) for row in rows[:limit]]
 
+    def delete(self, memory_id: str) -> bool:
+        row_id = str(memory_id or "").strip()
+        if not row_id or not self.backend.has_table(self.TABLE_NAME):
+            return False
+        rows = query_rows(
+            self._memory_facade(),
+            self.TABLE_NAME,
+            where_clause=self.backend.build_where_clause("id", row_id),
+            limit=1,
+        )
+        if not rows:
+            return False
+        table = self.backend.open_table(self.TABLE_NAME)
+        table.delete(self.backend.build_where_clause("id", row_id))
+        return True
+
 
 class _BackendAdapter:
     """Minimal duck-type for ``yumi.core.features.memory.storage``'s memory parameter.

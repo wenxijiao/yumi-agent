@@ -334,6 +334,7 @@ class Memory:
         query: str | None = None,
         max_cross_session: int | None = None,
         peer_session_ids: list[str] | None = None,
+        exclude_message_ids: set[str] | None = None,
     ):
         from yumi.core.features.memory.context import ContextBuilder
 
@@ -341,6 +342,7 @@ class Memory:
             query=query,
             max_cross_session=max_cross_session,
             peer_session_ids=peer_session_ids,
+            exclude_message_ids=exclude_message_ids,
         )
 
     def recent_messages_in_sessions(self, session_ids: list[str], limit: int) -> list[dict]:
@@ -616,6 +618,15 @@ class Memory:
 
     def list_long_term_memories(self, kind: str | None = None, session_id: str | None = None, limit: int = 50):
         return self.long_term.list(kind=kind, session_id=session_id, limit=limit)
+
+    def delete_long_term_memory(self, memory_id: str) -> bool:
+        deleted = self.long_term.delete(memory_id)
+        if deleted:
+            try:
+                self.sqlite.delete_memory(memory_id)
+            except Exception as exc:
+                logger.debug("SQLite long-term memory delete skipped: %s", exc)
+        return deleted
 
     def create_tool_observation(
         self,

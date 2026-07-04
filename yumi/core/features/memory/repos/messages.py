@@ -180,7 +180,7 @@ class MessageRepository:
     ) -> list[dict]:
         """Return the most recent ``limit`` messages drawn from any of ``session_ids``.
 
-        Used by cross-channel context: a single owner's voice/telegram/chat sessions
+        Used by cross-channel context: a single owner's voice/telegram/discord/line/chat sessions
         each persist independently, but the prompt composer wants to interleave the
         last few turns regardless of channel.
         """

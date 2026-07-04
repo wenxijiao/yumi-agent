@@ -75,9 +75,7 @@ class YumiBot:
     ):
         """Core streaming chat flow with function-calling support."""
         memory = self._get_memory(session_id)
-
-        if prompt:
-            user_message_id = memory.add_message("user", prompt)
+        user_message_id: str | None = None
 
         cfg = self._runtime_config or load_model_config()
         messages = compose_messages(
@@ -88,6 +86,8 @@ class YumiBot:
             cfg=cfg,
             upload_mode="vision",
         )
+        if prompt:
+            user_message_id = memory.add_message("user", prompt)
 
         if chat_debug_trace.is_tracing(session_id):
             chat_debug_trace.append_llm_provider_request(
@@ -183,6 +183,7 @@ class YumiBot:
                     ephemeral_messages=ephemeral_messages,
                     cfg=cfg,
                     upload_mode="no_vision",
+                    exclude_message_ids={user_message_id} if user_message_id else None,
                 )
                 if chat_debug_trace.is_tracing(session_id):
                     chat_debug_trace.append_llm_provider_request(
@@ -197,12 +198,12 @@ class YumiBot:
                         yield chunk
                 except Exception as fb_exc:
                     _record_provider_failure(fb_exc, messages_fb, "chat_stream_text_only_fallback")
-                    if prompt:
+                    if user_message_id:
                         memory.delete_message(user_message_id)
                     raise
             else:
                 _record_provider_failure(exc, messages, "chat_stream")
-                if prompt:
+                if user_message_id:
                     memory.delete_message(user_message_id)
                 raise
 

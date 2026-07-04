@@ -269,11 +269,15 @@ Set `require_confirmation=True` (Python) or the equivalent flag in other SDKs fo
 
 Tool confirmation policy is persisted to disk when the platform supports it. Browser-based TypeScript keeps it in memory.
 
-## Proactive Messaging Tool Opt-In
+## Autorun Context And Proactive Tool Opt-In
 
-Proactive messaging never uses tools by default. Read-only tools can opt in with `allow_proactive=True` (or the equivalent SDK flag). Tools can also set `proactive_context=True` plus optional fixed `proactive_context_args` so Yumi calls them before generating a proactive message and injects the result as background context.
+Use `mode="autorun"` for safe read-only context providers that Yumi should run before every normal chat reply and proactive message. Autorun tools are not offered to the model as callable tools; Yumi injects their results as turn-only runtime context. Use `context_args` / `context_label` for fixed arguments and a readable label.
 
-Do not enable proactive access for tools with side effects. Tools that require confirmation are filtered out of unattended proactive runs.
+Proactive messaging never uses callable tools by default. Read-only tools can additionally opt in with `allow_proactive=True` (or the equivalent SDK flag) when proactive message generation may call them on demand.
+
+The old `proactive_context=True` wire flag is still honored for compatibility, but new SDK code should prefer `mode="autorun"`.
+
+Do not enable autorun or proactive access for tools with side effects. Tools that require confirmation are filtered out of unattended proactive runs.
 
 ## `yumi --edge` Mapping
 

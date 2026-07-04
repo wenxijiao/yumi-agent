@@ -8,8 +8,15 @@ from typing import Any
 
 LONG_TERM_MEMORY_KINDS = frozenset(
     {
-        "preference",
         "fact",
+        "preference",
+        "profile",
+        "routine",
+        "project",
+        "relationship",
+        "constraint",
+        "communication_style",
+        "do_not_assume",
         "decision",
         "task_state",
         "tool_observation",

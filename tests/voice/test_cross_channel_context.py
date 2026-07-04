@@ -1,4 +1,4 @@
-"""Cross-channel prompt context: voice/tg/chat sessions merge into one transcript."""
+"""Cross-channel prompt context: voice/tg/discord/line/chat sessions merge into one transcript."""
 
 from __future__ import annotations
 
@@ -109,9 +109,11 @@ def _row(sid: str, role: str, content: str, ts: int, mid: str) -> dict:
 
 
 def test_peer_session_ids_voice_owner():
-    assert _peer_session_ids("voice_alice") == ["tg_alice", "chat_alice"]
-    assert _peer_session_ids("tg_alice") == ["voice_alice", "chat_alice"]
-    assert _peer_session_ids("chat_alice") == ["voice_alice", "tg_alice"]
+    assert _peer_session_ids("voice_alice") == ["tg_alice", "dc_alice", "line_alice", "chat_alice"]
+    assert _peer_session_ids("tg_alice") == ["voice_alice", "dc_alice", "line_alice", "chat_alice"]
+    assert _peer_session_ids("dc_alice") == ["voice_alice", "tg_alice", "line_alice", "chat_alice"]
+    assert _peer_session_ids("line_alice") == ["voice_alice", "tg_alice", "dc_alice", "chat_alice"]
+    assert _peer_session_ids("chat_alice") == ["voice_alice", "tg_alice", "dc_alice", "line_alice"]
 
 
 def test_peer_session_ids_unknown_prefix_returns_empty():
@@ -122,6 +124,8 @@ def test_peer_session_ids_unknown_prefix_returns_empty():
 def test_channel_label_lookup():
     assert _channel_label("voice_alice") == "voice"
     assert _channel_label("tg_alice") == "telegram"
+    assert _channel_label("dc_alice") == "discord"
+    assert _channel_label("line_alice") == "line"
     assert _channel_label("chat_alice") == "chat"
     assert _channel_label("default") is None
 

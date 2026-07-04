@@ -201,6 +201,7 @@ You can mix providers — for example OpenAI for chat and Ollama for embeddings.
 | [Configuration](docs/CONFIGURATION.md) | `~/.yumi/config.json`, environment variables, Telegram, Discord, LINE, Docker |
 | [Deployment](docs/DEPLOYMENT.md) | Install, first run, Docker, production notes (TLS, CORS, health checks) |
 | [Architecture](docs/ARCHITECTURE.md) | System design, plugin ports, API stability |
+| [Prompt Architecture](docs/PROMPT_ARCHITECTURE.md) | Prompt layers, stable user context, runtime context, provider mapping |
 | [HTTP API](docs/HTTP_API.md) | Chat NDJSON stream, all routes, curl examples |
 | [Memory](docs/MEMORY.md) | Session history and LanceDB embeddings |
 | [Testing](docs/TESTING.md) | Running and writing tests |

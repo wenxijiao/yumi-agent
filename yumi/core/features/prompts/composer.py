@@ -23,16 +23,16 @@ if TYPE_CHECKING:
 _UPLOAD_PATH_RE = re.compile(r"\.yumi[/\\]+uploads[/\\]", re.IGNORECASE)
 
 # Channel session-id prefixes; used to compute peer sessions for cross-channel
-# context (voice ↔ telegram ↔ chat). Order is intentional: it determines the
+# context (voice <-> telegram <-> discord <-> line <-> chat). Order is intentional: it determines the
 # label fallback when a session_id matches multiple prefixes.
-_CHANNEL_PREFIXES = ("voice_", "tg_", "chat_")
+_CHANNEL_PREFIXES = ("voice_", "tg_", "dc_", "line_", "chat_")
 
 
 def _peer_session_ids(session_id: str) -> list[str]:
     """Sibling session ids for the same owner across other channels.
 
-    Voice/telegram/chat sessions are named ``<channel>_<owner>``; given one
-    of them, return the other two. Sessions that don't follow this scheme
+    Voice/telegram/discord/line/chat sessions are named ``<channel>_<owner>``; given one
+    of them, return the other channels. Sessions that don't follow this scheme
     return ``[]`` (unchanged behaviour for legacy ids like ``chat_<uuid>``).
     """
     for prefix in _CHANNEL_PREFIXES:
@@ -162,6 +162,21 @@ def messages_have_multimodal_images(messages: list[dict]) -> bool:
     return False
 
 
+def _add_ephemeral_messages(messages: list[dict], ephemeral_messages: list | None) -> None:
+    if not ephemeral_messages:
+        return
+    system_notes = [msg for msg in ephemeral_messages if isinstance(msg, dict) and msg.get("role") == "system"]
+    system_note_ids = {id(msg) for msg in system_notes}
+    other_messages = [msg for msg in ephemeral_messages if id(msg) not in system_note_ids]
+    if system_notes:
+        insert_at = 0
+        while insert_at < len(messages) and messages[insert_at].get("role") == "system":
+            insert_at += 1
+        messages[insert_at:insert_at] = system_notes
+    if other_messages:
+        messages.extend(other_messages)
+
+
 def compose_messages(
     memory: Memory,
     *,
@@ -170,10 +185,11 @@ def compose_messages(
     ephemeral_messages: list | None,
     cfg: ModelConfig,
     upload_mode: Literal["vision", "no_vision"],
+    exclude_message_ids: set[str] | None = None,
 ) -> list[dict]:
     """Build messages with system extras and optional image inlining (vision vs text-only)."""
     peers = _peer_session_ids(memory.session_id)
-    messages = memory.get_context(query=prompt, peer_session_ids=peers)
+    messages = memory.get_context(query=prompt, peer_session_ids=peers, exclude_message_ids=exclude_message_ids)
     if messages and messages[0].get("role") == "system":
         extra_parts: list[str] = []
         if cfg.chat_append_current_time:
@@ -195,8 +211,9 @@ def compose_messages(
                 "content": messages[0]["content"] + "".join(extra_parts),
             }
 
-    if ephemeral_messages:
-        messages.extend(ephemeral_messages)
+    _add_ephemeral_messages(messages, ephemeral_messages)
+    if prompt:
+        messages.append({"role": "user", "content": prompt})
 
     return _inline_uploaded_images(
         messages,

@@ -9,6 +9,7 @@ from __future__ import annotations
 from yumi.core.features.proactive.timer_tools import cancel_timer, list_timers, schedule_task, set_timer
 from yumi.core.platform.tools.tool import register_tool
 from yumi.tools.file_tools import list_files, read_file
+from yumi.tools.user_context_tools import forget_user_context, list_user_context, remember_user_context
 from yumi.tools.web_tools import get_weather, web_search
 
 
@@ -148,4 +149,43 @@ def init_yumi() -> None:
             "location": "City name or geographic location to get weather for",
         },
         returns="Current weather conditions including temperature, humidity, and wind speed",
+    )
+
+    # Durable user context tools
+
+    register_tool(
+        remember_user_context,
+        (
+            "Save a durable Stable User Context memory. Use this only when the user explicitly asks "
+            "Yumi to remember something, or when they confirm a suggested memory should be saved. "
+            "Do not use it for ordinary transient chat details."
+        ),
+        params={
+            "content": "The concise durable memory to save.",
+            "kind": (
+                "Memory category, such as profile, preference, routine, project, relationship, "
+                "constraint, communication_style, do_not_assume, fact, decision, task_state, or summary."
+            ),
+            "importance": "0.0 to 1.0 importance score. Use 0.85 for normal explicit user memories.",
+        },
+        returns="The saved memory id and content.",
+    )
+
+    register_tool(
+        list_user_context,
+        "List saved Stable User Context memories, including ids that can be used to forget one.",
+        params={
+            "kind": "Optional memory category filter. Leave empty to list all stable context memories.",
+            "limit": "Maximum number of memories to return, between 1 and 50.",
+        },
+        returns="Saved stable user context memories with ids.",
+    )
+
+    register_tool(
+        forget_user_context,
+        "Delete a saved Stable User Context memory by id after the user asks Yumi to forget it.",
+        params={
+            "memory_id": "The memory id returned by list_user_context or remember_user_context.",
+        },
+        returns="Confirmation that the memory was forgotten, or a not-found message.",
     )

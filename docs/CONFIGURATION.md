@@ -365,7 +365,7 @@ Yumi exposes `POST /line/webhook`, verifies `X-Line-Signature`, and forwards cha
    - save `voice_porcupine_access_key` in `~/.yumi/config.json`.
 2. **Train a "hi yumi" wake-word** — Picovoice's built-in keywords do not include "hi yumi". In the console, create a custom keyword for English (or your language), download the resulting `.ppn` file, and save it (suggested: `~/.yumi/voice/hi-yumi.ppn`). Set `voice_porcupine_keyword_path` to that path. Without a custom file, Yumi falls back to the built-in `jarvis` keyword and prints a warning at startup.
 3. **Microphone permission** — on macOS, grant your terminal app microphone access in *System Settings → Privacy & Security → Microphone*. Without permission, `sounddevice` returns silent audio and the VAD never triggers.
-4. **Tune `voice_owner_id`** — set this to a stable identifier (your Telegram user id is a good choice). The voice session id is `voice_<owner_id>`; matching the suffix with `tg_<id>` / `chat_<id>` is what makes cross-channel context (below) work.
+4. **Tune `voice_owner_id`** — set this to a stable identifier (your Telegram/Discord/LINE user id, or another stable account id). The voice session id is `voice_<owner_id>`; matching the suffix with `tg_<id>` / `dc_<id>` / `line_<id>` / `chat_<id>` is what makes cross-channel context (below) work.
 
 ### Running
 
@@ -374,7 +374,7 @@ Yumi exposes `POST /line/webhook`, verifies `X-Line-Signature`, and forwards cha
 
 ### Cross-channel context
 
-Voice / Telegram / `--chat` each persist to their own session (`voice_alice`, `tg_alice`, `chat_alice`). Each chat turn fetches the most recent N messages from the **current** session **plus** any sibling sessions that share the owner suffix, merges them by timestamp, and renders sibling turns with a `(via voice)` / `(via telegram)` / `(via chat)` tag so the model can distinguish channels. `yumi --chat` uses random UUID session ids by default, so its history is included only when you pass an explicit `session_id` matching the voice owner.
+Voice / Telegram / Discord / LINE / `--chat` each persist to their own session (`voice_alice`, `tg_alice`, `dc_alice`, `line_alice`, `chat_alice`). Each chat turn fetches the most recent N messages from the **current** session **plus** any sibling sessions that share the owner suffix, merges them by timestamp, and renders sibling turns with a `(via voice)` / `(via telegram)` / `(via discord)` / `(via line)` / `(via chat)` tag so the model can distinguish channels. `yumi --chat` uses random UUID session ids by default, so its history is included only when you pass an explicit `session_id` matching the voice owner.
 
 The merge happens in `yumi/core/features/memory/context.py::ContextBuilder._recent_transcript`. The cap is roughly twice `memory_max_recent_messages` after merge to keep peers from crowding out the current channel. There is no schema change — peer messages are read with a single `session_id IN (...)` query against the existing `chat_history` LanceDB table.
 

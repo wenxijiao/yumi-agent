@@ -43,7 +43,7 @@ from yumi.core.platform.plugins import (
     get_session_scope,
 )
 from yumi.core.platform.runtime import RuntimeState, get_default_runtime
-from yumi.core.platform.tools.context_prefetch import context_prefetch_lines
+from yumi.core.platform.tools.context_prefetch import runtime_context_prompt_block
 from yumi.core.platform.tools.routing import select_tool_schemas
 from yumi.logging_config import get_logger
 
@@ -228,12 +228,12 @@ class ChatTurnService:
         # ...) before replying. Per-tool errors are swallowed inside the helper;
         # this guard only covers a total failure.
         try:
-            context_lines = await context_prefetch_lines()
+            runtime_context = await runtime_context_prompt_block()
         except Exception as exc:
             logger.debug("Context prefetch failed: %s", exc)
-            context_lines = []
-        if context_lines:
-            note = {"role": "system", "content": "[Context]\n" + "\n".join(context_lines)}
+            runtime_context = None
+        if runtime_context:
+            note = {"role": "system", "content": runtime_context}
             if ctx.ephemeral_messages is None:
                 ctx.ephemeral_messages = [note]
             else:

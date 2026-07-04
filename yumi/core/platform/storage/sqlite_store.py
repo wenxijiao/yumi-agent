@@ -857,6 +857,15 @@ class SQLiteStore:
                 ),
             )
 
+    def delete_memory(self, memory_id: str) -> bool:
+        now = _utc_now()
+        with self.connect() as conn:
+            cur = conn.execute(
+                "UPDATE memories SET deleted_at=?, updated_at=? WHERE id=? AND deleted_at IS NULL",
+                (now, now, memory_id),
+            )
+            return cur.rowcount > 0
+
     def upsert_session_summary(self, row: dict[str, Any]) -> None:
         now = _utc_now()
         with self.connect() as conn:
