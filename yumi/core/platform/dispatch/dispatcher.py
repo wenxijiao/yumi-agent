@@ -278,6 +278,8 @@ class ToolDispatcher:
                 content=f"Edge device '{target_edge}' went offline before tool execution started.",
             )
 
+        from yumi.core.platform.plugins.identity import effective_caller_user_id
+
         return (
             ToolInvocation(
                 kind="edge",
@@ -288,6 +290,10 @@ class ToolDispatcher:
                 target_edge=target_edge,
                 original_tool_name=original_tool_name,
                 peer=peer,
+                # Stamped server-side from the turn's authenticated identity
+                # (session owner for internal/proactive turns) — the model has
+                # no channel to influence this value.
+                caller_user_id=effective_caller_user_id(ctx.owner_uid),
             ),
             None,
         )

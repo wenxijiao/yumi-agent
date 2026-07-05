@@ -53,3 +53,30 @@ def context_identity() -> Identity | None:
 def has_admin_scope(identity: Identity) -> bool:
     """True if *identity* may access admin-only routes."""
     return "*" in identity.scopes or "admin" in identity.scopes
+
+
+def effective_caller_user_id(fallback_user_id: str | None = None) -> str | None:
+    """The user on whose behalf the current work runs.
+
+    Prefers the authenticated principal bound to the async context (via the
+    active ``IdentityProvider``); an ``internal`` system identity defers to
+    *fallback_user_id* (e.g. the chat session owner, so proactive/timer turns
+    act for the user they belong to). In single-user mode this is simply the
+    synthetic local user; plugins may bind richer identities.
+
+    Edge dispatch stamps this onto every ``tool_call`` frame as
+    ``caller_user_id`` so a shared edge can scope its work to the caller.
+    It is derived server-side only — never from model output.
+    """
+    ident: Identity | None
+    try:
+        # Lazy import: the plugin registry depends on this module.
+        from yumi.core.platform.plugins import get_identity_provider
+
+        ident = get_identity_provider().current()
+    except Exception:
+        ident = context_identity()
+    uid = (getattr(ident, "user_id", None) or "").strip() or None
+    if uid and getattr(ident, "source", None) != "internal":
+        return uid
+    return fallback_user_id or uid

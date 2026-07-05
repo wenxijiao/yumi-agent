@@ -315,6 +315,14 @@ def _parse_docstring(func: Callable) -> tuple[str, dict[str, str], str | None]:
     return description, params, returns_doc
 
 
+# Reserved parameter name: a tool that declares it receives the authenticated
+# caller's user id, server-stamped on the ``tool_call`` frame (OUTSIDE the
+# model-generated ``arguments``). It is hidden from the schema shown to the
+# LLM, and any value arriving inside ``arguments`` is discarded — the model
+# has no channel to set or spoof it. Lets one shared edge serve many users.
+CALLER_PARAM = "caller_user_id"
+
+
 def _build_tool_schema(
     func: Callable,
     name: str | None = None,
@@ -342,6 +350,9 @@ def _build_tool_schema(
     required_params: list[str] = []
 
     for param_name, param in sig.parameters.items():
+        if param_name == CALLER_PARAM:
+            # Server-supplied; never advertised to the LLM.
+            continue
         if param.default == inspect.Parameter.empty:
             required_params.append(param_name)
 
@@ -607,6 +618,10 @@ class YumiAgent:
             )
         if tool_name in self._tools:
             raise ValueError(f"A tool named {tool_name!r} is already registered; use a unique name= for each tool.")
+        try:
+            wants_caller = CALLER_PARAM in inspect.signature(func).parameters
+        except (TypeError, ValueError):
+            wants_caller = False
         self._tools[tool_name] = {
             "schema": schema,
             "callable": func,
@@ -616,6 +631,7 @@ class YumiAgent:
             "proactive_context": proactive_context,
             "proactive_context_args": proactive_context_args,
             "proactive_context_description": proactive_context_description,
+            "wants_caller": wants_caller,
         }
 
     def run_in_background(
@@ -862,14 +878,32 @@ class YumiAgent:
 
     async def _handle_tool_call(self, ws, msg: dict) -> None:
         tool_name = msg.get("name", "")
-        arguments = msg.get("arguments", {})
+        arguments = dict(msg.get("arguments") or {})
         call_id = msg.get("call_id", "unknown")
 
+        # The reserved caller param may only come from the server-stamped frame
+        # field; a value smuggled into model-generated arguments is discarded.
+        arguments.pop(CALLER_PARAM, None)
+
         cancelled = False
+        caller_missing = False
         tool = self._tools.get(tool_name)
         if tool is None:
             result = f"Error: Tool '{tool_name}' is not registered on this edge."
-        else:
+        elif tool.get("wants_caller"):
+            frame_caller = msg.get(CALLER_PARAM)
+            caller = frame_caller.strip() if isinstance(frame_caller, str) else ""
+            if caller:
+                arguments[CALLER_PARAM] = caller
+            else:
+                # Fail closed: a caller-scoped tool must never guess a user.
+                caller_missing = True
+                result = (
+                    f"Error: Tool '{tool_name}' requires the caller's identity, but the "
+                    "server did not stamp caller_user_id on this call (server too old, "
+                    "or no authenticated user for this turn)."
+                )
+        if tool is not None and not caller_missing:
             func = tool["callable"]
 
             async def _execute():

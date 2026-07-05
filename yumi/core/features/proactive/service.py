@@ -13,6 +13,7 @@ from yumi.core.features.proactive.planner import decide_proactive_send
 from yumi.core.features.proactive.prompt import build_proactive_prompt, split_proactive_messages
 from yumi.core.features.proactive.state import ProactiveStateStore
 from yumi.core.features.proactive.tools import proactive_context_lines, proactive_tool_schemas
+from yumi.core.platform.plugins.identity import effective_caller_user_id
 from yumi.core.platform.tools.normalize import normalize_tool_calls
 from yumi.logging_config import get_logger
 
@@ -238,7 +239,11 @@ class ProactiveMessageService:
         future = asyncio.get_running_loop().create_future()
         PENDING_TOOL_CALLS[call_id] = {"future": future, "edge_name": target_edge, "peer": peer}
         try:
-            await peer.send_json({"type": "tool_call", "name": original_name, "arguments": args, "call_id": call_id})
+            frame = {"type": "tool_call", "name": original_name, "arguments": args, "call_id": call_id}
+            caller = effective_caller_user_id()
+            if caller:
+                frame["caller_user_id"] = caller
+            await peer.send_json(frame)
             result = await asyncio.wait_for(future, timeout=get_tool_timeout(name))
             return name, str(result)
         except Exception as exc:

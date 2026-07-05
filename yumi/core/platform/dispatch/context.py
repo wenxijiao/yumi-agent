@@ -52,6 +52,10 @@ class ToolInvocation:
     target_edge: str | None = None
     original_tool_name: str | None = None
     peer: Any | None = None
+    # Authenticated principal this call runs on behalf of (server-derived,
+    # never model-supplied). Sent to edges as the ``caller_user_id`` frame
+    # field so a shared edge can scope its work to the caller.
+    caller_user_id: str | None = None
 
 
 @dataclass

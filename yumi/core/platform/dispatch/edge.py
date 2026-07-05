@@ -38,15 +38,18 @@ class EdgeToolExecutor:
             "edge_name": inv.target_edge,
             "peer": inv.peer,
         }
+        frame = {
+            "type": "tool_call",
+            "name": inv.original_tool_name,
+            "arguments": inv.args,
+            "call_id": call_id,
+        }
+        # Caller identity travels OUTSIDE ``arguments`` — the model only ever
+        # produces arguments, so it structurally cannot set or spoof this.
+        if inv.caller_user_id:
+            frame["caller_user_id"] = inv.caller_user_id
         try:
-            await inv.peer.send_json(
-                {
-                    "type": "tool_call",
-                    "name": inv.original_tool_name,
-                    "arguments": inv.args,
-                    "call_id": call_id,
-                }
-            )
+            await inv.peer.send_json(frame)
             result = await asyncio.wait_for(future, timeout=self._timeout_for(inv.func_name))
             return ToolResult(
                 func_name=inv.func_name,
