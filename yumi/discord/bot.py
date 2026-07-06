@@ -27,6 +27,8 @@ from yumi.logging_config import get_logger
 
 _MAX_MSG_LEN = 2000
 _LOG = get_logger(__name__)
+_DISCORD_API = "https://discord.com/api/v10"
+_IS_VOICE_MESSAGE = 1 << 13
 
 
 def _truncate_for_discord(text: str, max_chars: int = 1994) -> str:
@@ -264,6 +266,36 @@ async def _delete_timer(connection: ConnectionConfig, timer_id: str) -> tuple[bo
     return body.get("status") == "success", str(body.get("message") or "")
 
 
+async def _send_native_voice_message(channel, *, data: bytes, duration_secs: float, waveform: str) -> tuple[bool, str]:
+    token = get_discord_bot_token()
+    if not token:
+        return False, "DISCORD_BOT_TOKEN is not configured"
+
+    payload = {
+        "flags": _IS_VOICE_MESSAGE,
+        "attachments": [
+            {
+                "id": "0",
+                "filename": "voice-message.ogg",
+                "duration_secs": duration_secs,
+                "waveform": waveform,
+            }
+        ],
+    }
+    files = {"files[0]": ("voice-message.ogg", data, "audio/ogg")}
+    timeout = httpx.Timeout(20.0, read=120.0)
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        response = await client.post(
+            f"{_DISCORD_API}/channels/{channel.id}/messages",
+            headers={"Authorization": f"Bot {token}"},
+            data={"payload_json": json.dumps(payload)},
+            files=files,
+        )
+    if response.status_code >= 400:
+        return False, response.text[:500]
+    return True, ""
+
+
 def _format_timer_list_for_discord(timers: list[dict[str, Any]]) -> str:
     if not timers:
         return "No active timers or scheduled tasks."
@@ -347,15 +379,26 @@ def build_client():
         await _send_long_text(message.channel.send, text)
 
     async def _send_voice_reply(channel, text: str) -> bool:
-        """Synthesize *text* and post it as an audio attachment. Returns False on
+        """Synthesize *text* and post it as a voice message. Returns False on
         any failure so the caller can fall back to plain text."""
         import io
 
         try:
             from yumi.core.features.tts.playback import synthesize_with_fallback
+            from yumi.core.features.tts.voice_message import to_ogg_opus_voice
 
             audio = await synthesize_with_fallback(text)
-            file = discord.File(io.BytesIO(audio.data), filename=f"reply.{audio.format or 'wav'}")
+            voice = to_ogg_opus_voice(audio)
+            ok, err = await _send_native_voice_message(
+                channel,
+                data=voice.data,
+                duration_secs=voice.duration_secs,
+                waveform=voice.waveform,
+            )
+            if ok:
+                return True
+            _LOG.warning("discord: native voice message failed, falling back to audio attachment: %s", err)
+            file = discord.File(io.BytesIO(voice.data), filename="reply.ogg")
             await channel.send(content=_truncate_for_discord(text) or None, file=file)
             return True
         except Exception as exc:  # synthesis or upload failed

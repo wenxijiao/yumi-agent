@@ -81,14 +81,16 @@ async def _send_voice_reply(context, chat_id: int, text: str) -> bool:
 
     try:
         from yumi.core.features.tts.playback import synthesize_with_fallback
+        from yumi.core.features.tts.voice_message import to_ogg_opus_voice
 
         audio = await synthesize_with_fallback(text)
-        buffer = io.BytesIO(audio.data)
-        buffer.name = f"reply.{audio.format or 'wav'}"
-        await context.bot.send_audio(
+        voice = to_ogg_opus_voice(audio)
+        buffer = io.BytesIO(voice.data)
+        buffer.name = "reply.ogg"
+        await context.bot.send_voice(
             chat_id=chat_id,
-            audio=buffer,
-            caption=_truncate_for_telegram(text)[:1024] or None,
+            voice=buffer,
+            duration=max(1, int(round(voice.duration_secs))),
         )
         return True
     except Exception as exc:  # synthesis or upload failed
