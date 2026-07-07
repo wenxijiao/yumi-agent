@@ -58,10 +58,12 @@ def test_runtime_context_prompt_block_groups_local_autorun_context():
         TOOL_REGISTRY.update(previous)
 
 
-def test_runtime_context_system_note_is_placed_before_user_history():
+def test_runtime_context_system_note_is_placed_after_history_before_prompt():
+    """Per-turn notes go AFTER the transcript so they never invalidate the
+    provider prompt-cache prefix, but still BEFORE the final user prompt."""
     with tempfile.TemporaryDirectory() as td:
         memory = Memory(session_id="s_runtime_order", storage_dir=td, max_recent=20)
-        memory.add_message("user", "hello")
+        memory.add_message("user", "older history line")
 
         messages = compose_messages(
             memory,
@@ -73,8 +75,11 @@ def test_runtime_context_system_note_is_placed_before_user_history():
         )
 
         runtime_idx = next(i for i, msg in enumerate(messages) if msg.get("content", "").startswith("[Turn Runtime"))
-        user_idx = next(i for i, msg in enumerate(messages) if msg.get("role") == "user")
-        assert runtime_idx < user_idx
+        history_idx = next(
+            i for i, msg in enumerate(messages) if msg.get("role") == "user" and "older history line" in msg["content"]
+        )
+        prompt_idx = next(i for i, msg in enumerate(messages) if msg.get("content") == "hello")
+        assert history_idx < runtime_idx < prompt_idx
 
 
 def test_current_prompt_is_final_user_layer_not_recent_history_duplicate():

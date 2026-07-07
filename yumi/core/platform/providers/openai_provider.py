@@ -79,6 +79,30 @@ def _normalize_messages_for_strict_openai_compat(
     return out
 
 
+def _strip_historical_reasoning(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Drop ``reasoning_content`` from assistant turns before the last user message.
+
+    DeepSeek's thinking models require the chain-of-thought to be replayed
+    inside the CURRENT turn's tool loop (assistant tool-call spans after the
+    latest user prompt), but replaying CoT from completed historical turns is
+    unnecessary — and expensive: each old turn's reasoning can be thousands of
+    tokens, re-billed on every request while it stays in the recent-message
+    window. Returns a shallow copy; input is left alone.
+    """
+    last_user = -1
+    for i, msg in enumerate(messages):
+        if msg.get("role") == "user":
+            last_user = i
+    if last_user == -1:
+        return messages
+    out: list[dict[str, Any]] = []
+    for i, msg in enumerate(messages):
+        if i < last_user and msg.get("role") == "assistant" and "reasoning_content" in msg:
+            msg = {k: v for k, v in msg.items() if k != "reasoning_content"}
+        out.append(msg)
+    return out
+
+
 def _convert_tool_schemas(tools: list[dict] | None) -> list[dict] | None:
     """Ensure tool schemas match the OpenAI format.
 
@@ -139,7 +163,7 @@ class OpenAIProvider(BaseLLMProvider):
     ) -> AsyncIterator[dict]:
         kwargs: dict[str, Any] = {
             "model": model,
-            "messages": _normalize_messages_for_strict_openai_compat(messages),
+            "messages": _normalize_messages_for_strict_openai_compat(_strip_historical_reasoning(messages)),
             "stream": True,
             "stream_options": {"include_usage": True},
         }
@@ -204,8 +228,26 @@ class OpenAIProvider(BaseLLMProvider):
         if usage_payload is not None:
             pt = int(getattr(usage_payload, "prompt_tokens", None) or 0)
             ct = int(getattr(usage_payload, "completion_tokens", None) or 0)
+            # Cache-hit visibility: OpenAI reports prompt_tokens_details.cached_tokens,
+            # DeepSeek reports prompt_cache_hit_tokens. Both are subsets of
+            # prompt_tokens (billed at a discount), surfaced so traces can verify
+            # the prefix actually caches.
+            cached = 0
+            details = getattr(usage_payload, "prompt_tokens_details", None)
+            if details is not None:
+                cached = int(getattr(details, "cached_tokens", None) or 0)
+            if not cached:
+                cached = int(getattr(usage_payload, "prompt_cache_hit_tokens", None) or 0)
             if pt or ct:
-                yield {"type": "usage", "prompt_tokens": pt, "completion_tokens": ct, "model": model}
+                payload: dict[str, Any] = {
+                    "type": "usage",
+                    "prompt_tokens": pt,
+                    "completion_tokens": ct,
+                    "model": model,
+                }
+                if cached:
+                    payload["cached_prompt_tokens"] = cached
+                yield payload
 
         if collected_tool_calls:
             tool_calls_list = []

@@ -163,18 +163,23 @@ def messages_have_multimodal_images(messages: list[dict]) -> bool:
 
 
 def _add_ephemeral_messages(messages: list[dict], ephemeral_messages: list | None) -> None:
+    """Append ephemeral messages at the tail.
+
+    Per-turn system notes (runtime context, language hints, retry nudges) go
+    AFTER the transcript, not into the leading system block: they change every
+    turn, and anything placed before the history invalidates the provider
+    prompt-cache prefix on every request. Non-system ephemeral messages
+    (in-flight tool spans) keep conversation order and come first.
+    """
     if not ephemeral_messages:
         return
     system_notes = [msg for msg in ephemeral_messages if isinstance(msg, dict) and msg.get("role") == "system"]
     system_note_ids = {id(msg) for msg in system_notes}
     other_messages = [msg for msg in ephemeral_messages if id(msg) not in system_note_ids]
-    if system_notes:
-        insert_at = 0
-        while insert_at < len(messages) and messages[insert_at].get("role") == "system":
-            insert_at += 1
-        messages[insert_at:insert_at] = system_notes
     if other_messages:
         messages.extend(other_messages)
+    if system_notes:
+        messages.extend(system_notes)
 
 
 def compose_messages(
@@ -187,31 +192,41 @@ def compose_messages(
     upload_mode: Literal["vision", "no_vision"],
     exclude_message_ids: set[str] | None = None,
 ) -> list[dict]:
-    """Build messages with system extras and optional image inlining (vision vs text-only)."""
+    """Build messages with system extras and optional image inlining (vision vs text-only).
+
+    Layout is cache-aware: the leading system block carries only content that
+    is stable across turns (base prompt + tool policy). Anything that changes
+    per turn — current time, upload nudges, runtime context — is appended as
+    tail system notes AFTER the transcript, so the provider prompt-cache
+    prefix (tools → system → history) stays byte-identical between requests.
+    """
     peers = _peer_session_ids(memory.session_id)
     messages = memory.get_context(query=prompt, peer_session_ids=peers, exclude_message_ids=exclude_message_ids)
     if messages and messages[0].get("role") == "system":
-        extra_parts: list[str] = []
-        if cfg.chat_append_current_time:
-            line = format_user_facing_time(datetime.now(timezone.utc), cfg.local_timezone)
-            extra_parts.append(f"\n\n[Current Time] {line}")
+        # Stable head extras only. The tool policy text no longer enumerates
+        # tool names, so it is byte-identical across turns for a deployment.
         if tools and cfg.chat_append_tool_use_instruction:
-            extra_parts.append(build_tool_use_instruction(tools))
-        if tools and prompt and _UPLOAD_PATH_RE.search(prompt):
-            if upload_mode == "vision":
-                extra_parts.append(UPLOAD_FILE_INSTRUCTION)
-            else:
-                if _prompt_has_non_image_upload_paths(prompt):
-                    extra_parts.append(UPLOAD_FILE_INSTRUCTION)
-                if _UPLOAD_IMAGE_PATH_RE.search(prompt):
-                    extra_parts.append(NO_VISION_IMAGE_UPLOAD_INSTRUCTION)
-        if extra_parts:
             messages[0] = {
                 "role": "system",
-                "content": messages[0]["content"] + "".join(extra_parts),
+                "content": messages[0]["content"] + build_tool_use_instruction(tools),
             }
 
+    tail_notes: list[str] = []
+    if cfg.chat_append_current_time:
+        line = format_user_facing_time(datetime.now(timezone.utc), cfg.local_timezone)
+        tail_notes.append(f"[Current Time] {line}")
+    if tools and prompt and _UPLOAD_PATH_RE.search(prompt):
+        if upload_mode == "vision":
+            tail_notes.append(UPLOAD_FILE_INSTRUCTION.strip())
+        else:
+            if _prompt_has_non_image_upload_paths(prompt):
+                tail_notes.append(UPLOAD_FILE_INSTRUCTION.strip())
+            if _UPLOAD_IMAGE_PATH_RE.search(prompt):
+                tail_notes.append(NO_VISION_IMAGE_UPLOAD_INSTRUCTION.strip())
+
     _add_ephemeral_messages(messages, ephemeral_messages)
+    for note in tail_notes:
+        messages.append({"role": "system", "content": note})
     if prompt:
         messages.append({"role": "user", "content": prompt})
 

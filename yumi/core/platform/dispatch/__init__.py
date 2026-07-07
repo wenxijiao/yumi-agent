@@ -21,6 +21,7 @@ from yumi.core.platform.dispatch.limits import (
     MAX_TOOL_CALL_FORMAT_RETRIES,
     MAX_TOOL_LOOPS,
     TOOL_CALL_TIMEOUT_DEFAULT,
+    TOOL_RESULT_MAX_CHARS,
 )
 from yumi.core.platform.dispatch.local import LocalToolExecutor
 from yumi.core.platform.dispatch.normalizer import NormalizationOutcome, ToolCallNormalizer, summarize_tool_args
@@ -35,6 +36,7 @@ __all__ = [
     "MAX_TOOL_LOOPS",
     "NormalizationOutcome",
     "TOOL_CALL_TIMEOUT_DEFAULT",
+    "TOOL_RESULT_MAX_CHARS",
     "ToolCallNormalizer",
     "ToolDispatcher",
     "ToolInvocation",

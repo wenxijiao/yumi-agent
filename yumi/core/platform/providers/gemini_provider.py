@@ -314,6 +314,13 @@ class GeminiProvider(BaseLLMProvider):
     def _build_contents(self, messages: list[dict[str, Any]]) -> tuple[str | None, list[Any]]:
         """Split messages into an optional system instruction and Gemini content list.
 
+        Only the LEADING run of system messages becomes ``system_instruction``
+        (the stable, cacheable prefix). System notes appearing later — per-turn
+        runtime context, current time, retrieved memories — are rendered in
+        place as ``<system-reminder>`` user turns so Gemini's implicit prompt
+        caching keeps matching the unchanged prefix instead of being
+        invalidated every turn by content hoisted to the front.
+
         After building individual Content objects the method merges consecutive
         same-role entries so the payload satisfies Gemini's turn-ordering rules
         (e.g. parallel tool responses → single ``function`` Content).
@@ -322,17 +329,27 @@ class GeminiProvider(BaseLLMProvider):
 
         system_instruction = None
         contents: list[Any] = []
+        in_leading_system = True
 
         for msg in messages:
             role = msg.get("role", "user")
             content = msg.get("content", "")
 
             if role == "system":
-                if system_instruction is None:
-                    system_instruction = content
-                else:
-                    system_instruction += "\n" + content
+                if in_leading_system:
+                    if system_instruction is None:
+                        system_instruction = content
+                    else:
+                        system_instruction += "\n" + content
+                elif content:
+                    contents.append(
+                        types.Content(
+                            role="user",
+                            parts=[types.Part(text=f"<system-reminder>\n{content}\n</system-reminder>")],
+                        )
+                    )
                 continue
+            in_leading_system = False
 
             if role == "tool":
                 contents.append(
@@ -450,8 +467,17 @@ class GeminiProvider(BaseLLMProvider):
             if last_usage is not None:
                 pt = int(getattr(last_usage, "prompt_token_count", None) or 0)
                 ct = int(getattr(last_usage, "candidates_token_count", None) or 0)
+                cached = int(getattr(last_usage, "cached_content_token_count", None) or 0)
                 if pt or ct:
-                    yield {"type": "usage", "prompt_tokens": pt, "completion_tokens": ct, "model": model}
+                    payload: dict[str, Any] = {
+                        "type": "usage",
+                        "prompt_tokens": pt,
+                        "completion_tokens": ct,
+                        "model": model,
+                    }
+                    if cached:
+                        payload["cached_prompt_tokens"] = cached
+                    yield payload
 
             if collected_tool_calls:
                 yield {"type": "tool_call", "tool_calls": collected_tool_calls}

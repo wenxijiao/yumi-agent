@@ -27,6 +27,7 @@ from yumi.core.platform.dispatch import (
     MAX_TOOL_CALL_FORMAT_RETRIES,
     MAX_TOOL_LOOPS,
     TOOL_CALL_TIMEOUT_DEFAULT,
+    TOOL_RESULT_MAX_CHARS,
     ConfirmationGate,
     EdgeToolExecutor,
     LocalToolExecutor,
@@ -44,6 +45,7 @@ from yumi.core.platform.plugins import (
     get_session_scope,
 )
 from yumi.core.platform.runtime import RuntimeState, get_default_runtime
+from yumi.core.platform.runtime.tool_catalog import model_visible_tool_schema
 from yumi.core.platform.tools.context_prefetch import runtime_context_prompt_block
 from yumi.core.platform.tools.routing import select_tool_schemas
 from yumi.logging_config import get_logger
@@ -101,6 +103,22 @@ def _persist_tool_ephemeral_spans(messages: list[dict], session_id: str, bot) ->
         memory.persist_openai_messages(turn)
     for i, j in reversed(spans):
         del messages[i:j]
+
+
+def _truncate_tool_result(result) -> str:
+    """Bound tool-result text before it enters the context (and the transcript).
+
+    Keeps head and tail with an explicit truncation marker so the model knows
+    content was elided. Without a cap, one oversized edge/tool payload gets
+    re-billed on every request that replays it from the recent-message window.
+    """
+    text = result if isinstance(result, str) else str(result)
+    if len(text) <= TOOL_RESULT_MAX_CHARS:
+        return text
+    head = TOOL_RESULT_MAX_CHARS * 3 // 4
+    tail = TOOL_RESULT_MAX_CHARS - head
+    omitted = len(text) - head - tail
+    return f"{text[:head]}\n...[tool result truncated: {omitted} of {len(text)} chars omitted]...\n{text[-tail:]}"
 
 
 def _append_system_note(ctx: TurnContext, content: str | None) -> None:
@@ -246,6 +264,13 @@ class ChatTurnService:
         _append_system_note(ctx, runtime_context)
         _append_system_note(ctx, build_turn_language_note(ctx.prompt))
 
+        # Tool routing runs ONCE per turn. Re-selecting inside the loop churned
+        # the tool list between iterations (forced edge tools grow mid-turn),
+        # and any change to the tools array invalidates the provider prompt
+        # cache for the whole request. Newly activated edge tools are instead
+        # appended to the frozen list below, preserving the existing prefix.
+        turn_tools = await self._select_tools(ctx, routing_query)
+
         while True:
             ctx.loop_count += 1
             if ctx.loop_count > MAX_TOOL_LOOPS:
@@ -253,7 +278,8 @@ class ChatTurnService:
                     yield event
                 return
 
-            tools = await self._select_tools(ctx, routing_query)
+            turn_tools = self._with_forced_edge_tools(turn_tools, ctx)
+            tools = turn_tools
             ctx.last_tools = tools
 
             tool_calls_to_process, streamed_text, streamed_reasoning = None, "", ""
@@ -396,7 +422,7 @@ class ChatTurnService:
                 ctx.ephemeral_messages.append(
                     {
                         "role": "tool",
-                        "content": result.result,
+                        "content": _truncate_tool_result(result.result),
                         "name": inv.tool_message_name,
                         "tool_call_id": inv.tool_call_id,
                     }
@@ -426,6 +452,32 @@ class ChatTurnService:
         if ctx.timer_callback:
             tools = _exclude_delay_scheduling_tools(tools)
         return tools
+
+    def _with_forced_edge_tools(self, tools: list | None, ctx: TurnContext) -> list | None:
+        """Append schemas for edge tools activated mid-turn without re-ranking.
+
+        Appending (in sorted order) keeps the already-sent tool prefix stable;
+        a full re-selection would reorder the list and invalidate the provider
+        prompt cache from position zero.
+        """
+        if not ctx.active_edge_tool_names:
+            return tools
+        present = {
+            t["function"].get("name")
+            for t in (tools or [])
+            if isinstance(t, dict) and isinstance(t.get("function"), dict)
+        }
+        missing = sorted(name for name in ctx.active_edge_tool_names if name not in present)
+        if not missing:
+            return tools
+        out = list(tools or [])
+        for name in missing:
+            for edge_tools in self.runtime.edge_registry.tools.values():
+                entry = edge_tools.get(name)
+                if entry and entry.get("schema"):
+                    out.append(model_visible_tool_schema(entry["schema"]))
+                    break
+        return out or None
 
     async def _emit_loop_exhausted(self, ctx: TurnContext, sink: ChatTraceSink) -> AsyncIterator[dict]:
         diag = sink.write_loop_diagnostic(max_tool_loops=MAX_TOOL_LOOPS)

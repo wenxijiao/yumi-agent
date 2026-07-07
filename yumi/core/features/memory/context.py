@@ -71,20 +71,26 @@ class ContextBuilder:
         else:
             max_cross = max(0, min(100, int(max_cross_session)))
 
+        # Layer order is deliberate for provider prompt caching: the stable
+        # prefix (system prompt, stable user context, transcript) comes first;
+        # query-driven blocks change every turn, so they go AFTER the
+        # transcript — otherwise they invalidate the cached history prefix on
+        # every request.
         formatted_messages = [self.memory.get_system_message()]
         stable_context = self._stable_user_context_message()
         if stable_context:
             formatted_messages.append(stable_context)
+
+        formatted_messages.extend(self._recent_transcript(max_recent, peer_session_ids, exclude_message_ids))
+
         if query:
             structured = self._structured_memory_message(query, limit=max_cross)
             if structured:
                 formatted_messages.append(structured)
 
-            summary = self._session_summary_message()
-            if summary:
-                formatted_messages.append(summary)
-        elif self._session_summary_message():
-            formatted_messages.append(self._session_summary_message())
+        summary = self._session_summary_message()
+        if summary:
+            formatted_messages.append(summary)
 
         if query and max_cross > 0:
             related = self.memory.build_related_memory_message(
@@ -93,7 +99,6 @@ class ContextBuilder:
             if related:
                 formatted_messages.append(related)
 
-        formatted_messages.extend(self._recent_transcript(max_recent, peer_session_ids, exclude_message_ids))
         return formatted_messages
 
     def _stable_user_context_message(self) -> dict | None:

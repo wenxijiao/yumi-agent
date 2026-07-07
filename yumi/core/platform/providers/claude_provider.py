@@ -8,7 +8,12 @@ from yumi.core.platform.providers.base import BaseLLMProvider
 
 
 def _convert_tools_to_claude(tools: list[dict] | None) -> list[dict] | None:
-    """Convert OpenAI-style tool schemas to Anthropic tool format."""
+    """Convert OpenAI-style tool schemas to Anthropic tool format.
+
+    The last tool carries a ``cache_control`` breakpoint: tools render first in
+    the prompt, so this caches the whole tool block across loop iterations and
+    turns (as long as the tool list itself is stable — see chat service).
+    """
     if not tools:
         return None
 
@@ -22,6 +27,8 @@ def _convert_tools_to_claude(tools: list[dict] | None) -> list[dict] | None:
                 "input_schema": fn.get("parameters", {"type": "object", "properties": {}}),
             }
         )
+    if converted:
+        converted[-1]["cache_control"] = {"type": "ephemeral"}
     return converted
 
 
@@ -29,12 +36,20 @@ def _build_claude_messages(messages: list[dict[str, Any]]) -> tuple[str | None, 
     """Split messages into an optional system prompt and Claude content list.
 
     Anthropic requires system as a top-level parameter, not inside messages.
-    Tool-result and assistant tool_calls messages are converted to
-    Anthropic's ``tool_use`` / ``tool_result`` content block format.
+    Only the LEADING run of system messages is hoisted there — those are the
+    stable, cacheable layers (base prompt, stable user context). System notes
+    appearing later (per-turn runtime context, current time, retrieved
+    memories) are rendered in place as ``<system-reminder>`` user text, so the
+    cached prefix (tools → system → history) stays byte-identical between
+    requests instead of churning every turn.
+
+    Tool-result and assistant tool_calls messages are converted to Anthropic's
+    ``tool_use`` / ``tool_result`` content block format.
     """
     system_parts: list[str] = []
     claude_messages: list[dict] = []
     pending_tool_uses: list[dict[str, str]] = []
+    in_leading_system = True
 
     def _take_tool_use_id(tool_msg: dict[str, Any]) -> str:
         explicit = tool_msg.get("tool_call_id")
@@ -59,9 +74,18 @@ def _build_claude_messages(messages: list[dict[str, Any]]) -> tuple[str | None, 
         content = msg.get("content", "")
 
         if role == "system":
-            if content:
-                system_parts.append(content)
+            if in_leading_system:
+                if content:
+                    system_parts.append(content)
+            elif content:
+                claude_messages.append(
+                    {
+                        "role": "user",
+                        "content": f"<system-reminder>\n{content}\n</system-reminder>",
+                    }
+                )
             continue
+        in_leading_system = False
 
         if role == "tool":
             tool_use_id = _take_tool_use_id(msg)
@@ -110,6 +134,27 @@ def _build_claude_messages(messages: list[dict[str, Any]]) -> tuple[str | None, 
     return system_text, claude_messages
 
 
+def _mark_last_message_cache_breakpoint(claude_messages: list[dict]) -> None:
+    """Place a ``cache_control`` breakpoint on the last cacheable content block.
+
+    Standard multi-turn pattern: each request marks its newest tail, so the
+    next request (loop iteration or user turn) reads the whole prior
+    conversation from cache and only pays full price for what was appended.
+    """
+    for msg in reversed(claude_messages):
+        content = msg.get("content")
+        if isinstance(content, str):
+            if not content.strip():
+                continue
+            msg["content"] = [
+                {"type": "text", "text": content, "cache_control": {"type": "ephemeral"}}
+            ]
+            return
+        if isinstance(content, list) and content and isinstance(content[-1], dict):
+            content[-1]["cache_control"] = {"type": "ephemeral"}
+            return
+
+
 def _max_tokens_for_model(model: str) -> int:
     normalized = (model or "").lower()
     if normalized.startswith("claude-3-opus"):
@@ -141,6 +186,7 @@ class ClaudeProvider(BaseLLMProvider):
         think: bool = False,
     ) -> AsyncIterator[dict]:
         system_text, claude_messages = _build_claude_messages(messages)
+        _mark_last_message_cache_breakpoint(claude_messages)
 
         kwargs: dict[str, Any] = {
             "model": model,
@@ -149,7 +195,12 @@ class ClaudeProvider(BaseLLMProvider):
         }
 
         if system_text:
-            kwargs["system"] = system_text
+            # Block form so the stable system prefix can carry a cache
+            # breakpoint (a plain string cannot). Together with the tools and
+            # last-message breakpoints this uses 3 of the 4 allowed markers.
+            kwargs["system"] = [
+                {"type": "text", "text": system_text, "cache_control": {"type": "ephemeral"}}
+            ]
 
         claude_tools = _convert_tools_to_claude(tools)
         if claude_tools:
@@ -202,8 +253,23 @@ class ClaudeProvider(BaseLLMProvider):
                 if u is not None:
                     pt = int(getattr(u, "input_tokens", None) or 0)
                     ct = int(getattr(u, "output_tokens", None) or 0)
-                    if pt or ct:
-                        yield {"type": "usage", "prompt_tokens": pt, "completion_tokens": ct, "model": model}
+                    cache_read = int(getattr(u, "cache_read_input_tokens", None) or 0)
+                    cache_write = int(getattr(u, "cache_creation_input_tokens", None) or 0)
+                    if pt or ct or cache_read or cache_write:
+                        payload: dict[str, Any] = {
+                            "type": "usage",
+                            # input_tokens excludes cached tokens; report the full
+                            # prompt size so quota accounting stays comparable
+                            # across providers.
+                            "prompt_tokens": pt + cache_read + cache_write,
+                            "completion_tokens": ct,
+                            "model": model,
+                        }
+                        if cache_read:
+                            payload["cached_prompt_tokens"] = cache_read
+                        if cache_write:
+                            payload["cache_write_prompt_tokens"] = cache_write
+                        yield payload
             except Exception:
                 pass
 
@@ -218,9 +284,9 @@ class ClaudeProvider(BaseLLMProvider):
 
     def list_models(self) -> list[str]:
         return [
-            "claude-sonnet-4-20250514",
-            "claude-haiku-4-20250414",
-            "claude-3-5-sonnet-20241022",
-            "claude-3-5-haiku-20241022",
-            "claude-3-opus-20240229",
+            "claude-opus-4-8",
+            "claude-opus-4-7",
+            "claude-sonnet-5",
+            "claude-sonnet-4-6",
+            "claude-haiku-4-5",
         ]

@@ -45,16 +45,21 @@ def _tool_names(tools: list[dict] | None) -> list[str]:
 
 
 def build_tool_use_instruction(tools: list[dict] | None) -> str:
-    """Build tool policy from the exact schemas exposed in this model turn."""
+    """Build the tool policy for this model turn.
+
+    Deliberately does NOT enumerate tool names: the schemas are already in the
+    request's ``tools`` parameter, and repeating the (turn-varying) name list
+    here would both duplicate tokens and change the system prompt every turn,
+    breaking provider prompt caching. Only stable, policy-level text plus
+    sections conditional on always-present core tools may appear here.
+    """
     names = _tool_names(tools)
-    listed = ", ".join(f"`{name}`" for name in names) if names else "(none)"
     available = set(names)
     parts = [
         "\n\n[Tool Use Policy]\n",
-        f"Available callable tools in this turn: {listed}.\n",
-        "Only claim or call tools that are listed above. Do not infer extra tools from examples, docs, "
-        "demos, prior sessions, or general knowledge. If the user asks what tools you have, answer from "
-        "this list only.\n",
+        "Only claim or call tools that are exposed in this request's tool list. Do not infer extra "
+        "tools from examples, docs, demos, prior sessions, or general knowledge. If the user asks what "
+        "tools you have, answer from the currently exposed tools only.\n",
         "Tool confirmation is enforced by Yumi's runtime. Do not try to bypass confirmation, split a "
         "sensitive action across other tools, or tell the user an action finished before a tool result "
         "confirms it.\n",
@@ -79,7 +84,7 @@ def build_tool_use_instruction(tools: list[dict] | None) -> str:
             "tools available then.\n"
         )
     parts.append(
-        "For any other requested action, call the matching listed tool when one exists; otherwise say that no "
+        "For any other requested action, call the matching exposed tool when one exists; otherwise say that no "
         "tool for that action is currently available."
     )
     return "".join(parts)

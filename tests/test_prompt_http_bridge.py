@@ -18,7 +18,10 @@ def test_format_effective_prompt_reply() -> None:
     assert "hi" in text
 
 
-def test_tool_use_instruction_lists_only_current_tools() -> None:
+def test_tool_use_instruction_does_not_enumerate_tool_names() -> None:
+    """Tool names live in the request's ``tools`` schema list, not the system
+    prompt: enumerating them there would duplicate tokens and change the
+    prompt prefix every turn, breaking provider prompt caching."""
     text = build_tool_use_instruction(
         [
             {"type": "function", "function": {"name": "read_file", "description": "Read files"}},
@@ -26,19 +29,32 @@ def test_tool_use_instruction_lists_only_current_tools() -> None:
         ]
     )
 
-    assert "Available callable tools in this turn: `read_file`, `get_weather`." in text
-    assert "Only claim or call tools that are listed above" in text
-    assert "lights" not in text
-    assert "temperature" not in text
-    assert "gates" not in text
-    assert "Smart Home" not in text
+    assert "Available callable tools in this turn" not in text
+    assert "get_weather" not in text
+    assert "Only claim or call tools that are exposed" in text
+    # read_file guidance IS conditional on read_file being available.
+    assert "read_file" in text
+
+
+def test_tool_use_instruction_is_stable_across_tool_selections() -> None:
+    """Two turns with different non-core tool selections must produce a
+    byte-identical instruction, otherwise the system prompt churns per turn."""
+    a = build_tool_use_instruction([{"type": "function", "function": {"name": "web_search"}}])
+    b = build_tool_use_instruction(
+        [
+            {"type": "function", "function": {"name": "edge_home__toggle_light"}},
+            {"type": "function", "function": {"name": "get_weather"}},
+        ]
+    )
+
+    assert a == b
+    assert "web_search" not in a
 
 
 def test_tool_use_instruction_does_not_force_unavailable_file_tool() -> None:
     text = build_tool_use_instruction([{"type": "function", "function": {"name": "web_search"}}])
 
     assert "read_file" not in text
-    assert "web_search" in text
 
 
 def test_upload_instruction_is_conditional_on_read_file_availability() -> None:
