@@ -20,7 +20,12 @@ def create_tts_provider(config: ModelConfig | None = None) -> TextToSpeechProvid
     if provider == "openai":
         from yumi.core.features.tts.openai_provider import OpenAiTtsProvider
 
-        return OpenAiTtsProvider(model=cfg.tts_model, voice=cfg.tts_voice, language=cfg.tts_language)
+        return OpenAiTtsProvider(
+            model=cfg.tts_model,
+            voice=cfg.tts_voice,
+            language=cfg.tts_language,
+            style=cfg.tts_style,
+        )
     if provider == "dashscope":
         from yumi.core.features.tts.dashscope_provider import DashScopeTtsProvider
 
@@ -38,6 +43,7 @@ def create_tts_provider(config: ModelConfig | None = None) -> TextToSpeechProvid
             model=cfg.tts_model,
             voice=cfg.tts_voice,
             language=cfg.tts_language,
+            style=cfg.tts_style,
         )
     if provider == "grok":
         from yumi.core.features.tts.grok_provider import GrokTtsProvider

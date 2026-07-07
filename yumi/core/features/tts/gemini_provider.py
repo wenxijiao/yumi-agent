@@ -89,6 +89,7 @@ class GeminiTtsProvider(TextToSpeechProvider):
         model: str | None = None,
         voice: str | None = None,
         language: str | None = None,
+        style: str | None = None,
     ):
         try:
             from google import genai
@@ -106,6 +107,7 @@ class GeminiTtsProvider(TextToSpeechProvider):
         self._model = model or DEFAULT_MODEL
         self._voice = voice or DEFAULT_VOICE
         self._language = language or "auto"
+        self._style = (style or "").strip()
 
     async def synthesize(
         self,
@@ -118,6 +120,13 @@ class GeminiTtsProvider(TextToSpeechProvider):
 
     def _synthesize_sync(self, text: str, voice: str, language: str | None) -> SpeechAudio:
         from google.genai import types
+
+        # Gemini TTS steers delivery (tone, persona, pacing) through natural-
+        # language directions in the prompt itself — there is no speaking-rate
+        # parameter. The "Say <how>: <text>" shape is the documented pattern;
+        # the instruction is not spoken.
+        if self._style:
+            text = f"Say the following {self._style}:\n\n{text}"
 
         speech_kwargs: dict[str, Any] = {
             "voice_config": types.VoiceConfig(

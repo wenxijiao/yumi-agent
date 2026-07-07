@@ -129,6 +129,11 @@ class ModelConfig(BaseModel):
     tts_model: str | None = None
     tts_api_key: str | None = None
     tts_language: str = "auto"
+    # Free-text delivery instruction for providers with natural-language style
+    # control (gemini: prepended to the synthesis prompt; openai gpt-4o-*-tts:
+    # sent as `instructions`). E.g. "speak as a cheerful young girl, light and
+    # sweet, at a brisk natural pace". Ignored by providers without support.
+    tts_style: str | None = None
 
     @field_validator("search_provider")
     @classmethod

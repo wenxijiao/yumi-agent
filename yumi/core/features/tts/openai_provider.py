@@ -19,10 +19,18 @@ DEFAULT_OPENAI_TTS_VOICE = "alloy"
 
 
 class OpenAiTtsProvider(TextToSpeechProvider):
-    def __init__(self, *, model: str | None = None, voice: str | None = None, language: str | None = None):
+    def __init__(
+        self,
+        *,
+        model: str | None = None,
+        voice: str | None = None,
+        language: str | None = None,
+        style: str | None = None,
+    ):
         self._model = model or DEFAULT_OPENAI_TTS_MODEL
         self._voice = voice or DEFAULT_OPENAI_TTS_VOICE
         self._language = language
+        self._style = (style or "").strip()
 
     async def synthesize(
         self,
@@ -47,12 +55,17 @@ class OpenAiTtsProvider(TextToSpeechProvider):
             chosen_voice = DEFAULT_OPENAI_TTS_VOICE
         client = AsyncOpenAI(api_key=api_key)
         try:
-            response = await client.audio.speech.create(
-                model=self._model,
-                voice=chosen_voice,
-                input=text,
-                response_format="wav",
-            )
+            kwargs: dict = {
+                "model": self._model,
+                "voice": chosen_voice,
+                "input": text,
+                "response_format": "wav",
+            }
+            # Delivery instructions (tone/persona/pace) are a gpt-4o-*-tts
+            # feature; the legacy tts-1 models reject the parameter.
+            if self._style and not self._model.startswith("tts-1"):
+                kwargs["instructions"] = self._style
+            response = await client.audio.speech.create(**kwargs)
             data = _response_bytes(response)
         except Exception as exc:
             raise TtsError(f"OpenAI TTS failed: {exc}") from exc
