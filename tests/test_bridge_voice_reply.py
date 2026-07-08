@@ -21,21 +21,25 @@ def test_telegram_send_voice_reply_uploads_audio(monkeypatch):
     async def fake_synth(text, *, config=None):
         return types.SimpleNamespace(data=b"WAVDATA", format="wav")
 
+    def fake_voice(audio):
+        return types.SimpleNamespace(data=audio.data + b"_OGG", duration_secs=1.6)
+
     monkeypatch.setattr("yumi.core.features.tts.playback.synthesize_with_fallback", fake_synth)
+    monkeypatch.setattr("yumi.core.features.tts.voice_message.to_ogg_opus_voice", fake_voice)
     sent = {}
 
     class FakeBot:
-        async def send_audio(self, chat_id, audio, caption=None):
-            sent.update(chat_id=chat_id, name=audio.name, data=audio.read(), caption=caption)
+        async def send_voice(self, chat_id, voice, duration=None):
+            sent.update(chat_id=chat_id, name=voice.name, data=voice.read(), duration=duration)
 
     context = types.SimpleNamespace(bot=FakeBot())
     ok = asyncio.run(bot._send_voice_reply(context, 42, "hello there"))
 
     assert ok is True
     assert sent["chat_id"] == 42
-    assert sent["data"] == b"WAVDATA"
-    assert sent["name"].endswith(".wav")
-    assert sent["caption"] == "hello there"
+    assert sent["data"] == b"WAVDATA_OGG"
+    assert sent["name"].endswith(".ogg")
+    assert sent["duration"] == 2
 
 
 def test_telegram_send_voice_reply_returns_false_on_failure(monkeypatch):

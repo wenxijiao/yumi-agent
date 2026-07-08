@@ -146,9 +146,7 @@ def _mark_last_message_cache_breakpoint(claude_messages: list[dict]) -> None:
         if isinstance(content, str):
             if not content.strip():
                 continue
-            msg["content"] = [
-                {"type": "text", "text": content, "cache_control": {"type": "ephemeral"}}
-            ]
+            msg["content"] = [{"type": "text", "text": content, "cache_control": {"type": "ephemeral"}}]
             return
         if isinstance(content, list) and content and isinstance(content[-1], dict):
             content[-1]["cache_control"] = {"type": "ephemeral"}
@@ -198,9 +196,7 @@ class ClaudeProvider(BaseLLMProvider):
             # Block form so the stable system prefix can carry a cache
             # breakpoint (a plain string cannot). Together with the tools and
             # last-message breakpoints this uses 3 of the 4 allowed markers.
-            kwargs["system"] = [
-                {"type": "text", "text": system_text, "cache_control": {"type": "ephemeral"}}
-            ]
+            kwargs["system"] = [{"type": "text", "text": system_text, "cache_control": {"type": "ephemeral"}}]
 
         claude_tools = _convert_tools_to_claude(tools)
         if claude_tools:

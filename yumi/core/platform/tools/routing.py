@@ -545,7 +545,9 @@ def select_tool_schemas(
     pinned_names = {entry.name for entry in pinned_entries}
     forced_names_present = {entry.name for entry in forced_entries}
     mentioned_only_entries = [
-        entry for entry in mentioned_entries if entry.name not in pinned_names and entry.name not in forced_names_present
+        entry
+        for entry in mentioned_entries
+        if entry.name not in pinned_names and entry.name not in forced_names_present
     ]
     retrieved_entries: list[ToolCatalogEntry] = []
 

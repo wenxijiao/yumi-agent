@@ -207,8 +207,7 @@ class ContextBuilder:
                     current_excluded_in_window = sum(
                         1
                         for r in results
-                        if r.get("session_id") == self.memory.session_id
-                        and str(r.get("id") or "") in excluded_ids
+                        if r.get("session_id") == self.memory.session_id and str(r.get("id") or "") in excluded_ids
                     )
                     results = _exclude(results)
                     if peer_session_ids:

@@ -31,8 +31,7 @@ USER_AGENT = "Mozilla/5.0 (compatible; YumiAgent/0.1)"
 # Page fetches use a browser-like UA: many news/article sites 403 anything
 # that self-identifies as a bot, and fetch_webpage exists to read exactly those.
 BROWSER_USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 )
 
 # Accepted values for the web_search ``time_range`` argument (aliases included).
@@ -124,12 +123,7 @@ class FetchUrlBlocked(ValueError):
 def _is_public_ip_address(address: str) -> bool:
     ip = ipaddress.ip_address(address)
     return ip.is_global and not (
-        ip.is_private
-        or ip.is_loopback
-        or ip.is_link_local
-        or ip.is_multicast
-        or ip.is_reserved
-        or ip.is_unspecified
+        ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_reserved or ip.is_unspecified
     )
 
 

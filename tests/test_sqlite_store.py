@@ -130,17 +130,48 @@ def test_writes_during_rebuild_go_to_sqlite_and_are_caught_up(tmp_path):
     # Simulate a turn that writes while a rebuild is in progress: SQLite (the
     # source of truth) gets it, but the live LanceDB index write is skipped so it
     # can't duplicate a row the rebuild is also adding.
-    memmod._REBUILD_ACTIVE.set()
+    memmod._mark_rebuild_active(m.db_dir)
     try:
         m.add_message("user", "two")
         assert m.sqlite.active_event_count() == 2
         assert m.messages.count() == 1  # index write skipped during the rebuild
     finally:
-        memmod._REBUILD_ACTIVE.clear()
+        memmod._clear_rebuild_active(m.db_dir)
 
     # A real rebuild indexes everything from SQLite, with no duplicates.
     assert m.rebuild_index_from_sqlite() == 2
     assert m.verify_index()["ok"] is True
+
+
+def test_rebuild_marker_is_scoped_to_storage_dir(tmp_path):
+    from yumi.core.features.memory import memory as memmod
+
+    rebuilding = Memory(session_id="s1", storage_dir=tmp_path / "rebuilding", max_recent=50)
+    other = Memory(session_id="s2", storage_dir=tmp_path / "other", max_recent=50)
+
+    memmod._mark_rebuild_active(rebuilding.db_dir)
+    try:
+        other.add_message("user", "still indexed")
+        assert other.messages.count() == 1
+        assert other.search_messages("still indexed", session_id="s2", limit=5)
+    finally:
+        memmod._clear_rebuild_active(rebuilding.db_dir)
+
+
+def test_rebuild_lock_is_scoped_to_storage_dir(tmp_path):
+    from yumi.core.features.memory import memory as memmod
+
+    rebuilding = Memory(session_id="s1", storage_dir=tmp_path / "rebuilding-lock", max_recent=50)
+    other = Memory(session_id="s2", storage_dir=tmp_path / "other-lock", max_recent=50)
+    other.add_message("user", "repair me")
+    other.db.drop_table("chat_history", ignore_missing=True)
+
+    lock = memmod._rebuild_lock_for(rebuilding.db_dir)
+    assert lock.acquire(blocking=False) is True
+    try:
+        assert other.rebuild_index_from_sqlite() == 1
+    finally:
+        lock.release()
 
 
 def test_upload_metadata_is_recorded_in_sqlite(tmp_path, monkeypatch):

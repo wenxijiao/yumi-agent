@@ -21,11 +21,7 @@ def test_stable_user_context_is_included_as_own_system_layer():
         )
 
         ctx = memory.get_context(query="How should we deploy?")
-        stable = [
-            msg
-            for msg in ctx
-            if msg["role"] == "system" and msg["content"].startswith("Stable User Context:")
-        ]
+        stable = [msg for msg in ctx if msg["role"] == "system" and msg["content"].startswith("Stable User Context:")]
 
         assert stable
         assert "durable memories" in stable[0]["content"]
@@ -98,11 +94,11 @@ def test_current_prompt_is_final_user_layer_not_recent_history_duplicate():
             exclude_message_ids={current_id},
         )
 
-        user_texts = [
-            msg.get("content")
-            for msg in messages
-            if msg.get("role") == "user" and isinstance(msg.get("content"), str)
-        ]
+        user_texts: list[str] = []
+        for msg in messages:
+            content = msg.get("content")
+            if msg.get("role") == "user" and isinstance(content, str):
+                user_texts.append(content)
         assert user_texts[-1] == "current question"
         assert sum("current question" in text for text in user_texts) == 1
         assert any("older note" in text for text in user_texts)

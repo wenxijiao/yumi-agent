@@ -61,12 +61,38 @@ from yumi.logging_config import get_logger
 
 logger = get_logger(__name__)
 
-# Process-wide guard for LanceDB index rebuilds. While a rebuild runs, foreground
-# writes go to SQLite (the source of truth) but SKIP the LanceDB index write, so
-# they can't create duplicate rows racing the rebuild; the rebuild's catch-up
-# passes re-read SQLite and index them. ``_REBUILD_LOCK`` serializes rebuilds.
-_REBUILD_LOCK = threading.Lock()
-_REBUILD_ACTIVE = threading.Event()
+# Process-wide guard for LanceDB index rebuilds. While a rebuild runs for a
+# specific db_dir, foreground writes to that same store go to SQLite (the source
+# of truth) but skip the LanceDB index write, so they can't create duplicate rows
+# racing the rebuild; the rebuild's catch-up passes re-read SQLite and index
+# them. Rebuild locks and active markers are scoped by db_dir, so one store's
+# background repair cannot suppress or block work in another store.
+_REBUILD_LOCKS: dict[str, threading.Lock] = {}
+_REBUILD_LOCKS_LOCK = threading.Lock()
+_REBUILD_ACTIVE_DIRS: set[str] = set()
+_REBUILD_ACTIVE_DIRS_LOCK = threading.Lock()
+
+
+def _rebuild_lock_for(db_dir: str) -> threading.Lock:
+    with _REBUILD_LOCKS_LOCK:
+        if db_dir not in _REBUILD_LOCKS:
+            _REBUILD_LOCKS[db_dir] = threading.Lock()
+        return _REBUILD_LOCKS[db_dir]
+
+
+def _mark_rebuild_active(db_dir: str) -> None:
+    with _REBUILD_ACTIVE_DIRS_LOCK:
+        _REBUILD_ACTIVE_DIRS.add(db_dir)
+
+
+def _clear_rebuild_active(db_dir: str) -> None:
+    with _REBUILD_ACTIVE_DIRS_LOCK:
+        _REBUILD_ACTIVE_DIRS.discard(db_dir)
+
+
+def _rebuild_active_for(db_dir: str) -> bool:
+    with _REBUILD_ACTIVE_DIRS_LOCK:
+        return db_dir in _REBUILD_ACTIVE_DIRS
 
 
 # Forensic helpers re-exported for external callers (writer.py / context.py).
@@ -104,7 +130,7 @@ class Memory:
     """
 
     def __init__(self, session_id: str = "default", system_prompt=None, storage_dir=None, max_recent: int = 10):
-        self.db_dir = storage_dir if storage_dir else str(migrate_legacy_memory_dir())
+        self.db_dir = str(storage_dir) if storage_dir else str(migrate_legacy_memory_dir())
         self.session_id = session_id
         self.max_recent = max_recent
         # ``system_prompt`` is intentionally ignored — callers persist via
@@ -174,8 +200,8 @@ class Memory:
         current model). SQLite is the source of truth; LanceDB rows are derived.
 
         Runs bounded catch-up passes: each pass re-reads SQLite and indexes only
-        ids not yet indexed, so messages written *during* the rebuild (which skip
-        the live index write — see ``_REBUILD_ACTIVE``) still get indexed, without
+        ids not yet indexed, so messages written *during* this store's rebuild
+        (which skip the live index write) still get indexed, without
         ever adding a row twice.
         """
         indexed: set[str] = set()
@@ -213,17 +239,18 @@ class Memory:
         regenerated from canonical content) or to repair any drift. Returns the
         number of messages re-indexed.
         """
-        if not _REBUILD_LOCK.acquire(blocking=False):
+        rebuild_lock = _rebuild_lock_for(self.db_dir)
+        if not rebuild_lock.acquire(blocking=False):
             logger.info("Index rebuild already in progress; skipping duplicate request.")
             return 0
-        _REBUILD_ACTIVE.set()
+        _mark_rebuild_active(self.db_dir)
         try:
             self.backend.db.drop_table(self.table_name, ignore_missing=True)
             self.messages.init_table()
             return self._rebuild_messages_from_sqlite()
         finally:
-            _REBUILD_ACTIVE.clear()
-            _REBUILD_LOCK.release()
+            _clear_rebuild_active(self.db_dir)
+            rebuild_lock.release()
 
     def verify_index(self) -> dict:
         """Cheap (O(1)) integrity check of the LanceDB index against SQLite.
@@ -365,7 +392,7 @@ class Memory:
     def delete_message(self, message_id: str) -> bool:
         # SQLite is authoritative; the LanceDB index is a derived best-effort mirror.
         deleted = self.sqlite.delete_message(message_id)
-        if not _REBUILD_ACTIVE.is_set():
+        if not _rebuild_active_for(self.db_dir):
             try:
                 self.messages.delete(message_id)
             except Exception as exc:
@@ -459,9 +486,10 @@ class Memory:
         self.sqlite.upsert_event_from_message(record)
 
         # 2) Derived index — best-effort; failures are logged and reconciled later.
-        #    Skipped while a rebuild is running (the rebuild will index this row from
-        #    SQLite), so a concurrent turn can't add a duplicate racing the rebuild.
-        if not _REBUILD_ACTIVE.is_set():
+        #    Skipped while this store is rebuilding (the rebuild will index this
+        #    row from SQLite), so a concurrent turn can't add a duplicate racing
+        #    the rebuild.
+        if not _rebuild_active_for(self.db_dir):
             try:
                 self.messages.create(
                     session_id=record["session_id"],
