@@ -64,8 +64,11 @@ def _restore_tool_registry(monkeypatch):
         "yumi.core.platform.tools.routing.load_model_config",
         # always_expose_below=0 keeps these tests exercising the ranking/limit path;
         # the small-edge always-expose guarantee is covered by its own tests below.
+        # routing_mode is pinned to the legacy per-turn ranking these tests were
+        # written for; sticky-mode behavior has its own test group below.
         lambda: ModelConfig(
             edge_tools_enable_dynamic_routing=True,
+            edge_tools_routing_mode="per_turn",
             edge_tools_retrieval_limit=3,
             edge_tools_always_expose_below=0,
         ),
@@ -283,6 +286,7 @@ def test_zero_edge_limit_hides_unforced_edge_tools(monkeypatch):
         "yumi.core.platform.tools.routing.load_model_config",
         lambda: ModelConfig(
             edge_tools_enable_dynamic_routing=True,
+            edge_tools_routing_mode="per_turn",
             edge_tools_retrieval_limit=0,
             edge_tools_always_expose_below=0,
         ),
@@ -330,6 +334,7 @@ def test_always_include_edge_tool_does_not_consume_retrieval_limit(monkeypatch):
         "yumi.core.platform.tools.routing.load_model_config",
         lambda: ModelConfig(
             edge_tools_enable_dynamic_routing=True,
+            edge_tools_routing_mode="per_turn",
             edge_tools_retrieval_limit=1,
             edge_tools_always_expose_below=0,
         ),
@@ -359,6 +364,7 @@ def test_mentioned_edge_device_tools_do_not_consume_retrieval_limit(monkeypatch)
         "yumi.core.platform.tools.routing.load_model_config",
         lambda: ModelConfig(
             edge_tools_enable_dynamic_routing=True,
+            edge_tools_routing_mode="per_turn",
             edge_tools_retrieval_limit=1,
             edge_tools_always_expose_below=0,
         ),
@@ -480,3 +486,139 @@ def test_large_edge_above_threshold_is_still_ranked(monkeypatch):
 
     assert len(decision.selected_edge_tools) == 3
     assert "edge_lab__set_kitchen_lights" in [e.name for e in decision.selected_edge_tools]
+
+
+# ── sticky mode ─────────────────────────────────────────────────────────────
+# Sticky routing keeps the tools array stable across turns (provider prompt
+# caching) by attaching whole edges per session instead of re-ranking per turn.
+
+from yumi.core.platform.tools import routing as routing_mod
+from yumi.core.platform.tools.routing import (
+    clear_session_edges,
+    note_edge_tool_used,
+    search_edge_tools,
+)
+
+
+def _sticky_config(**overrides):
+    base = dict(
+        edge_tools_enable_dynamic_routing=True,
+        edge_tools_routing_mode="sticky",
+        edge_tools_retrieval_limit=3,
+        edge_tools_always_expose_below=0,
+    )
+    base.update(overrides)
+    return ModelConfig(**base)
+
+
+def _two_edge_registry() -> dict:
+    lab = {f"edge_lab__tool_{i}": {"schema": _schema(f"edge_lab__tool_{i}", f"Lab op {i}")} for i in range(6)}
+    kit = {
+        f"edge_kit__tool_{i}": {"schema": _schema(f"edge_kit__tool_{i}", f"Kitchen helper {i}")} for i in range(5)
+    }
+    return {"lab": lab, "kit": kit}
+
+
+def test_sticky_cold_start_falls_back_to_ranking(monkeypatch):
+    monkeypatch.setattr("yumi.core.platform.tools.routing.load_model_config", _sticky_config)
+    clear_session_edges("ss_cold")
+    decision = select_tool_schemas(
+        identity=LOCAL_IDENTITY,
+        query="Please turn on the kitchen lights",
+        session_id="ss_cold",
+        disabled_tools=set(),
+        edge_registry=_edge_registry(25),
+    )
+    selected = [e.name for e in decision.selected_edge_tools]
+    assert len(selected) == 3
+    assert "edge_lab__set_kitchen_lights" in selected
+
+
+def test_sticky_used_edge_stays_attached_and_ordering_is_stable(monkeypatch):
+    monkeypatch.setattr("yumi.core.platform.tools.routing.load_model_config", _sticky_config)
+    clear_session_edges("ss_used")
+    registry = _two_edge_registry()
+    note_edge_tool_used("ss_used", "lab")
+
+    first = select_tool_schemas(
+        identity=LOCAL_IDENTITY,
+        query="anything unrelated at all",
+        session_id="ss_used",
+        disabled_tools=set(),
+        edge_registry=registry,
+    )
+    first_names = [e.name for e in first.selected_edge_tools]
+    # The WHOLE kit of the used edge is attached (tool chains stay usable) …
+    assert set(first_names) == set(registry["lab"].keys())
+
+    second = select_tool_schemas(
+        identity=LOCAL_IDENTITY,
+        query="a completely different query wording",
+        session_id="ss_used",
+        disabled_tools=set(),
+        edge_registry=registry,
+    )
+    # … and the array is IDENTICAL across turns regardless of the query.
+    assert [e.name for e in second.selected_edge_tools] == first_names
+
+
+def test_sticky_lru_edge_is_evicted_over_session_cap(monkeypatch):
+    monkeypatch.setattr(
+        "yumi.core.platform.tools.routing.load_model_config",
+        lambda: _sticky_config(edge_tools_session_max=8),
+    )
+    clear_session_edges("ss_lru")
+    registry = _two_edge_registry()  # lab: 6 tools, kit: 5 tools → 11 > 8
+    note_edge_tool_used("ss_lru", "lab")
+    note_edge_tool_used("ss_lru", "kit")
+
+    decision = select_tool_schemas(
+        identity=LOCAL_IDENTITY,
+        query="whatever",
+        session_id="ss_lru",
+        disabled_tools=set(),
+        edge_registry=registry,
+    )
+    selected = {e.name for e in decision.selected_edge_tools}
+    # lab was used first → least recently used → evicted; kit stays.
+    assert selected == set(registry["kit"].keys())
+    assert set(routing_mod.active_edge_keys_for_session("ss_lru").keys()) == {"kit"}
+
+
+def test_sticky_mentioned_device_becomes_sticky(monkeypatch):
+    monkeypatch.setattr("yumi.core.platform.tools.routing.load_model_config", _sticky_config)
+    clear_session_edges("ss_mention")
+    registry = _edge_registry(25)
+
+    select_tool_schemas(
+        identity=LOCAL_IDENTITY,
+        query="use the lab device please",
+        session_id="ss_mention",
+        disabled_tools=set(),
+        edge_registry=registry,
+    )
+    assert "lab" in routing_mod.active_edge_keys_for_session("ss_mention")
+
+    # A later, unrelated query still exposes the full lab kit.
+    later = select_tool_schemas(
+        identity=LOCAL_IDENTITY,
+        query="tell me a joke",
+        session_id="ss_mention",
+        disabled_tools=set(),
+        edge_registry=registry,
+    )
+    assert {e.name for e in later.selected_edge_tools} == set(registry["lab"].keys())
+
+
+def test_search_edge_tools_ranks_by_need(monkeypatch):
+    monkeypatch.setattr("yumi.core.platform.tools.routing.load_model_config", _sticky_config)
+    matches = search_edge_tools(
+        "turn on the kitchen lights",
+        identity=LOCAL_IDENTITY,
+        disabled_tools=set(),
+        edge_registry=_edge_registry(25),
+        limit=5,
+    )
+    assert matches
+    assert matches[0]["name"] == "edge_lab__set_kitchen_lights"
+    assert matches[0]["edge_key"] == "lab"

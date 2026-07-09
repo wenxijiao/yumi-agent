@@ -17,6 +17,7 @@ Layering:
 from __future__ import annotations
 
 import asyncio
+import json
 from collections.abc import AsyncIterator
 
 from yumi.core.features.chat.context import reset_chat_owner_user_id, set_chat_owner_user_id
@@ -187,6 +188,17 @@ class ChatTurnService:
             usage.__exit__(None, None, None)
             self.runtime.session_locks.prune_if_needed()
             lock.release()
+            # After the turn (and after releasing the lock), check whether the
+            # transcript outgrew its token budget and fold old turns into the
+            # session summary in the background — see memory/compaction.py.
+            # Lazy import: the architecture guard allows cross-feature use only
+            # at call time (features must stay import-decoupled at load time).
+            try:
+                from yumi.core.features.memory.compaction import schedule_compaction
+
+                schedule_compaction(ctx.session_id)
+            except Exception:
+                logger.debug("compaction scheduling skipped", exc_info=True)
 
     async def _dispatch(
         self,
@@ -427,6 +439,17 @@ class ChatTurnService:
                         "tool_call_id": inv.tool_call_id,
                     }
                 )
+
+                # discover_app_tools activated an edge for the session; expose
+                # that edge's tools for the REST OF THIS TURN too, through the
+                # append-only forced-tools path (keeps the sent prefix stable).
+                if result.func_name == "discover_app_tools":
+                    try:
+                        payload = json.loads(str(result.result))
+                        names = payload.get("activated_tool_names") or []
+                        ctx.active_edge_tool_names.update(n for n in names if isinstance(n, str))
+                    except (json.JSONDecodeError, TypeError, AttributeError):
+                        pass
 
             _persist_tool_ephemeral_spans(ctx.ephemeral_messages, ctx.session_id, active_bot)
             current_prompt = None  # subsequent iterations use ephemeral_messages only

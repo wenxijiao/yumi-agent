@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from yumi.core.features.proactive.timer_tools import cancel_timer, list_timers, schedule_task, set_timer
 from yumi.core.platform.tools.tool import register_tool
+from yumi.tools.edge_discovery_tools import discover_app_tools
 from yumi.tools.file_tools import list_files, read_file
 from yumi.tools.user_context_tools import forget_user_context, list_user_context, remember_user_context
 from yumi.tools.web_tools import fetch_webpage, get_weather, web_search
@@ -15,6 +16,25 @@ from yumi.tools.web_tools import fetch_webpage, get_weather, web_search
 
 def init_yumi() -> None:
     """Register all built-in server tools."""
+
+    # ── tool discovery (sticky edge routing's escape hatch) ──
+
+    register_tool(
+        discover_app_tools,
+        (
+            "Search the user's CONNECTED APPS AND DEVICES for tools that can fulfil a need, "
+            "and make the best-matching app's tools available in this conversation. "
+            "USE WHEN the user asks for something an external app likely handles (tasks, "
+            "vocabulary, smart-home, notes…) but you don't currently see a matching tool in "
+            "your list. After it returns, call the activated tools directly. "
+            "Do NOT use it for things you can already do with a visible tool."
+        ),
+        params={
+            "need": "What you're trying to do, in natural language (any language)",
+            "session_id": "Leave default so activation applies to the current session",
+        },
+        returns="Matching tools, the activated device, and its now-available tool names",
+    )
 
     # ── timer tools ──
 

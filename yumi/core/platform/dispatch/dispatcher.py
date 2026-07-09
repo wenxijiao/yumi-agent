@@ -31,6 +31,7 @@ from yumi.core.platform.runtime.edge_naming import (
     parse_edge_connection_key,
     resolve_edge_for_prefixed_tool_name,
 )
+from yumi.core.platform.tools.routing import note_edge_tool_used
 from yumi.core.platform.tools.tool import TOOL_REGISTRY
 from yumi.core.platform.tools.trace import record_tool_trace
 
@@ -122,7 +123,11 @@ class ToolDispatcher:
             if func_name in TOOL_REGISTRY:
                 # Timer callbacks default-stamp the active session so follow-up
                 # turns land in the originating session, not "default".
-                if func_name in ("set_timer", "schedule_task") and args.get("session_id", "default") == "default":
+                # discover_app_tools needs the session too (sticky activation).
+                if (
+                    func_name in ("set_timer", "schedule_task", "discover_app_tools")
+                    and args.get("session_id", "default") == "default"
+                ):
                     args["session_id"] = ctx.session_id
                 invocations.append(
                     ToolInvocation(
@@ -144,6 +149,10 @@ class ToolDispatcher:
                 # invocation actually runs — not at prepare-time — so a denied
                 # confirmation does not keep the tool sticky in subsequent loops.
                 invocations.append(edge_inv)
+                # Sticky routing: an edge whose tool actually runs stays
+                # attached for the rest of the session (see tools/routing.py).
+                if edge_inv.target_edge:
+                    note_edge_tool_used(ctx.session_id, edge_inv.target_edge)
 
         return invocations, events
 

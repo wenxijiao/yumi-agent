@@ -35,10 +35,21 @@ class ModelConfig(BaseModel):
     # Server-local tools only (names in TOOL_REGISTRY, not edge_*__*).
     local_tools_always_allow: list[str] = Field(default_factory=list)
     local_tools_force_confirm: list[str] = Field(default_factory=list)
-    # Chat context: last N messages in the current session (user + assistant rows).
-    memory_max_recent_messages: int = Field(default=30, ge=1, le=500)
+    # Chat context: hard ceiling on transcript messages fetched per turn. With
+    # compaction enabled this is a safety cap, not the primary control — the
+    # token budget below decides when old turns get folded into the summary.
+    memory_max_recent_messages: int = Field(default=120, ge=1, le=500)
     # Cross-session RAG snippets injected as a system block (0 = off).
     memory_max_related_messages: int = Field(default=15, ge=0, le=100)
+    # Transcript compaction: the context grows append-only (provider prompt
+    # caches hit every turn) until the transcript exceeds this token budget;
+    # then the oldest turns are summarized into the session-summary block and
+    # the watermark advances — ONE cache miss per compaction instead of a
+    # sliding window missing on every turn.
+    memory_compaction_enabled: bool = True
+    memory_transcript_token_budget: int = Field(default=8000, ge=1000, le=64000)
+    # How many of the newest messages stay verbatim after a compaction.
+    memory_compaction_keep_tail_messages: int = Field(default=16, ge=4, le=100)
     # Appended to the system message each chat request (can disable to save tokens / avoid English policy text).
     chat_append_current_time: bool = True
     chat_append_tool_use_instruction: bool = True
@@ -47,9 +58,19 @@ class ModelConfig(BaseModel):
     # Unset or null: those features use UTC for date windows; chat time fallback uses the host OS zone (see docs).
     # Legacy config key ``proactive_quiet_hours_timezone`` is still accepted on load.
     local_timezone: str | None = None
-    # Tool routing: core server tools stay loaded; edge tools are ranked and capped per turn.
+    # Tool routing: core server tools stay loaded; edge tools are scoped.
+    # Modes: "sticky" (default) — edges the session actually uses (or names)
+    # stay attached for the whole session, so the tools array only changes on
+    # activation and the provider prompt cache survives between turns;
+    # "per_turn" — legacy behavior: rank ALL edge tools against each request
+    # and expose the top edge_tools_retrieval_limit (cache-hostile: the tools
+    # array can change every turn); "off" — always expose everything.
     edge_tools_enable_dynamic_routing: bool = True
+    edge_tools_routing_mode: str = Field(default="sticky", description="sticky | per_turn | off")
     edge_tools_retrieval_limit: int = Field(default=20, ge=0, le=200)
+    # Sticky mode: soft cap on attached edge-tool schemas per session; the
+    # least-recently-used edge is dropped when a new activation would exceed it.
+    edge_tools_session_max: int = Field(default=96, ge=8, le=500)
     # A small edge is always fully exposed to the model regardless of the retrieval
     # limit / dynamic routing, so a freshly scaffolded edge with a handful of tools is
     # reliably callable without the user picking an exposure mode — and stays callable

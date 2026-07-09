@@ -72,25 +72,33 @@ class ContextBuilder:
             max_cross = max(0, min(100, int(max_cross_session)))
 
         # Layer order is deliberate for provider prompt caching: the stable
-        # prefix (system prompt, stable user context, transcript) comes first;
-        # query-driven blocks change every turn, so they go AFTER the
-        # transcript — otherwise they invalidate the cached history prefix on
-        # every request.
+        # prefix (system prompt, stable user context, session summary,
+        # transcript) comes first; query-driven blocks change every turn, so
+        # they go AFTER the transcript — otherwise they invalidate the cached
+        # history prefix on every request. The summary sits BEFORE the
+        # transcript: it only changes at compaction time, exactly when the
+        # transcript watermark moves and the cache breaks anyway.
         formatted_messages = [self.memory.get_system_message()]
         stable_context = self._stable_user_context_message()
         if stable_context:
             formatted_messages.append(stable_context)
 
-        formatted_messages.extend(self._recent_transcript(max_recent, peer_session_ids, exclude_message_ids))
+        summary_row = self.memory.get_session_summary(self.memory.session_id) or {}
+        summary = self._session_summary_message(summary_row)
+        if summary:
+            formatted_messages.append(summary)
+        # Rows already folded into the summary are skipped so the transcript
+        # stays append-only between compactions (cache-friendly).
+        since_num = int(summary_row.get("covered_until_num") or 0) if summary else 0
+
+        formatted_messages.extend(
+            self._recent_transcript(max_recent, peer_session_ids, exclude_message_ids, since_num=since_num)
+        )
 
         if query:
             structured = self._structured_memory_message(query, limit=max_cross)
             if structured:
                 formatted_messages.append(structured)
-
-        summary = self._session_summary_message()
-        if summary:
-            formatted_messages.append(summary)
 
         if query and max_cross > 0:
             related = self.memory.build_related_memory_message(
@@ -156,8 +164,9 @@ class ContextBuilder:
             return None
         return {"role": "system", "content": "\n".join(lines)}
 
-    def _session_summary_message(self) -> dict | None:
-        row = self.memory.get_session_summary(self.memory.session_id)
+    def _session_summary_message(self, row: dict | None = None) -> dict | None:
+        if row is None:
+            row = self.memory.get_session_summary(self.memory.session_id)
         if not row:
             return None
         summary = str(row.get("summary") or "").strip()
@@ -165,7 +174,10 @@ class ContextBuilder:
             return None
         return {
             "role": "system",
-            "content": f"Current session summary:\n{summary}",
+            "content": (
+                "Summary of the earlier part of this conversation (older "
+                f"messages were folded in here):\n{summary}"
+            ),
         }
 
     def _structured_memory_message(self, query: str, *, limit: int) -> dict | None:
@@ -186,13 +198,25 @@ class ContextBuilder:
         max_recent: int,
         peer_session_ids: list[str] | None = None,
         exclude_message_ids: set[str] | None = None,
+        since_num: int = 0,
     ) -> list[dict]:
         excluded_ids = {str(mid) for mid in (exclude_message_ids or set()) if str(mid)}
+        current_sid_for_since = self.memory.session_id
 
         def _exclude(rows: list[dict]) -> list[dict]:
+            out = rows
+            if since_num > 0:
+                # Rows of the CURRENT session at/below the compaction watermark
+                # are represented by the session-summary block. Peer-session
+                # rows keep their own lifecycle and are not filtered here.
+                out = [
+                    r for r in out
+                    if r.get("session_id") not in (None, current_sid_for_since)
+                    or int(r.get("timestamp_num") or 0) > since_num
+                ]
             if not excluded_ids:
-                return rows
-            return [r for r in rows if str(r.get("id") or "") not in excluded_ids]
+                return out
+            return [r for r in out if str(r.get("id") or "") not in excluded_ids]
 
         sqlite = getattr(self.memory, "sqlite", None)
         if sqlite is not None:

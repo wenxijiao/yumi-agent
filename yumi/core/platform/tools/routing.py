@@ -50,6 +50,44 @@ def is_degenerate_vector(vec) -> bool:
 _MAX_ROUTING_TRACES = 1000
 _ROUTING_TRACES: deque[dict[str, Any]] = deque(maxlen=_MAX_ROUTING_TRACES)
 _ROUTING_TRACE_LOCK = threading.Lock()
+
+# ── sticky per-session edge activation ─────────────────────────────────────
+# session_id -> {edge_key: last_used_monotonic}. An edge becomes "active" for
+# a session when the user names it, when the model actually calls one of its
+# tools, or when discover_app_tools activates it — and then STAYS attached,
+# so the tools array (part of the provider's cached prompt prefix) changes
+# only on activation events instead of on every turn.
+_SESSION_EDGES: dict[str, dict[str, float]] = {}
+_SESSION_EDGES_LOCK = threading.Lock()
+_SESSION_EDGES_MAX_SESSIONS = 4000
+
+
+def activate_edge_for_session(session_id: str, edge_key: str | None) -> None:
+    """Mark an edge as active (sticky) for a session. Safe to call repeatedly."""
+    sid = str(session_id or "").strip()
+    key = str(edge_key or "").strip()
+    if not sid or not key:
+        return
+    now = time.monotonic()
+    with _SESSION_EDGES_LOCK:
+        if sid not in _SESSION_EDGES and len(_SESSION_EDGES) >= _SESSION_EDGES_MAX_SESSIONS:
+            oldest = min(_SESSION_EDGES, key=lambda s: max(_SESSION_EDGES[s].values(), default=0.0))
+            _SESSION_EDGES.pop(oldest, None)
+        _SESSION_EDGES.setdefault(sid, {})[key] = now
+
+
+# The dispatcher calls this whenever an edge tool actually executes.
+note_edge_tool_used = activate_edge_for_session
+
+
+def active_edge_keys_for_session(session_id: str) -> dict[str, float]:
+    with _SESSION_EDGES_LOCK:
+        return dict(_SESSION_EDGES.get(str(session_id or "").strip(), {}))
+
+
+def clear_session_edges(session_id: str) -> None:
+    with _SESSION_EDGES_LOCK:
+        _SESSION_EDGES.pop(str(session_id or "").strip(), None)
 _EMBED_CACHE_MAX = 5000
 _EMBED_CACHE: dict[tuple[str, str, str], list[float]] = {}
 _EMBED_CACHE_ORDER: deque[tuple[str, str, str]] = deque(maxlen=_EMBED_CACHE_MAX)
@@ -551,7 +589,10 @@ def select_tool_schemas(
     ]
     retrieved_entries: list[ToolCatalogEntry] = []
 
-    if not dynamic_enabled:
+    routing_mode = str(getattr(cfg, "edge_tools_routing_mode", "per_turn") or "per_turn").strip().lower()
+    if routing_mode not in {"sticky", "per_turn", "off"}:
+        routing_mode = "per_turn"
+    if not dynamic_enabled or routing_mode == "off":
         selected_edge = edge_entries
     elif edge_entries and len(edge_entries) <= always_expose_below:
         # A small edge is always fully exposed: a freshly scaffolded edge with a few
@@ -560,6 +601,39 @@ def select_tool_schemas(
         selected_edge = edge_entries
     elif len(edge_entries) <= edge_limit:
         selected_edge = edge_entries
+    elif routing_mode == "sticky":
+        # A user mention of a device/app activates it persistently, so the
+        # tools array is identical on the following turns (cache-friendly).
+        for entry in mentioned_entries:
+            activate_edge_for_session(session_id, entry.edge_key)
+        active = active_edge_keys_for_session(session_id)
+        active_entries = [entry for entry in edge_entries if entry.edge_key and entry.edge_key in active]
+
+        session_cap = max(8, min(500, int(getattr(cfg, "edge_tools_session_max", 96))))
+        if len(active_entries) > session_cap and len(active) > 1:
+            # Evict least-recently-used edges until under the cap. Eviction is
+            # itself a rare, sticky change — the list stays stable afterwards.
+            by_recency = sorted(active, key=lambda k: active[k])
+            for stale_key in by_recency:
+                if len(active_entries) <= session_cap or len(active) <= 1:
+                    break
+                active.pop(stale_key, None)
+                with _SESSION_EDGES_LOCK:
+                    _SESSION_EDGES.get(session_id, {}).pop(stale_key, None)
+                active_entries = [e for e in active_entries if e.edge_key != stale_key]
+                logger.info("Sticky tool routing evicted LRU edge %r for session %s", stale_key, session_id)
+
+        if not active_entries and not base_entries:
+            # Cold start: nothing active yet. Fall back to per-turn retrieval
+            # for THIS turn only so the model can act; the edge of whichever
+            # tool it actually calls is then activated by the dispatcher and
+            # the list stabilizes from the next turn on.
+            scored = _score_edge_tools(query_text, edge_entries, embed_model=cfg.embedding_model)
+            retrieved_entries = [entry for _, entry in scored[: max(1, edge_limit)]]
+        selected_edge = _dedupe_entries(base_entries + active_entries + retrieved_entries)
+        # Deterministic ordering: identical activation state must serialize to
+        # a byte-identical tools array across turns.
+        selected_edge = sorted(selected_edge, key=lambda entry: entry.name)
     else:
         remaining = [entry for entry in edge_entries if entry.name not in base_name_set]
         if edge_limit > 0 and remaining:
@@ -596,6 +670,39 @@ def select_tool_schemas(
     )
     record_tool_routing_trace(session_id=session_id, query=query, decision=decision)
     return decision
+
+
+def search_edge_tools(
+    query: str,
+    *,
+    identity=None,
+    disabled_tools: set[str],
+    edge_registry: dict[str, dict],
+    limit: int = 12,
+) -> list[dict[str, Any]]:
+    """Rank ALL visible edge tools against a natural-language need.
+
+    Used by the ``discover_app_tools`` meta tool so the model can find (and
+    activate) capabilities that sticky routing hasn't attached yet.
+    """
+    cfg = load_model_config()
+    catalog = ToolCatalog(identity=identity, disabled_tools=disabled_tools, edge_registry=edge_registry)
+    entries = catalog.edge_tools()
+    if not entries:
+        return []
+    scored = _score_edge_tools(query or "", entries, embed_model=cfg.embedding_model)
+    out: list[dict[str, Any]] = []
+    for score, entry in scored[: max(1, min(50, int(limit)))]:
+        out.append(
+            {
+                "name": entry.name,
+                "description": (entry.description or "")[:300],
+                "device": entry.device_name,
+                "edge_key": entry.edge_key or "",
+                "score": round(float(score), 4),
+            }
+        )
+    return out
 
 
 def record_tool_routing_trace(

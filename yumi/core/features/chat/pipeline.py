@@ -69,6 +69,10 @@ async def clear_session(session_id: str) -> dict:
     owner = get_session_scope().owner_user_from_session_id(session_id)
     bot = await get_bot_pool().get_bot_for_session_owner(owner)
     bot.clear_memory(session_id)
+    # Sticky tool routing state belongs to the conversation being cleared.
+    from yumi.core.platform.tools.routing import clear_session_edges
+
+    clear_session_edges(session_id)
     # Only drop the lock if it isn't held — otherwise an in-flight chat turn
     # is using it and a concurrent next-turn would create a fresh lock,
     # letting two turns mutate ephemeral_messages / memory at once.

@@ -57,8 +57,33 @@ def test_session_summary_is_included_before_recent_messages():
 
         ctx = m.get_context(query="continue")
         contents = [msg["content"] for msg in ctx if msg["role"] == "system"]
-        assert any("Current session summary" in content for content in contents)
+        assert any("Summary of the earlier part" in content for content in contents)
         assert any("refactoring the Yumi memory" in content for content in contents)
+        # The summary block must precede the transcript so it only invalidates
+        # the provider prompt cache when a compaction actually rewrites it.
+        summary_idx = next(
+            i for i, msg in enumerate(ctx) if msg["role"] == "system" and "Summary of the earlier part" in msg["content"]
+        )
+        user_idx = next(i for i, msg in enumerate(ctx) if msg["role"] == "user")
+        assert summary_idx < user_idx
+
+
+def test_compaction_watermark_hides_folded_messages():
+    with tempfile.TemporaryDirectory() as td:
+        m = Memory(session_id="s_watermark", storage_dir=td, max_recent=50)
+        m.add_message("user", "old question about apples")
+        m.add_message("assistant", "old answer about apples")
+        # Compaction folds the rows above: watermark = "now" (after those rows).
+        m.update_session_summary("Earlier we discussed apples.")
+        m.add_message("user", "new question about pears")
+
+        ctx = m.get_context(query="pears")
+        transcript_texts = [msg.get("content") or "" for msg in ctx if msg["role"] in {"user", "assistant"}]
+        assert any("pears" in t for t in transcript_texts)
+        # Folded rows are represented ONLY by the summary block now.
+        assert not any("apples" in t for t in transcript_texts)
+        contents = [msg["content"] for msg in ctx if msg["role"] == "system"]
+        assert any("discussed apples" in content for content in contents)
 
 
 def test_hybrid_structured_retrieval_falls_back_to_keyword():
