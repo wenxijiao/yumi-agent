@@ -38,7 +38,9 @@ class ModelConfig(BaseModel):
     # Chat context: hard ceiling on transcript messages fetched per turn. With
     # compaction enabled this is a safety cap, not the primary control — the
     # token budget below decides when old turns get folded into the summary.
-    memory_max_recent_messages: int = Field(default=120, ge=1, le=500)
+    # Keep it comfortably ABOVE budget/avg-message-tokens (~80) or the count
+    # cap binds first and compaction never triggers.
+    memory_max_recent_messages: int = Field(default=300, ge=1, le=500)
     # Cross-session RAG snippets injected as a system block (0 = off).
     memory_max_related_messages: int = Field(default=15, ge=0, le=100)
     # Transcript compaction: the context grows append-only (provider prompt
@@ -47,7 +49,9 @@ class ModelConfig(BaseModel):
     # the watermark advances — ONE cache miss per compaction instead of a
     # sliding window missing on every turn.
     memory_compaction_enabled: bool = True
-    memory_transcript_token_budget: int = Field(default=8000, ge=1000, le=64000)
+    # ~20k keeps rich verbatim recall (cached reads make it cheap) while
+    # staying well clear of lost-in-the-middle territory on 128k models.
+    memory_transcript_token_budget: int = Field(default=20000, ge=1000, le=64000)
     # How many of the newest messages stay verbatim after a compaction.
     memory_compaction_keep_tail_messages: int = Field(default=16, ge=4, le=100)
     # Appended to the system message each chat request (can disable to save tokens / avoid English policy text).
