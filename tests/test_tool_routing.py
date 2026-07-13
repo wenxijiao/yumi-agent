@@ -513,9 +513,7 @@ def _sticky_config(**overrides):
 
 def _two_edge_registry() -> dict:
     lab = {f"edge_lab__tool_{i}": {"schema": _schema(f"edge_lab__tool_{i}", f"Lab op {i}")} for i in range(6)}
-    kit = {
-        f"edge_kit__tool_{i}": {"schema": _schema(f"edge_kit__tool_{i}", f"Kitchen helper {i}")} for i in range(5)
-    }
+    kit = {f"edge_kit__tool_{i}": {"schema": _schema(f"edge_kit__tool_{i}", f"Kitchen helper {i}")} for i in range(5)}
     return {"lab": lab, "kit": kit}
 
 

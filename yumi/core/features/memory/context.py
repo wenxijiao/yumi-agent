@@ -175,8 +175,7 @@ class ContextBuilder:
         return {
             "role": "system",
             "content": (
-                "Summary of the earlier part of this conversation (older "
-                f"messages were folded in here):\n{summary}"
+                f"Summary of the earlier part of this conversation (older messages were folded in here):\n{summary}"
             ),
         }
 
@@ -210,7 +209,8 @@ class ContextBuilder:
                 # are represented by the session-summary block. Peer-session
                 # rows keep their own lifecycle and are not filtered here.
                 out = [
-                    r for r in out
+                    r
+                    for r in out
                     if r.get("session_id") not in (None, current_sid_for_since)
                     or int(r.get("timestamp_num") or 0) > since_num
                 ]

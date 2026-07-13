@@ -78,8 +78,7 @@ def _fetch_rows_after(memory: Any, watermark_num: int, cap: int) -> list[dict[st
     if not rows:
         return []
     return [
-        r for r in rows
-        if r.get("session_id") == memory.session_id and int(r.get("timestamp_num") or 0) > watermark_num
+        r for r in rows if r.get("session_id") == memory.session_id and int(r.get("timestamp_num") or 0) > watermark_num
     ]
 
 

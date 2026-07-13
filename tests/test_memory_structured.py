@@ -62,7 +62,9 @@ def test_session_summary_is_included_before_recent_messages():
         # The summary block must precede the transcript so it only invalidates
         # the provider prompt cache when a compaction actually rewrites it.
         summary_idx = next(
-            i for i, msg in enumerate(ctx) if msg["role"] == "system" and "Summary of the earlier part" in msg["content"]
+            i
+            for i, msg in enumerate(ctx)
+            if msg["role"] == "system" and "Summary of the earlier part" in msg["content"]
         )
         user_idx = next(i for i, msg in enumerate(ctx) if msg["role"] == "user")
         assert summary_idx < user_idx

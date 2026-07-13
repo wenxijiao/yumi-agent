@@ -88,6 +88,8 @@ def active_edge_keys_for_session(session_id: str) -> dict[str, float]:
 def clear_session_edges(session_id: str) -> None:
     with _SESSION_EDGES_LOCK:
         _SESSION_EDGES.pop(str(session_id or "").strip(), None)
+
+
 _EMBED_CACHE_MAX = 5000
 _EMBED_CACHE: dict[tuple[str, str, str], list[float]] = {}
 _EMBED_CACHE_ORDER: deque[tuple[str, str, str]] = deque(maxlen=_EMBED_CACHE_MAX)
