@@ -308,28 +308,8 @@ def _format_timer_list_for_discord(timers: list[dict[str, Any]]) -> str:
         fire_at = str(timer.get("next_fire_at") or timer.get("fire_at") or "?")
         description = str(timer.get("description") or "")
         lines.append(f"{timer_id} — {kind}{recurring} — {fire_at}\n{description}")
-    lines.append("\nCancel with !cancel_timer <id>")
+    lines.append("\nCancel with /cancel_timer <id>")
     return "\n\n".join(lines)
-
-
-def _slash_alias(content: str, known_commands: set[str]) -> str | None:
-    """Rewrite a documented ``/command …`` message to the native ``!`` form.
-
-    Telegram uses "/command" and all Yumi copy documents that form; Discord's
-    native prefix is "!". Returns the rewritten content, or None when the
-    message is not a known slash command (so ordinary prose starting with "/"
-    still reaches chat).
-    """
-    if not content.startswith("/"):
-        return None
-    parts = content[1:].split(maxsplit=1)
-    if not parts:
-        return None
-    name = parts[0].lower()
-    if name not in known_commands:
-        return None
-    rest = parts[1] if len(parts) > 1 else ""
-    return f"!{name} {rest}".rstrip()
 
 
 def _authorized(user_id: int | None) -> bool:
@@ -347,29 +327,29 @@ def _authorized(user_id: int | None) -> bool:
 
 _HELP_TEXT = (
     "Yumi Discord bridge.\n\n"
-    "Send a message to chat. Commands (prefix `!`):\n"
-    "!voice on|off — reply with audio instead of text\n"
-    "!clear — clear this chat's history\n"
-    "!model — show server model config\n"
-    "!system — view or change this chat's system prompt (not global)\n"
-    "!timers — list active timers and scheduled tasks\n"
-    "!cancel_timer <id> — cancel a timer or scheduled task\n"
-    "!start_log — write full chat traces to ~/.yumi/debug/chat_trace/ (this session)\n"
-    "!end_log — stop chat tracing\n"
-    "!help — this message"
+    "Send a message to chat. Commands:\n"
+    "/voice on|off — reply with audio instead of text\n"
+    "/clear — clear this chat's history\n"
+    "/model — show server model config\n"
+    "/system — view or change this chat's system prompt (not global)\n"
+    "/timers — list active timers and scheduled tasks\n"
+    "/cancel_timer <id> — cancel a timer or scheduled task\n"
+    "/start_log — write full chat traces to ~/.yumi/debug/chat_trace/ (this session)\n"
+    "/end_log — stop chat tracing\n"
+    "/help — this message"
 )
 
 
 def _system_help_text() -> str:
     return (
-        "!system — Your personal prompt addendum (Discord session)\n\n"
+        "/system — Your personal prompt addendum (Discord session)\n\n"
         "Your text is APPENDED to Yumi's built-in defaults and any per-app\n"
         "context, not used as a full replacement. Use it for personal\n"
         "preferences like 'always reply in English' or 'I'm a software engineer'.\n\n"
-        "!system — or !system show — show the full composed prompt\n"
-        "!system set <text> — set your addendum for this Discord session\n"
-        "!system reset — clear your addendum (defaults still apply)\n"
-        "!system help — this help"
+        "/system — or /system show — show the full composed prompt\n"
+        "/system set <text> — set your addendum for this Discord session\n"
+        "/system reset — clear your addendum (defaults still apply)\n"
+        "/system help — this help"
     )
 
 
@@ -392,7 +372,12 @@ def build_client():
 
     intents = discord.Intents.default()
     intents.message_content = True
-    bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
+    bot = commands.Bot(
+        command_prefix="/",
+        case_insensitive=True,
+        intents=intents,
+        help_command=None,
+    )
 
     async def _reply(message, text: str) -> None:
         # _send_long_text already splits to safe chunk sizes — don't re-truncate.
@@ -442,7 +427,7 @@ def build_client():
 
     @bot.command(name="link")
     async def link_cmd(ctx, code: str | None = None) -> None:
-        # !link binds this Discord account when an identity plugin is present.
+        # /link binds this Discord account when an identity plugin is present.
         # The single-user default just says no binding is needed.
         from yumi.core.platform.plugins import get_bridge_scope
 
@@ -465,7 +450,7 @@ def build_client():
             )
             return
         state = "ON" if is_voice_reply("discord", channel_id) else "OFF"
-        await ctx.send(f"Voice replies are {state}. Use !voice on or !voice off.")
+        await ctx.send(f"Voice replies are {state}. Use /voice on or /voice off.")
 
     @bot.command(name="clear")
     async def clear_cmd(ctx) -> None:
@@ -499,7 +484,7 @@ def build_client():
                 "Logs include turn boundaries, each full LLM request (messages + tools), and stream events.\n"
                 "Optional: set YUMI_CHAT_DEBUG_REDACT_IMAGE_DATA=1 on the server to shorten inline data-URL "
                 "images in the trace file only.\n"
-                "Send !end_log to stop."
+                "Send /end_log to stop."
             )
         )
 
@@ -538,7 +523,7 @@ def build_client():
             await ctx.send("You are not authorized to use this bot.")
             return
         if not timer_id or not str(timer_id).strip():
-            await ctx.send("Usage: !cancel_timer <timer_id>")
+            await ctx.send("Usage: /cancel_timer <timer_id>")
             return
         timer_id = str(timer_id).strip()
         connection = chat_connection_config(ctx.author.id)
@@ -607,7 +592,7 @@ def build_client():
         if args[0].lower() == "set":
             body = " ".join(args[1:]).strip()
             if not body:
-                await ctx.send("Usage: !system set <prompt text>")
+                await ctx.send("Usage: /system set <prompt text>")
                 return
             ok, err = await http_put_session_prompt(connection, session_id, body)
             if ok:
@@ -615,7 +600,7 @@ def build_client():
             else:
                 await ctx.send(_truncate_for_discord(f"Failed: {err}"))
             return
-        await ctx.send("Unknown subcommand. Send !system help for usage.")
+        await ctx.send("Unknown subcommand. Send /system help for usage.")
 
     async def _run_chat_turn(message, prompt: str) -> None:
         user_id = message.author.id
@@ -662,12 +647,9 @@ def build_client():
         # Ignore our own messages and any other bots.
         if message.author.bot or (bot.user is not None and message.author.id == bot.user.id):
             return
-        # Accept the documented "/command" form by rewriting it to the native
-        # "!" prefix before command dispatch (parity with the Telegram bridge).
-        aliased = _slash_alias(message.content or "", set(bot.all_commands))
-        if aliased is not None:
-            message.content = aliased
-        # Let registered ``!`` commands run first; only free text falls through to chat.
+        # Let registered ``/`` commands run first; only free text falls
+        # through to chat (unknown "/…" text is not a valid command, so prose
+        # or paths starting with "/" still reach the model).
         ctx = await bot.get_context(message)
         if ctx.valid:
             await bot.invoke(ctx)

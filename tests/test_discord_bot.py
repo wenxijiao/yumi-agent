@@ -49,7 +49,7 @@ def test_format_timer_list_for_discord_contains_cancel_hint():
     )
     assert "abc123" in text
     assert "daily check" in text
-    assert "!cancel_timer <id>" in text
+    assert "/cancel_timer <id>" in text
 
 
 def test_truncate_for_discord_respects_2000_limit():
@@ -182,24 +182,3 @@ def test_tool_confirmation_deny(monkeypatch):
 
 def test_tool_confirmation_always_maps_to_always_allow(monkeypatch):
     assert _drive_confirmation(monkeypatch, "always") == "always_allow"
-
-
-# ── "/command" aliased to the native "!" prefix (Telegram parity) ───────────
-
-
-KNOWN = {"start", "help", "link", "voice", "clear", "timers", "model", "system"}
-
-
-def test_slash_alias_rewrites_known_commands():
-    assert bot._slash_alias("/link yumi_abc", KNOWN) == "!link yumi_abc"
-    assert bot._slash_alias("/LINK yumi_abc", KNOWN) == "!link yumi_abc"
-    assert bot._slash_alias("/clear", KNOWN) == "!clear"
-    assert bot._slash_alias("/voice on", KNOWN) == "!voice on"
-
-
-def test_slash_alias_leaves_other_messages_alone():
-    assert bot._slash_alias("hello there", KNOWN) is None
-    assert bot._slash_alias("link me up", KNOWN) is None
-    assert bot._slash_alias("/unknowncmd hi", KNOWN) is None
-    assert bot._slash_alias("/", KNOWN) is None
-    assert bot._slash_alias("", KNOWN) is None
