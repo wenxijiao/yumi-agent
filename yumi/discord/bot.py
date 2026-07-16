@@ -10,6 +10,7 @@ from typing import Any
 
 import httpx
 
+from yumi.core.features.bridge_copy import BRIDGE_UNLINKED_TEXT, bridge_help_text
 from yumi.core.features.config import get_discord_allowed_user_ids, get_discord_bot_token
 from yumi.core.features.proactive import record_user_message
 from yumi.core.features.prompts.http_bridge import (
@@ -325,19 +326,7 @@ def _authorized(user_id: int | None) -> bool:
     return user_id in allowed
 
 
-_HELP_TEXT = (
-    "Yumi Discord bridge.\n\n"
-    "Send a message to chat. Commands:\n"
-    "/voice on|off — reply with audio instead of text\n"
-    "/clear — clear this chat's history\n"
-    "/model — show server model config\n"
-    "/system — view or change this chat's system prompt (not global)\n"
-    "/timers — list active timers and scheduled tasks\n"
-    "/cancel_timer <id> — cancel a timer or scheduled task\n"
-    "/start_log — write full chat traces to ~/.yumi/debug/chat_trace/ (this session)\n"
-    "/end_log — stop chat tracing\n"
-    "/help — this message"
-)
+_HELP_TEXT = bridge_help_text()
 
 
 def _system_help_text() -> str:
@@ -622,11 +611,7 @@ def build_client():
                         # Unlinked bridge users hit the tokenless default; a raw
                         # HTTP dump is hostile to the one audience guaranteed to
                         # see it (new users), so guide them to /link instead.
-                        await message.channel.send(
-                            "This Discord account isn't linked to a Yumi account yet. "
-                            "Send /link followed by the connection code from your app "
-                            "(Settings → Yumi) to connect."
-                        )
+                        await message.channel.send(BRIDGE_UNLINKED_TEXT)
                         return
                     if response.status_code >= 400:
                         body = (await response.aread()).decode("utf-8", errors="replace")

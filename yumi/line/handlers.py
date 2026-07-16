@@ -13,6 +13,7 @@ from typing import Any
 import httpx
 from fastapi import HTTPException
 
+from yumi.core.features.bridge_copy import BRIDGE_UNLINKED_TEXT, bridge_help_text
 from yumi.core.features.config import load_saved_model_config
 from yumi.core.features.config.line import (
     get_line_allowed_user_ids,
@@ -260,6 +261,11 @@ async def _stream_chat_http(line_user_id: str, prompt: str, session_id: str) -> 
             json={"prompt": prompt, "session_id": session_id},
             headers=headers,
         ) as response:
+            if response.status_code == 401:
+                # Unlinked bridge users hit the tokenless default; guide them
+                # to /link instead of dumping the raw HTTP error.
+                yield {"type": "error", "content": BRIDGE_UNLINKED_TEXT}
+                return
             if response.status_code >= 400:
                 body = (await response.aread()).decode("utf-8", errors="replace")
                 yield {"type": "error", "content": f"HTTP {response.status_code}: {body[:500]}"}
@@ -550,18 +556,9 @@ async def handle_line_message_event(
         raw = (msg.get("text") or "").strip()
         lower = raw.lower()
         if lower in ("/help", "/start", "help"):
-            await reply_text(
-                "Yumi LINE bridge\n\n"
-                "Send a message to chat (images/files; voice when STT is enabled).\n"
-                "Commands:\n"
-                "/link <code> — connect this chat to your Yumi account\n"
-                "/clear — clear this session\n"
-                "/model — view or switch model\n"
-                "/start_log — debug: log this session's chat to ~/.yumi/debug/chat_trace/\n"
-                "/end_log — stop debug logging\n"
-                "/system — session system prompt (see /system help)\n"
-                "/help — this message"
-            )
+            # /voice and /timers aren't implemented on LINE yet — the shared
+            # help drops them so the listed interface always matches reality.
+            await reply_text(bridge_help_text(voice=False, timers=False))
             return
         if lower.startswith("/link"):
             from yumi.core.platform.plugins import get_bridge_scope

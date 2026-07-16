@@ -13,6 +13,7 @@ from typing import Any
 import httpx
 from fastapi import HTTPException
 
+from yumi.core.features.bridge_copy import BRIDGE_UNLINKED_TEXT, bridge_help_text
 from yumi.core.features.config import get_telegram_allowed_user_ids, get_telegram_bot_token
 from yumi.core.features.proactive import record_user_message
 from yumi.core.features.prompts.http_bridge import (
@@ -362,21 +363,7 @@ def build_application():
         if not _authorized(update.effective_user.id if update.effective_user else None):
             await update.message.reply_text("You are not authorized to use this bot.")
             return
-        await update.message.reply_text(
-            "Yumi Telegram bridge.\n\n"
-            "Send a message to chat. You can attach photos, files, or voice/audio when STT is enabled.\n"
-            "For one message: add a caption to the photo, or send text in a separate message.\n"
-            "Commands:\n"
-            "/voice on|off — reply with audio instead of text\n"
-            "/clear — clear this chat's history\n"
-            "/model — show server model config\n"
-            "/system — view or change this chat's system prompt (not global)\n"
-            "/timers — list active timers and scheduled tasks\n"
-            "/cancel_timer <id> — cancel a timer or scheduled task\n"
-            "/start_log — write full chat traces to ~/.yumi/debug/chat_trace/ (this session)\n"
-            "/end_log — stop chat tracing\n"
-            "/help — this message"
-        )
+        await update.message.reply_text(bridge_help_text())
 
     async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await start_cmd(update, context)
@@ -743,11 +730,7 @@ def build_application():
                 if response.status_code == 401:
                     # Unlinked bridge users hit the tokenless default; guide
                     # them to /link instead of dumping the raw HTTP error.
-                    await update.message.reply_text(
-                        "This Telegram account isn't linked to a Yumi account yet. "
-                        "Send /link followed by the connection code from your app "
-                        "(Settings → Yumi) to connect."
-                    )
+                    await update.message.reply_text(BRIDGE_UNLINKED_TEXT)
                     return
                 if response.status_code >= 400:
                     body = (await response.aread()).decode("utf-8", errors="replace")
