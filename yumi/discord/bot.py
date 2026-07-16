@@ -312,6 +312,21 @@ def _format_timer_list_for_discord(timers: list[dict[str, Any]]) -> str:
     return "\n\n".join(lines)
 
 
+def _slash_link_reply(prompt: str, author_id: int | None) -> str | None:
+    """Reply for a documented ``/link <code>`` message, or None if not one.
+
+    Every Yumi surface documents "/link <code>", but Discord's native command
+    prefix is "!" — so the slash form is accepted here as plain text, before
+    the allowlist gate (unlinked users are exactly who needs it).
+    """
+    if author_id is None or not prompt.lower().startswith("/link"):
+        return None
+    from yumi.core.platform.plugins import get_bridge_scope
+
+    code = prompt[len("/link") :].strip()
+    return get_bridge_scope().link("discord", str(author_id), code)
+
+
 def _authorized(user_id: int | None) -> bool:
     if user_id is None:
         return False
@@ -613,6 +628,16 @@ def build_client():
         async with message.channel.typing():
             async with httpx.AsyncClient(timeout=timeout) as client:
                 async with client.stream("POST", url, json=payload, headers=headers) as response:
+                    if response.status_code == 401:
+                        # Unlinked bridge users hit the tokenless default; a raw
+                        # HTTP dump is hostile to the one audience guaranteed to
+                        # see it (new users), so guide them to /link instead.
+                        await message.channel.send(
+                            "This Discord account isn't linked to a Yumi account yet. "
+                            "Send /link followed by the connection code from your app "
+                            "(Settings → Yumi) to connect."
+                        )
+                        return
                     if response.status_code >= 400:
                         body = (await response.aread()).decode("utf-8", errors="replace")
                         await message.channel.send(_truncate_for_discord(f"HTTP {response.status_code}: {body[:500]}"))
@@ -637,10 +662,14 @@ def build_client():
         if ctx.valid:
             await bot.invoke(ctx)
             return
+        prompt = (message.content or "").strip()
+        link_reply = _slash_link_reply(prompt, message.author.id)
+        if link_reply is not None:
+            await message.channel.send(link_reply)
+            return
         if not _authorized(message.author.id):
             await message.channel.send("You are not authorized to use this bot.")
             return
-        prompt = (message.content or "").strip()
         if not prompt:
             return
         await _run_chat_turn(message, prompt)

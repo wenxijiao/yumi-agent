@@ -182,3 +182,29 @@ def test_tool_confirmation_deny(monkeypatch):
 
 def test_tool_confirmation_always_maps_to_always_allow(monkeypatch):
     assert _drive_confirmation(monkeypatch, "always") == "always_allow"
+
+
+# ── /link accepted as plain text (documented form; native prefix is "!") ────
+
+
+def test_slash_link_reply_redeems_code(monkeypatch):
+    class _Scope:
+        def link(self, channel, channel_user_id, code):
+            assert channel == "discord"
+            assert channel_user_id == "123"
+            assert code == "yumi_abc"
+            return "linked!"
+
+    monkeypatch.setattr("yumi.core.platform.plugins.get_bridge_scope", lambda: _Scope())
+    assert bot._slash_link_reply("/link yumi_abc", 123) == "linked!"
+    assert bot._slash_link_reply("/LINK yumi_abc", 123) == "linked!"
+
+
+def test_slash_link_reply_ignores_other_messages(monkeypatch):
+    monkeypatch.setattr(
+        "yumi.core.platform.plugins.get_bridge_scope",
+        lambda: (_ for _ in ()).throw(AssertionError("must not resolve scope")),
+    )
+    assert bot._slash_link_reply("hello there", 123) is None
+    assert bot._slash_link_reply("link me up", 123) is None
+    assert bot._slash_link_reply("/link yumi_abc", None) is None

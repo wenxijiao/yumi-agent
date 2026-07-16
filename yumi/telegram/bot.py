@@ -740,6 +740,15 @@ def build_application():
         handler = _TelegramChatHandler(context=context, chat_id=chat_id, connection=connection)
         async with httpx.AsyncClient(timeout=timeout) as client:
             async with client.stream("POST", url, json=payload, headers=headers) as response:
+                if response.status_code == 401:
+                    # Unlinked bridge users hit the tokenless default; guide
+                    # them to /link instead of dumping the raw HTTP error.
+                    await update.message.reply_text(
+                        "This Telegram account isn't linked to a Yumi account yet. "
+                        "Send /link followed by the connection code from your app "
+                        "(Settings → Yumi) to connect."
+                    )
+                    return
                 if response.status_code >= 400:
                     body = (await response.aread()).decode("utf-8", errors="replace")
                     await update.message.reply_text(
