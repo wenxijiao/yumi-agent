@@ -312,19 +312,24 @@ def _format_timer_list_for_discord(timers: list[dict[str, Any]]) -> str:
     return "\n\n".join(lines)
 
 
-def _slash_link_reply(prompt: str, author_id: int | None) -> str | None:
-    """Reply for a documented ``/link <code>`` message, or None if not one.
+def _slash_alias(content: str, known_commands: set[str]) -> str | None:
+    """Rewrite a documented ``/command …`` message to the native ``!`` form.
 
-    Every Yumi surface documents "/link <code>", but Discord's native command
-    prefix is "!" — so the slash form is accepted here as plain text, before
-    the allowlist gate (unlinked users are exactly who needs it).
+    Telegram uses "/command" and all Yumi copy documents that form; Discord's
+    native prefix is "!". Returns the rewritten content, or None when the
+    message is not a known slash command (so ordinary prose starting with "/"
+    still reaches chat).
     """
-    if author_id is None or not prompt.lower().startswith("/link"):
+    if not content.startswith("/"):
         return None
-    from yumi.core.platform.plugins import get_bridge_scope
-
-    code = prompt[len("/link") :].strip()
-    return get_bridge_scope().link("discord", str(author_id), code)
+    parts = content[1:].split(maxsplit=1)
+    if not parts:
+        return None
+    name = parts[0].lower()
+    if name not in known_commands:
+        return None
+    rest = parts[1] if len(parts) > 1 else ""
+    return f"!{name} {rest}".rstrip()
 
 
 def _authorized(user_id: int | None) -> bool:
@@ -657,16 +662,17 @@ def build_client():
         # Ignore our own messages and any other bots.
         if message.author.bot or (bot.user is not None and message.author.id == bot.user.id):
             return
+        # Accept the documented "/command" form by rewriting it to the native
+        # "!" prefix before command dispatch (parity with the Telegram bridge).
+        aliased = _slash_alias(message.content or "", set(bot.all_commands))
+        if aliased is not None:
+            message.content = aliased
         # Let registered ``!`` commands run first; only free text falls through to chat.
         ctx = await bot.get_context(message)
         if ctx.valid:
             await bot.invoke(ctx)
             return
         prompt = (message.content or "").strip()
-        link_reply = _slash_link_reply(prompt, message.author.id)
-        if link_reply is not None:
-            await message.channel.send(link_reply)
-            return
         if not _authorized(message.author.id):
             await message.channel.send("You are not authorized to use this bot.")
             return

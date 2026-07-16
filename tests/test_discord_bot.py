@@ -184,27 +184,22 @@ def test_tool_confirmation_always_maps_to_always_allow(monkeypatch):
     assert _drive_confirmation(monkeypatch, "always") == "always_allow"
 
 
-# ── /link accepted as plain text (documented form; native prefix is "!") ────
+# ── "/command" aliased to the native "!" prefix (Telegram parity) ───────────
 
 
-def test_slash_link_reply_redeems_code(monkeypatch):
-    class _Scope:
-        def link(self, channel, channel_user_id, code):
-            assert channel == "discord"
-            assert channel_user_id == "123"
-            assert code == "yumi_abc"
-            return "linked!"
-
-    monkeypatch.setattr("yumi.core.platform.plugins.get_bridge_scope", lambda: _Scope())
-    assert bot._slash_link_reply("/link yumi_abc", 123) == "linked!"
-    assert bot._slash_link_reply("/LINK yumi_abc", 123) == "linked!"
+KNOWN = {"start", "help", "link", "voice", "clear", "timers", "model", "system"}
 
 
-def test_slash_link_reply_ignores_other_messages(monkeypatch):
-    monkeypatch.setattr(
-        "yumi.core.platform.plugins.get_bridge_scope",
-        lambda: (_ for _ in ()).throw(AssertionError("must not resolve scope")),
-    )
-    assert bot._slash_link_reply("hello there", 123) is None
-    assert bot._slash_link_reply("link me up", 123) is None
-    assert bot._slash_link_reply("/link yumi_abc", None) is None
+def test_slash_alias_rewrites_known_commands():
+    assert bot._slash_alias("/link yumi_abc", KNOWN) == "!link yumi_abc"
+    assert bot._slash_alias("/LINK yumi_abc", KNOWN) == "!link yumi_abc"
+    assert bot._slash_alias("/clear", KNOWN) == "!clear"
+    assert bot._slash_alias("/voice on", KNOWN) == "!voice on"
+
+
+def test_slash_alias_leaves_other_messages_alone():
+    assert bot._slash_alias("hello there", KNOWN) is None
+    assert bot._slash_alias("link me up", KNOWN) is None
+    assert bot._slash_alias("/unknowncmd hi", KNOWN) is None
+    assert bot._slash_alias("/", KNOWN) is None
+    assert bot._slash_alias("", KNOWN) is None
