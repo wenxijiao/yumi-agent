@@ -55,13 +55,23 @@ async def stream_chat_events(
     Use this from new code; the legacy dict-shaped function is kept for
     backward compatibility with consumers that haven't migrated yet.
     """
-    async for event in ChatTurnService().stream_chat_turn(
-        prompt,
-        session_id,
-        think=think,
-        timer_callback=timer_callback,
-    ):
-        yield event
+    from fastapi import HTTPException
+    from yumi.core.platform.storage.privacy_guard import lease, session_erased
+
+    owner = get_session_scope().owner_user_from_session_id(session_id)
+    from yumi.core.platform.plugins import get_current_identity
+    from yumi.core.platform.plugins.usage_guard import chat_turn_scope
+
+    with lease(owner), chat_turn_scope(get_current_identity()):
+        if session_erased(session_id):
+            raise HTTPException(409, "This conversation was deleted. Start a new conversation.")
+        async for event in ChatTurnService().stream_chat_turn(
+            prompt,
+            session_id,
+            think=think,
+            timer_callback=timer_callback,
+        ):
+            yield event
 
 
 async def clear_session(session_id: str) -> dict:

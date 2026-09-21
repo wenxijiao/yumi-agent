@@ -105,6 +105,13 @@ def _launch(identity, row):
 
 
 async def _execute(identity, run_id):
+    from yumi.core.platform.storage.privacy_guard import lease
+
+    with lease(identity.user_id):
+        await _execute_leased(identity, run_id)
+
+
+async def _execute_leased(identity, run_id):
     store = _store(identity)
     row, claimed = store.transition(run_id, {"queued"}, status="running", started_at_num=int(time.time() * 1000))
     if not claimed:

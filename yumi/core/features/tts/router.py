@@ -21,6 +21,9 @@ async def tts_synthesize_endpoint(identity: CurrentIdentity, request: TtsRequest
     text = (request.text or "").strip()
     if not text:
         raise HTTPException(status_code=422, detail="Text cannot be empty.")
+    from yumi.core.platform.plugins.usage_guard import reserve_speech
+
+    reserve_speech(identity, text=text)
     try:
         from yumi.core.features.tts import TtsError, TtsNotConfiguredError, create_tts_provider
 

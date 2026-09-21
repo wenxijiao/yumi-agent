@@ -12,6 +12,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from yumi.core.platform.http.dependencies import CurrentIdentity
 from yumi.core.platform.plugins import get_memory_factory, get_session_scope
+from yumi.core.platform.plugins.usage_guard import reserve_speech
 from yumi.core.platform.storage.voice_store import VoiceStore
 
 router = APIRouter(prefix="/voice", tags=["Voice messages"])
@@ -44,6 +45,7 @@ async def upload_voice(identity: CurrentIdentity, body: VoiceUpload):
     async with lock:
         row = store.save_input(str(body.request_id), sid, decode_upload_payload(body.content_base64))
         if not row["transcript"]:
+            reserve_speech(identity, audio=(store.audio(row["id"], 0)[0]).read_bytes())
             try:
                 result = await transcribe_audio((store.audio(row["id"], 0)[0]).read_bytes(), filename="voice.wav")
             except SttError as exc:
@@ -78,6 +80,7 @@ async def prepare_reply_voice(identity: CurrentIdentity, body: VoiceReply):
         chunks = spoken_chunks(event["content"])
         if not chunks:
             raise HTTPException(422, "This answer contains no speakable text.")
+        reserve_speech(identity, text="".join(chunks))
         try:
             provider = create_tts_provider()
             parts = []

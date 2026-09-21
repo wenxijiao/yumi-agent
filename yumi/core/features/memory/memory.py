@@ -291,7 +291,14 @@ class Memory:
 
     def _safe_rebuild_index(self) -> None:
         try:
-            n = self.rebuild_index_from_sqlite()
+            from pathlib import Path
+
+            from yumi.core.platform.storage.privacy_guard import lease
+
+            directory = Path(self.db_dir)
+            owner = directory.parent.name if directory.parent.parent.name == "users" else "_local"
+            with lease(owner):
+                n = self.rebuild_index_from_sqlite()
             logger.info("Rebuilt LanceDB index from SQLite (%s messages).", n)
         except Exception:
             logger.warning("LanceDB index rebuild failed", exc_info=True)

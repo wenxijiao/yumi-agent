@@ -544,17 +544,21 @@ def _summary(turn: dict[str, Any]) -> dict[str, Any]:
 
 
 def list_turns(*, session_id: str | None = None, limit: int = 30) -> list[dict[str, Any]]:
+    from yumi.core.platform.storage.privacy_guard import session_erased
+
     with _lock:
-        rows = list(_turns.values())
+        rows = [row for row in _turns.values() if not session_erased(row.get("session_id", ""))]
         if session_id:
             rows = [row for row in rows if row.get("session_id") == session_id]
         return [copy.deepcopy(_summary(row)) for row in reversed(rows[-max(1, min(100, int(limit))) :])]
 
 
 def get_turn(turn_id: str) -> dict[str, Any] | None:
+    from yumi.core.platform.storage.privacy_guard import session_erased
+
     with _lock:
         row = _turns.get(turn_id)
-        if row is None:
+        if row is None or session_erased(row.get("session_id", "")):
             return None
         public = copy.deepcopy(row)
     for round_record in public.get("rounds") or []:
@@ -569,6 +573,17 @@ def clear_turns() -> None:
     with _lock:
         _turns.clear()
         _active_by_session.clear()
+
+
+def clear_owner_turns(prefix: str, *, include_groups: bool = False) -> None:
+    from yumi.core.platform.storage.assistant_store import is_group_session
+
+    with _lock:
+        for key, row in list(_turns.items()):
+            sid = row.get("session_id", "")
+            if sid.startswith(prefix) and (include_groups or not is_group_session(sid)):
+                _turns.pop(key, None)
+                _active_by_session.pop(sid, None)
 
 
 __all__ = [
