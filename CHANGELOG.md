@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.4] - 2026-09-22
+
+### Added
+
+- Destination-first Edge setup: Yumi Nexus, local/custom server, or connect later.
+- Nexus browser sign-in through the existing Identity portal, including SSH and
+  headless terminals, account-bound device credentials, polling and cancellation.
+- Explicit CLI destination, address and authentication options; local single-user
+  servers can connect without a Nexus account. Device credentials are stored
+  atomically with owner-only permissions and excluded from Git.
+- Previously committed account-wide conversations, personalization and manual tool
+  management, history date navigation, persistent voice messages and transcripts.
+
+### Fixed
+
+- Switching Edge destinations clears stale device tokens and server overrides, so
+  a local or LAN connection cannot accidentally continue using the old Nexus host.
+- Vision context routing, recorded audio duration/WAV headers, usage schema
+  concurrency, and account-scoped tool discovery from earlier committed fixes.
+
+### Changed
+
+- Reuse per-turn embeddings, reduce repeated prompt/history content and record
+  account-isolated cache usage with versioned token-cost estimates.
+
 ## [0.0.3] - 2026-08-02
 
 ### Added

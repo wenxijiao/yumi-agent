@@ -223,6 +223,26 @@ class EdgeCommand(Command):
     def register(self, parser, mutex_group):
         mutex_group.add_argument("--edge", action="store_true", help="Initialize a Yumi Edge workspace")
         parser.add_argument(
+            "--edge-target",
+            choices=["nexus", "server", "skip"],
+            default=None,
+            help="With --edge: choose Yumi Nexus, a local/custom server, or connect later",
+        )
+        parser.add_argument(
+            "--edge-auth",
+            choices=["browser", "code", "token", "none", "skip"],
+            default=None,
+            help="With --edge: choose browser sign-in, account code, device token, no sign-in, or skip",
+        )
+        parser.add_argument(
+            "--edge-server", default=None, help="With --edge: server URL or LAN code (implies --edge-target server)"
+        )
+        parser.add_argument(
+            "--no-browser",
+            action="store_true",
+            help="Print the sign-in link without opening a browser (for SSH/headless devices)",
+        )
+        parser.add_argument(
             "--lang",
             action="append",
             dest="langs",
@@ -251,7 +271,14 @@ class EdgeCommand(Command):
     def run(self, args):
         from yumi.cli import _parse_edge_langs, run_edge
 
-        run_edge(lang=_parse_edge_langs(args.langs), edge_name=args.edge_name)
+        run_edge(
+            lang=_parse_edge_langs(args.langs),
+            edge_name=args.edge_name,
+            target=args.edge_target,
+            auth=args.edge_auth,
+            edge_server=args.edge_server,
+            no_browser=args.no_browser,
+        )
 
 
 class RunEdgeCommand(Command):

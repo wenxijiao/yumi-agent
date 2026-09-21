@@ -13,7 +13,7 @@ cd my_project
 yumi --edge
 ```
 
-On a terminal, `yumi --edge` runs an interactive wizard: pick languages (leave the selection empty for all), name the edge (defaults to the hostname), and optionally paste a LAN connection code (`yumi-lan_...`) from `yumi --server`. To skip the prompts, scaffold a subset of languages non-interactively (repeat `--lang` or use commas):
+On a terminal, `yumi --edge` runs an interactive wizard: pick languages (leave the selection empty for all), name the edge (defaults to the hostname), and choose a destination: **Yumi Nexus**, **Local / custom server**, or **Set up later**. Only then choose a sign-in method, if the server needs one. Browser sign-in reuses the Yumi Identity website and connects your tools to the same account you use in Yumi. Connection codes, including existing LAN codes, remain supported. To skip the prompts, scaffold a subset of languages non-interactively (repeat `--lang` or use commas):
 
 ```bash
 yumi --edge --lang python
@@ -32,6 +32,85 @@ yumi --edge --lang dart
 ```
 
 This creates `yumi_tools/` with a `.env` file, a `.gitignore`, an `AGENTS.md`, and language-specific setup templates.
+
+## Local and custom servers
+
+A local single-user server does not require a Yumi Nexus account. In the wizard,
+choose **Local / custom server**, enter a server URL or its LAN connection code,
+and choose **No sign-in**. An empty address uses `http://127.0.0.1:8000`.
+
+```bash
+# On the computer running the server
+yumi --server
+
+# In your edge project (no browser or account needed)
+yumi --edge --lang python --edge-target server --edge-auth none
+
+# A server elsewhere on your network
+yumi --edge --lang python --edge-server http://192.168.1.30:8000 --edge-auth none
+
+# Generate files and choose the connection later
+yumi --edge --lang python --edge-target skip
+```
+
+Use the server's LAN address when the edge runs on another computer; `127.0.0.1`
+means the computer running the edge. `--edge-server` also accepts a `yumi-lan_...`
+code. URLs may use HTTP(S) or WebSocket schemes; the wizard saves an explicit
+WebSocket endpoint in the field shared by all SDKs.
+
+For an authenticated server choose **Device access token**, and enter a Yumi
+credential issued by that server. A self-hosted multi-user Nexus may also use its
+account code (currently supported by the Python SDK) or browser sign-in if its
+Identity portal has been configured for it. These options do not add authentication
+to an otherwise open local server. An account code and a LAN code are different:
+the account code is a credential; the LAN code carries the server address.
+
+Changing destinations clears the previous transport address and credentials
+atomically, while keeping other `.env` settings. **Keep the current connection**
+and **Set up later** leave an existing configuration untouched. New or replaced
+connection files are owner-readable (0600 on POSIX) and excluded from Git.
+For non-interactive credential setup, use environment variables
+`YUMI_ACCESS_TOKEN` with `--edge-auth token`, or `YUMI_CONNECTION_CODE` with
+`--edge-auth code`; secrets are never required as command-line arguments.
+
+## Sign in to Yumi Nexus
+
+```bash
+yumi --edge --lang python --edge-name weather-pi --edge-auth browser
+```
+
+The terminal opens Yumi Identity and shows a short confirmation code. Check that
+the browser displays the same code and device name, then sign in. If already
+signed in, choose **Continue as your account**. The terminal continues automatically;
+there is no token to copy and no local callback port to open.
+
+Over SSH, or on a device without a browser, open the printed link on your phone or
+another computer. You can also explicitly disable browser launch:
+
+```bash
+yumi --edge --lang python --edge-name weather-pi --edge-auth browser --no-browser
+```
+
+A request expires after ten minutes. Ctrl+C cancels it. Brief network interruptions
+are retried using the same request. Every device needs a distinct name. The
+credential is bound to that name, so keep the saved `EDGE_NAME` unchanged; use a
+new setup when renaming a connected device.
+
+The generated `yumi_tools/.env` contains a dedicated `edge:register` credential,
+not an account-wide chat token. On POSIX systems it is saved with owner-only
+permissions (0600), and added to `.gitignore`. Do not distribute this file or put it
+in browser/mobile application bundles. All generated SDKs can use its server URL
+and credential; start the generated edge to make its registered functions available.
+Review or revoke the device from Yumi's Connections page. Revoked names require
+**Allow pairing again** there before reuse. Credentials currently last one year;
+after expiration rerun browser sign-in. Automatic renewal is not yet implemented.
+
+For a separately hosted Nexus, `--edge-target server --edge-auth browser
+--edge-server https://your-nexus.example` selects
+the server. Its Identity frontend must be configured for that same Nexus origin;
+the website never accepts a credential destination from URL parameters. Browser
+sign-in requires the updated server and Identity site described in the Nexus
+`docs/EDGE_SIGN_IN.md`. It does not apply to an unauthenticated local OSS server.
 
 ## Next Steps After `yumi --edge`
 

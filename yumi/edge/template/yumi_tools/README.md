@@ -32,6 +32,18 @@ yumi_tools/
 └── README.md
 ```
 
+## Connection
+
+Run `yumi --edge` to select **Yumi Nexus**, **Local / custom server**, or
+**Set up later**. Nexus offers browser sign-in or an account code. A local
+single-user server can connect directly without a Nexus login; enter its URL
+(or LAN code) and choose **No sign-in**. The default is this computer on port 8000.
+
+Connection settings are saved in `yumi_tools/.env`. Do not commit or distribute
+credentials. To change servers safely, rerun the wizard; it clears old connection
+credentials and addresses together. Keep a device's name unchanged after browser
+sign-in because its credential is bound to that name.
+
 ## What To Do Next
 
 1. Open the folder for the language you actually use

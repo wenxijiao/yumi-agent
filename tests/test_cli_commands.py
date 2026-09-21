@@ -93,3 +93,13 @@ def test_ui_command_runs_ui(monkeypatch):
     UICommand().run(SimpleNamespace())
 
     assert called["ran"] is True
+
+
+def test_edge_connection_destination_flags():
+    args = _parse(
+        ["--edge", "--edge-target", "server", "--edge-server", "http://localhost:8123", "--edge-auth", "none"]
+    )
+    assert args.edge_target == "server"
+    assert args.edge_server == "http://localhost:8123"
+    assert args.edge_auth == "none"
+    assert _parse(["--edge"]).edge_server is None

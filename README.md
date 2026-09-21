@@ -25,11 +25,11 @@ Connect your own app:
 
 ```bash
 cd my_project
-yumi --edge                  # interactive wizard: languages, edge name, connection code
+yumi --edge                  # interactive wizard: language, device name, Nexus or local/custom server
 yumi --edge --lang python    # or jump straight to a language (also: typescript, swift, go, rust, kotlin, dart, java, csharp, cpp, ue5)
 ```
 
-`yumi --edge` scaffolds a `yumi_tools/` directory. Edit the generated setup file, call its init function from your app entry point, and your functions appear as AI tools. Full walkthrough in [Getting Started](docs/GETTING_STARTED.md).
+`yumi --edge` first lets you choose **Yumi Nexus**, **Local / custom server**, or **Set up later**. Local single-user servers need no Nexus login; Nexus supports browser sign-in or an account connection code. It scaffolds a `yumi_tools/` directory. Edit the generated setup file, call its init function from your app entry point, and your functions appear as AI tools. Full walkthrough in [Getting Started](docs/GETTING_STARTED.md).
 
 ## Demo
 

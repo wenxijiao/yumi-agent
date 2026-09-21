@@ -21,6 +21,14 @@ HTTP integration guide for **any language**. Core implementation lives in the [`
 
 The **core** HTTP API does not require a Bearer token by default: treat it as **trusted network** only.
 
+### Connecting an Edge
+
+`yumi --edge --edge-target server --edge-auth none` connects to this local core
+server without a Nexus account. Use `--edge-server` for a different address or LAN
+code. **Yumi Nexus** is a separate wizard destination, offering Identity browser
+sign-in or account-code pairing; its sign-in endpoints are provided by Nexus, not
+by the standalone core API. See [Edge setup](EDGE_TOOLS.md#local-and-custom-servers).
+
 ### Browser CORS configuration
 
 Yumi now uses **restricted browser defaults**:
