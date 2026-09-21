@@ -861,83 +861,24 @@ def _edge_connection_label(code: str) -> str:
     return "set"
 
 
-def _edge_connection_step(env_path: str, interactive: bool) -> str:
-    """Step 3: connect this edge. Returns a label for the summary."""
-    from yumi.core.features.config.setup_wizard import _framed_prompt, _note, _select_option
+def _edge_connection_step(
+    env_path: str,
+    interactive: bool,
+    *,
+    target: str | None = None,
+    method: str | None = None,
+    server: str | None = None,
+    open_browser: bool = True,
+) -> str:
+    from yumi.edge.connection import configure_connection
+    from yumi.edge.login import EdgeLoginError
 
-    existing = _read_env_connection_code(env_path)
-    if existing and interactive:
-        masked = existing[:8] + "..." + existing[-4:] if len(existing) > 12 else existing
-        action = _select_option(
-            step="Step 3/3: Connection",
-            title="A connection code is already set.",
-            message=f"Saved code: {masked}",
-            options=[
-                ("keep", "Keep saved code", ""),
-                ("replace", "Replace it", "enter a new LAN code"),
-            ],
+    try:
+        return configure_connection(
+            env_path, interactive, target=target, method=method, server=server, open_browser=open_browser
         )
-        if action == "keep":
-            return _edge_connection_label(existing)
-    elif existing:
-        return _edge_connection_label(existing)
-
-    if not interactive:
-        return "not set"
-
-    code = _framed_prompt(
-        "Connection code",
-        step="Step 3/3: Connection · Code",
-        title="Connect this edge to Yumi",
-        context="Paste a LAN code (yumi-lan_…) from `yumi --server`, or leave blank to skip.",
-        hint="enter to skip",
-    )
-    if not code:
-        _note("Connection skipped — set YUMI_CONNECTION_CODE in yumi_tools/.env later.")
-        return "not set"
-    _write_connection_code(env_path, code)
-    if _is_lan_code(code):
-        try:
-            server_url = parse_lan_code(code)
-            _note(f"Connection code saved (LAN → {server_url}).")
-            return f"LAN → {server_url}"
-        except ValueError as exc:
-            _note(f"Saved, but the code looks invalid: {exc}")
-            return "set (unverified)"
-    if code.startswith(("ws://", "wss://", "http://", "https://")):
-        _note("Connection code saved (direct URL).")
-        return "set (direct)"
-    # A remote/account connection code carries no host — ask which server hosts
-    # Yumi so the edge knows where to connect. The code just identifies the user.
-    # Offer the hosted Yumi endpoint as a one-tap default so users don't have to type the URL.
-    server_choice = _select_option(
-        step="Step 3/3: Connection · Server",
-        title="Where should this edge connect?",
-        message="Your connection code identifies you; pick the server that hosts Yumi.",
-        options=[
-            ("hosted", "Hosted Yumi", f"{YUMI_NEXUS_EDGE_SERVER} · hosted"),
-            ("custom", "Custom server", "enter your own URL"),
-            ("local", "Local server", "ws://127.0.0.1:8000"),
-        ],
-    )
-    if server_choice == "hosted":
-        server = YUMI_NEXUS_EDGE_SERVER
-    elif server_choice == "custom":
-        server = _framed_prompt(
-            "Edge server",
-            step="Step 3/3: Connection · Server",
-            title="Custom Yumi server",
-            context="The server that hosts Yumi (e.g. https://api.yumi.nexus). Your code identifies you to it.",
-            hint="enter for a local server (ws://127.0.0.1:8000)",
-        )
-    else:
-        server = ""
-    if server and server.strip():
-        _write_env_var(env_path, "YUMI_EDGE_SERVER", server.strip())
-        _note(f"Connection code saved (server → {server.strip()}).")
-        return f"→ {server.strip()}"
-    _note("Connection code saved (local server).")
-    return "set (local)"
+    except (EdgeLoginError, OSError, ValueError) as exc:
+        raise SystemExit(f"  Could not configure the edge connection: {exc}") from None
 
 
 def _render_edge_summary(*, workspace: str, lang, edge_name: str, connection: str) -> None:
@@ -1016,7 +957,15 @@ def _render_edge_summary(*, workspace: str, lang, edge_name: str, connection: st
     )
 
 
-def run_edge(lang: str | list[str] | None = None, edge_name: str | None = None):
+def run_edge(
+    lang: str | list[str] | None = None,
+    edge_name: str | None = None,
+    *,
+    auth: str | None = None,
+    edge_server: str | None = None,
+    target: str | None = None,
+    no_browser: bool = False,
+):
     """Scaffold a Yumi Edge workspace as a short, editorial-minimal wizard."""
     from yumi.core.features.config.setup_wizard import _alt_screen, _note
 
@@ -1052,7 +1001,9 @@ def run_edge(lang: str | list[str] | None = None, edge_name: str | None = None):
                     edge_name = _prompt_edge_name()
                 if edge_name:
                     _set_env_var(env_path, "EDGE_NAME", edge_name)
-                connection = _edge_connection_step(env_path, interactive)
+                connection = _edge_connection_step(
+                    env_path, interactive, target=target, method=auth, server=edge_server, open_browser=not no_browser
+                )
     except (KeyboardInterrupt, EOFError):
         raise SystemExit("  Edge setup cancelled.")
 

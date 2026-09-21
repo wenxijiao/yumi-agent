@@ -61,6 +61,33 @@ EXCLUDED_FILES = {
 }
 
 
+# The public CLI now explicitly connects to hosted Yumi as well as OSS servers.
+# Allow only its public product label and the device-login client endpoint in
+# these integration surfaces. Backend packages, private app content and server
+# implementation terms remain forbidden everywhere outside the existing guide.
+PUBLIC_EDGE_LABEL_FILES = {
+    "README.md",
+    "CHANGELOG.md",
+    "docs/EDGE_TOOLS.md",
+    "docs/HTTP_API.md",
+    "yumi/cli/commands.py",
+    "yumi/edge/connection.py",
+    "yumi/edge/template/env.template",
+    "yumi/edge/template/yumi_tools/README.md",
+}
+
+
+def _public_edge_client_reference(path: Path, text: str, match: re.Match[str]) -> bool:
+    relative = path.relative_to(ROOT).as_posix()
+    if relative in PUBLIC_EDGE_LABEL_FILES and match.group(0).casefold() == "yumi nexus":
+        return True
+    return (
+        relative == "yumi/edge/login.py"
+        and match.group(0) == "/nexus/"
+        and text[match.end() :].startswith("edge-login/")
+    )
+
+
 def _text_files():
     for root in SCAN_ROOTS:
         if root.is_file():
@@ -91,6 +118,8 @@ def test_l1_has_no_concrete_l2_l3_brand_or_app_terms():
             patterns.append(HIGHER_LAYER_FORBIDDEN_RE)
         for pattern in patterns:
             for match in pattern.finditer(text):
+                if _public_edge_client_reference(path, text, match):
+                    continue
                 rel = path.relative_to(ROOT)
                 offenders.append(f"{rel}:{text.count(chr(10), 0, match.start()) + 1}: {match.group(0)!r}")
 
