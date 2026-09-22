@@ -6,6 +6,7 @@ import io
 import json
 import uuid
 import wave
+from contextlib import contextmanager
 from types import SimpleNamespace
 
 import pytest
@@ -310,6 +311,87 @@ def test_streamed_reply_is_playable_before_remaining_synthesis_and_shared_on_rec
         cached = await voice_api.prepare_reply_voice(identity, voice_api.VoiceReply(turn_id="turn1"))
         assert cached["id"] == same_job.result["id"]
         assert len(reservations) == 1
+
+    asyncio.run(run())
+
+
+def test_reply_timeout_cancels_synthesis_before_releasing_privacy_lease(monkeypatch, store):
+    from yumi.core.features import tts
+    from yumi.core.platform.storage import privacy_guard
+
+    event = save_turn(store, ready(store))
+    monkeypatch.setattr(voice_api, "voice_store", lambda _: store)
+    monkeypatch.setattr(
+        voice_api, "get_session_scope", lambda: SimpleNamespace(ensure_message_owned_by_identity=lambda *_: None)
+    )
+    monkeypatch.setattr(voice_api, "reply_chunks", lambda _: ["First sentence.", "Second sentence."])
+    monkeypatch.setattr(voice_api, "reserve_speech", lambda *a, **kw: None)
+    lifecycle = []
+
+    @contextmanager
+    def lease(_):
+        lifecycle.append("lease acquired")
+        try:
+            yield
+        finally:
+            lifecycle.append("lease released")
+
+    monkeypatch.setattr(privacy_guard, "lease", lease)
+    wait_for = asyncio.wait_for
+    waiting_for_audio = asyncio.Event()
+
+    async def short_timeout(awaitable, timeout):
+        if timeout != 300:
+            return await wait_for(awaitable, timeout=timeout)
+        task = asyncio.create_task(awaitable)
+        await wait_for(waiting_for_audio.wait(), timeout=2)
+        return await wait_for(task, timeout=0)
+
+    monkeypatch.setattr(voice_api.asyncio, "wait_for", short_timeout)
+
+    async def synthesize(text):
+        if text == "First sentence.":
+            return SimpleNamespace(data=wav(500), format="wav")
+        lifecycle.append("synthesis started")
+        waiting_for_audio.set()
+        try:
+            await asyncio.Future()
+        finally:
+            lifecycle.append("synthesis cancelled")
+
+    monkeypatch.setattr(tts, "create_tts_provider", lambda: SimpleNamespace(synthesize=synthesize))
+
+    async def run():
+        _, job = voice_api._reply_job(Identity(user_id="_local"), voice_api.VoiceReply(turn_id="turn1"))
+        await job.task
+        assert isinstance(job.error, asyncio.TimeoutError)
+        assert job.done and len(job.frames) == 1
+        assert job.result is None and store.cached_reply(event["id"]) is None
+        assert f"_local:reply:{event['id']}" not in voice_api._jobs
+
+    asyncio.run(run())
+    assert lifecycle == ["lease acquired", "synthesis started", "synthesis cancelled", "lease released"]
+
+
+def test_voice_stream_sends_keepalive_on_asyncio_timeout(monkeypatch, store):
+    event = save_turn(store, ready(store))
+
+    async def timeout():
+        # asyncio.TimeoutError is distinct from built-in TimeoutError on 3.10.
+        raise asyncio.TimeoutError
+
+    job = voice_api._ReplyJob(event_id=event["id"])
+    job.changed = SimpleNamespace(clear=lambda: None, wait=timeout)
+    monkeypatch.setattr(voice_api, "_reply_job", lambda *_: (store, job))
+
+    async def run():
+        response = await voice_api.stream_reply_voice(Identity(user_id="_local"), voice_api.VoiceReply(turn_id="turn1"))
+        events = response.body_iterator
+        assert json.loads(await anext(events)) == {"type": "keepalive"}
+        job.done = True
+        job.result = {"id": "completed-reply"}
+        assert json.loads(await anext(events)) == {"type": "ready", "voice": job.result}
+        await events.aclose()
 
     asyncio.run(run())
 

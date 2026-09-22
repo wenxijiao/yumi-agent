@@ -111,10 +111,11 @@ def _reply_job(identity, body):
             # The job outlives a disconnected/paused player so the complete
             # recording remains replayable. Keep erasure protection until saved.
             with lease(identity.user_id):
-                parts = []
-                provider = create_tts_provider()
-                first_part_ms = None
-                async with asyncio.timeout(300):
+
+                async def synthesize_reply():
+                    parts = []
+                    provider = create_tts_provider()
+                    first_part_ms = None
                     for index, text in enumerate(chunks):
                         current = store.reply_event(body.turn_id)
                         if current["id"] != event["id"] or current["content"] != event["content"]:
@@ -152,6 +153,8 @@ def _reply_job(identity, body):
                         },
                     )
                     job.result = store.summary(row)
+
+                await asyncio.wait_for(synthesize_reply(), timeout=300)
         except Exception as exc:
             job.error = exc
         finally:
@@ -200,7 +203,7 @@ async def stream_reply_voice(identity: CurrentIdentity, body: VoiceReply):
                 return
             try:
                 await asyncio.wait_for(job.changed.wait(), timeout=10)
-            except TimeoutError:
+            except asyncio.TimeoutError:
                 yield '{"type":"keepalive"}\n'
 
     return StreamingResponse(
