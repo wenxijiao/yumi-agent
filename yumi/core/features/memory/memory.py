@@ -167,6 +167,9 @@ class Memory:
             self.embedding.maybe_migrate(self.table_name)
         self._sync_sqlite_to_lancedb_if_needed()
         self._sync_lancedb_to_sqlite_if_needed()
+        from yumi.core.features.memory.index_queue import start_worker
+
+        start_worker(self)
 
     # ── lifecycle / init delegation ────────────────────────────────────────
 
@@ -197,6 +200,12 @@ class Memory:
                 return
             if self.sqlite.event_count() <= 0:
                 return
+            with self.sqlite.connect() as conn:
+                if (
+                    conn.execute("SELECT 1 FROM sqlite_master WHERE name='message_index_jobs'").fetchone()
+                    and conn.execute("SELECT 1 FROM message_index_jobs LIMIT 1").fetchone()
+                ):
+                    return  # Resume the durable outbox without blocking first use.
             self._rebuild_messages_from_sqlite()
         except Exception as exc:
             logger.debug("LanceDB rebuild from SQLite skipped: %s", exc)
@@ -291,7 +300,14 @@ class Memory:
 
     def _safe_rebuild_index(self) -> None:
         try:
-            n = self.rebuild_index_from_sqlite()
+            from pathlib import Path
+
+            from yumi.core.platform.storage.privacy_guard import lease
+
+            directory = Path(self.db_dir)
+            owner = directory.parent.name if directory.parent.parent.name == "users" else "_local"
+            with lease(owner):
+                n = self.rebuild_index_from_sqlite()
             logger.info("Rebuilt LanceDB index from SQLite (%s messages).", n)
         except Exception:
             logger.warning("LanceDB index rebuild failed", exc_info=True)
@@ -510,14 +526,20 @@ class Memory:
             "timestamp_num": (timestamp_num if timestamp_num is not None else self.backend.current_timestamp_num()),
         }
 
-        # 1) Authoritative write — propagate failures (the message is not accepted).
-        self.sqlite.upsert_event_from_message(record)
+        # Canonical write and deferred index outbox commit atomically.
+        from yumi.core.features.memory.index_queue import defer_message_index, enqueue
+
+        deferred = defer_message_index.get()
+        if deferred:
+            enqueue(self, record)
+        else:
+            self.sqlite.upsert_event_from_message(record)
 
         # 2) Derived index — best-effort; failures are logged and reconciled later.
         #    Skipped while this store is rebuilding (the rebuild will index this
         #    row from SQLite), so a concurrent turn can't add a duplicate racing
         #    the rebuild.
-        if not _rebuild_active_for(self.db_dir):
+        if not deferred and not _rebuild_active_for(self.db_dir):
             try:
                 self.messages.create(
                     session_id=record["session_id"],

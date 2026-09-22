@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from collections.abc import AsyncIterator
 from copy import deepcopy
 
@@ -39,7 +40,7 @@ from yumi.core.platform.dispatch import (
     UsageRecorder,
 )
 from yumi.core.platform.dispatch.normalizer import summarize_tool_args
-from yumi.core.platform.http.events import ErrorEvent, TextEvent, ThoughtEvent, ToolStatusEvent
+from yumi.core.platform.http.events import ErrorEvent, TextEvent, ThoughtEvent, ToolStatusEvent, TurnPhaseEvent
 from yumi.core.platform.plugins import (
     SINGLE_USER_ID,
     get_bot_pool,
@@ -48,6 +49,7 @@ from yumi.core.platform.plugins import (
 )
 from yumi.core.platform.runtime import RuntimeState, get_default_runtime
 from yumi.core.platform.runtime.assistant_context import PromptSnapshot
+from yumi.core.platform.runtime.async_work import run_blocking
 from yumi.core.platform.runtime.tool_catalog import model_visible_tool_schema
 from yumi.core.platform.tools.context_prefetch import runtime_context_prompt_block
 from yumi.core.platform.tools.replay import normalize_tool_history
@@ -204,11 +206,22 @@ class ChatTurnService:
 
         embedding_cache = RequestEmbeddingCache()
         embedding_cache_token = request_embedding_cache.set(embedding_cache)
+        from yumi.core.features.memory.index_queue import defer_message_index
+
+        index_token = defer_message_index.set(True)
         sink = ChatTraceSink(ctx)
         try:
             async for event in self._run_turn(ctx, sink):
                 yield event
         finally:
+            defer_message_index.reset(index_token)
+            if sink.bot is not None:
+                from yumi.core.features.memory.index_queue import start_worker
+
+                try:
+                    start_worker(sink.bot.session_memory(session_id))
+                except Exception:
+                    logger.warning("Deferred index scheduling failed; pending jobs retained", exc_info=True)
             embedding_cache.close()
             request_embedding_cache.reset(embedding_cache_token)
             usage_owner_id.reset(usage_owner_token)
@@ -294,6 +307,7 @@ class ChatTurnService:
             sink.bot = active_bot
             usage.bot = active_bot
             sink.record_turn_begin()
+            yield sink.emit(TurnPhaseEvent(turn_id=ctx.turn_id, phase="preparing"))
 
             normalizer = ToolCallNormalizer(max_retries=MAX_TOOL_CALL_FORMAT_RETRIES)
             gate = ConfirmationGate(self.runtime)
@@ -305,7 +319,8 @@ class ChatTurnService:
 
             async for event in self._run_loops(ctx, sink, active_bot, usage, normalizer, gate, dispatcher):
                 yield event
-            _persist_tool_ephemeral_spans(
+            await run_blocking(
+                _persist_tool_ephemeral_spans,
                 ctx.ephemeral_messages,
                 ctx.session_id,
                 active_bot,
@@ -340,6 +355,7 @@ class ChatTurnService:
         # get_user_context() and the agent always sees fresh state (mood, plans,
         # ...) before replying. Per-tool errors are swallowed inside the helper;
         # this guard only covers a total failure.
+        prefetch_started = time.perf_counter()
         try:
             from yumi.core.platform.storage.assistant_store import is_group_session
 
@@ -347,6 +363,9 @@ class ChatTurnService:
         except Exception as exc:
             logger.debug("Context prefetch failed: %s", exc)
             runtime_context = None
+        from yumi.core.platform.observability.turn_inspector import record_stage
+
+        record_stage(ctx.session_id, "context_prefetch_ms", (time.perf_counter() - prefetch_started) * 1000)
         _append_system_note(ctx, runtime_context)
         from yumi.core.features.assistant.personalization import preferences
         from yumi.core.platform.runtime.assistant_context import personal_store
@@ -388,6 +407,7 @@ class ChatTurnService:
             tools = None if closing else turn_tools
             ctx.last_tools = tools
 
+            yield sink.emit(TurnPhaseEvent(turn_id=ctx.turn_id, phase="model", round=ctx.loop_count))
             tool_calls_to_process, streamed_text, streamed_reasoning = None, "", ""
             finish_reason: str | None = None
             provider_finish_reason: str | None = None
@@ -399,6 +419,7 @@ class ChatTurnService:
                 think=ctx.think,
                 turn_id=ctx.turn_id,
                 prompt_snapshot=ctx.prompt_snapshot,
+                response_language=language,
             ):
                 ctype = chunk.get("type")
                 if ctype == "model_settings":
@@ -456,6 +477,8 @@ class ChatTurnService:
                     yield sink.emit(ErrorEvent(code=code, content=content))
                 return
 
+            # Keep malformed requests too: normalization may reject them and retry.
+            sink.record_tool_calls(tool_calls_to_process)
             if closing:
                 async for event in self._emit_loop_exhausted(ctx, sink):
                     yield event
@@ -467,6 +490,7 @@ class ChatTurnService:
                     yield event
                 return
             if outcome.kind == "retry":
+                sink.record_provider_finish({"reason": "retry", "provider_reason": "invalid_tool_call"})
                 yield sink.emit(
                     ToolStatusEvent(
                         status="error",
@@ -493,7 +517,8 @@ class ChatTurnService:
                 yield sink.emit(ev)
 
             if not invocations:
-                _persist_tool_ephemeral_spans(
+                await run_blocking(
+                    _persist_tool_ephemeral_spans,
                     ctx.ephemeral_messages,
                     ctx.session_id,
                     active_bot,
@@ -512,7 +537,8 @@ class ChatTurnService:
                     approved.append(inv)
 
             if not approved:
-                _persist_tool_ephemeral_spans(
+                await run_blocking(
+                    _persist_tool_ephemeral_spans,
                     ctx.ephemeral_messages,
                     ctx.session_id,
                     active_bot,
@@ -617,7 +643,8 @@ class ChatTurnService:
                     except (json.JSONDecodeError, TypeError, AttributeError):
                         pass
 
-            _persist_tool_ephemeral_spans(
+            await run_blocking(
+                _persist_tool_ephemeral_spans,
                 ctx.ephemeral_messages,
                 ctx.session_id,
                 active_bot,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from collections import OrderedDict
 
 from yumi.core.features.config import load_model_config
@@ -14,6 +15,7 @@ from yumi.core.platform.providers.budget import fit_prompt
 from yumi.core.platform.providers.diagnostics import provider_name, write_provider_failure_diagnostic
 from yumi.core.platform.providers.error_classify import is_multimodal_vision_rejection
 from yumi.core.platform.runtime.assistant_context import PromptSnapshot
+from yumi.core.platform.runtime.async_work import run_blocking
 from yumi.core.platform.streaming.think_parser import ThinkTagParser
 from yumi.core.platform.tools.replay import normalize_tool_history
 from yumi.logging_config import get_logger
@@ -78,13 +80,16 @@ class YumiBot:
         think: bool | None = None,
         turn_id: str = "",
         prompt_snapshot: PromptSnapshot | None = None,
+        response_language: str | None = None,
     ):
         """Core streaming chat flow with function-calling support."""
-        memory = self._get_memory(session_id)
+        memory = await run_blocking(self._get_memory, session_id)
         user_message_id: str | None = None
 
         cfg = self._runtime_config or load_model_config()
-        messages = compose_messages(
+        prepare_started = time.perf_counter()
+        messages = await run_blocking(
+            compose_messages,
             memory,
             prompt=prompt,
             tools=tools,
@@ -92,6 +97,7 @@ class YumiBot:
             cfg=cfg,
             upload_mode="vision",
             prompt_snapshot=prompt_snapshot,
+            response_language=response_language,
         )
         current_index = None
         if prompt_snapshot is not None and prompt_snapshot.messages is not None:
@@ -101,8 +107,11 @@ class YumiBot:
         messages = fit_prompt(messages, tools, budget=cfg.chat_input_token_budget, current_user_index=current_index)
         has_images = messages_have_multimodal_images(messages)
         model = cfg.chat_vision_model if has_images and cfg.chat_vision_model else self.model_name
+        turn_inspector.record_stage(session_id, "prompt_prepare_ms", (time.perf_counter() - prepare_started) * 1000)
         if prompt:
-            user_message_id = memory.add_message("user", prompt, turn_id=turn_id)
+            save_started = time.perf_counter()
+            user_message_id = await run_blocking(memory.add_message, "user", prompt, turn_id=turn_id)
+            turn_inspector.record_stage(session_id, "message_save_ms", (time.perf_counter() - save_started) * 1000)
 
         turn_inspector.record_llm_request(
             session_id,
@@ -197,7 +206,8 @@ class YumiBot:
                 full_response = ""
                 full_thought = ""
                 parser = ThinkTagParser()
-                messages_fb = compose_messages(
+                messages_fb = await run_blocking(
+                    compose_messages,
                     memory,
                     prompt=prompt,
                     tools=tools,
@@ -206,6 +216,7 @@ class YumiBot:
                     upload_mode="no_vision",
                     prompt_snapshot=prompt_snapshot,
                     exclude_message_ids={user_message_id} if user_message_id else None,
+                    response_language=response_language,
                 )
                 messages_fb = fit_prompt(
                     messages_fb, tools, budget=cfg.chat_input_token_budget, current_user_index=current_index
@@ -233,12 +244,15 @@ class YumiBot:
                 raise
 
         if full_response:
-            memory.add_message(
+            save_started = time.perf_counter()
+            await run_blocking(
+                memory.add_message,
                 "assistant",
                 full_response,
                 thought=full_thought.strip() if use_think and full_thought.strip() else None,
                 turn_id=turn_id,
             )
+            turn_inspector.record_stage(session_id, "message_save_ms", (time.perf_counter() - save_started) * 1000)
 
     def clear_memory(self, session_id: str = "default"):
         memory = self._get_memory(session_id)

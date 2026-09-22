@@ -22,6 +22,16 @@ class RequestEmbeddingCache:
             self._entries.clear()
             self._providers.clear()
 
+    def peek(self, owner: str, provider: object, model: str, text: str) -> list[float] | None:
+        """Reuse completed query vectors for deferred indexing without waiting."""
+        key = (owner, id(provider), model, hashlib.sha256(text.encode()).digest())
+        with self._lock:
+            future = self._entries.get(key) if self._active else None
+        if future is None or not future.done() or future.exception() is not None:
+            return None
+        vector = future.result()
+        return list(vector) if vector and any(vector) else None
+
     def get(
         self, owner: str, provider: object, model: str, text: str, compute: Callable[[], list[float]]
     ) -> list[float]:

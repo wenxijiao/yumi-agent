@@ -78,6 +78,16 @@ class ToolConfirmationEvent(BaseModel):
     edge_name: str | None = None
 
 
+class TurnPhaseEvent(BaseModel):
+    """A real workflow boundary, independent of whether reasoning is enabled."""
+
+    model_config = _BaseConfig
+    type: Literal["turn_phase"] = "turn_phase"
+    turn_id: str
+    phase: Literal["preparing", "model"]
+    round: int = 0
+
+
 class TurnTimingEvent(BaseModel):
     model_config = _BaseConfig
     type: Literal["turn_timing"] = "turn_timing"
@@ -108,6 +118,7 @@ ChatEvent = Annotated[
         ToolConfirmationEvent,
         ErrorEvent,
         TurnTimingEvent,
+        TurnPhaseEvent,
     ],
     Field(discriminator="type"),
 ]

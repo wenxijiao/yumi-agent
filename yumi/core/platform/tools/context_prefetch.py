@@ -15,7 +15,6 @@ import uuid
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from yumi.core.platform.dispatch.limits import LOCAL_TOOL_TIMEOUT_DEFAULT
 from yumi.core.platform.plugins.identity import effective_caller_user_id
 from yumi.core.platform.runtime.accessors import (
     ACTIVE_CONNECTIONS,
@@ -32,6 +31,10 @@ from yumi.core.platform.tools.tool import TOOL_REGISTRY, execute_registered_tool
 from yumi.logging_config import get_logger
 
 logger = get_logger(__name__)
+
+# Optional ambient context must not hold up a direct user request.
+CONTEXT_PREFETCH_BUDGET_SECONDS = 2.0
+CONTEXT_PREFETCH_CONCURRENCY = 4
 
 
 @dataclass(slots=True)
@@ -167,64 +170,65 @@ async def context_prefetch_items() -> list[ContextPrefetchItem]:
     visible = {
         s["function"]["name"] for s in get_edge_scope().filter_edge_tool_schemas(identity, EDGE_TOOLS_REGISTRY, skipped)
     }
-    items: list[ContextPrefetchItem] = []
-    for name, tool_data in TOOL_REGISTRY.items():
+    semaphore = asyncio.Semaphore(CONTEXT_PREFETCH_CONCURRENCY)
+    jobs = []
+
+    async def fetch(name, entry, *, edge=None):
+        schema = entry["schema"]
+        args = entry.get("proactive_context_args") or {}
+        try:
+            async with semaphore:
+                result = (
+                    await _call_edge_context(name, entry, args, target_edge=edge)
+                    if edge is not None
+                    else await execute_registered_tool(name, args)
+                )
+            return ContextPrefetchItem(
+                source="edge" if edge is not None else "local",
+                edge_key=edge,
+                edge_name=_edge_display_name(edge) if edge is not None else None,
+                tool_name=_tool_schema_name(schema, name),
+                label=_context_label(name, schema, entry),
+                result=str(result)[:1000],
+            )
+        except Exception:
+            logger.debug("Optional context provider unavailable: %s", name)
+            return None
+
+    for name, entry in TOOL_REGISTRY.items():
         if (
             name in skipped
             or name in DISABLED_TOOLS
             or name in CONFIRMATION_TOOLS
-            or not tool_data.get("proactive_context")
+            or not entry.get("proactive_context")
+            or not _has_required_args(entry["schema"], entry.get("proactive_context_args") or {})
         ):
             continue
-        args = tool_data.get("proactive_context_args") or {}
-        schema = tool_data["schema"]
-        if not _has_required_args(schema, args):
-            logger.debug("Skipping context tool %s: missing fixed args", name)
-            continue
-        try:
-            result = await asyncio.wait_for(execute_registered_tool(name, args), timeout=LOCAL_TOOL_TIMEOUT_DEFAULT)
-            items.append(
-                ContextPrefetchItem(
-                    source="local",
-                    tool_name=_tool_schema_name(schema, name),
-                    label=_context_label(name, schema, tool_data),
-                    result=str(result)[:1000],
-                )
-            )
-        except Exception as exc:
-            logger.debug("Context tool %s failed: %s", name, exc)
-
-    for edge_key, edge_tools in EDGE_TOOLS_REGISTRY.items():
-        for full_name, entry in edge_tools.items():
+        jobs.append(asyncio.create_task(fetch(name, entry)))
+    for edge_key, entries in EDGE_TOOLS_REGISTRY.items():
+        for name, entry in entries.items():
             if (
-                full_name not in visible
-                or full_name in skipped
-                or full_name in DISABLED_TOOLS
-                or full_name in CONFIRMATION_TOOLS
+                name not in visible
+                or name in skipped
+                or name in DISABLED_TOOLS
+                or name in CONFIRMATION_TOOLS
                 or entry.get("require_confirmation")
                 or not entry.get("proactive_context")
+                or not _has_required_args(entry["schema"], entry.get("proactive_context_args") or {})
             ):
                 continue
-            args = entry.get("proactive_context_args") or {}
-            schema = entry["schema"]
-            if not _has_required_args(schema, args):
-                logger.debug("Skipping edge context tool %s: missing fixed args", full_name)
-                continue
-            try:
-                result = await _call_edge_context(full_name, entry, args, target_edge=edge_key)
-                items.append(
-                    ContextPrefetchItem(
-                        source="edge",
-                        edge_key=edge_key,
-                        edge_name=_edge_display_name(edge_key),
-                        tool_name=_tool_schema_name(schema, full_name),
-                        label=_context_label(full_name, schema, entry),
-                        result=str(result)[:1000],
-                    )
-                )
-            except Exception as exc:
-                logger.debug("Edge context tool %s failed: %s", full_name, exc)
-    return items
+            jobs.append(asyncio.create_task(fetch(name, entry, edge=edge_key)))
+    if not jobs:
+        return []
+    try:
+        done, _ = await asyncio.wait(jobs, timeout=CONTEXT_PREFETCH_BUDGET_SECONDS)
+        # Registration order, not completion order, keeps prompt layout stable.
+        return [result for job in jobs if job in done and (result := job.result()) is not None]
+    finally:
+        for job in jobs:
+            if not job.done():
+                job.cancel()
+        await asyncio.gather(*jobs, return_exceptions=True)
 
 
 async def context_prefetch_lines() -> list[str]:

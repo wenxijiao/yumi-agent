@@ -266,3 +266,57 @@ def test_streaming_tts_wav_uses_actual_sample_duration(store):
     persisted = store.audio(saved["id"], 0)[0].read_bytes()
     assert wav_duration(persisted, required=True) == 1200
     assert persisted[44:] == bytes(streaming)[44:]
+
+
+def test_streamed_reply_is_playable_before_remaining_synthesis_and_shared_on_reconnect(monkeypatch, store):
+    from yumi.core.features import tts
+
+    row = ready(store)
+    event = save_turn(store, row)
+    monkeypatch.setattr(voice_api, "voice_store", lambda _: store)
+    monkeypatch.setattr(
+        voice_api, "get_session_scope", lambda: SimpleNamespace(ensure_message_owned_by_identity=lambda *_: None)
+    )
+    monkeypatch.setattr(voice_api, "reply_chunks", lambda _: ["First sentence.", "Second sentence."])
+    reservations = []
+    monkeypatch.setattr(voice_api, "reserve_speech", lambda *a, **kw: reservations.append(kw))
+
+    async def run():
+        release = asyncio.Event()
+        calls = []
+
+        async def synthesize(text):
+            calls.append(text)
+            if len(calls) == 2:
+                await release.wait()
+            return SimpleNamespace(data=wav(500), format="wav")
+
+        monkeypatch.setattr(tts, "create_tts_provider", lambda: SimpleNamespace(synthesize=synthesize))
+        identity = Identity(user_id="_local")
+        response = await voice_api.stream_reply_voice(identity, voice_api.VoiceReply(turn_id="turn1"))
+        iterator = response.body_iterator
+        first = json.loads(await anext(iterator))
+        assert first["type"] == "part"
+        assert wav_duration(base64.b64decode(first["audio"])) == 500
+        assert store.cached_reply(event["id"]) is None
+        # Disconnecting playback leaves the account-owned synthesis running.
+        await iterator.aclose()
+        _, same_job = voice_api._reply_job(identity, voice_api.VoiceReply(turn_id="turn1"))
+        assert len(reservations) == 1
+        release.set()
+        await same_job.task
+        assert same_job.result["part_count"] == 2
+        assert len(calls) == 2
+        cached = await voice_api.prepare_reply_voice(identity, voice_api.VoiceReply(turn_id="turn1"))
+        assert cached["id"] == same_job.result["id"]
+        assert len(reservations) == 1
+
+    asyncio.run(run())
+
+
+def test_reply_chunking_keeps_text_and_uses_a_short_complete_first_sentence():
+    text = "This is the first sentence. " + "This is the rest of the response. " * 50
+    chunks = voice_api.reply_chunks(text)
+    assert chunks[0] == "This is the first sentence."
+    assert all(len(chunk) <= 600 for chunk in chunks)
+    assert " ".join(chunks) == text.strip()

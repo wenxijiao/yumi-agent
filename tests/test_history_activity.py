@@ -143,3 +143,40 @@ def test_opening_another_session_preserves_activity_and_deleted_messages(tmp_pat
     detail = AssistantStore(reopened.sqlite, "alice").message_detail(after)
     assert detail["thought"] == "Reasoning before the call\n\nReasoning after the call"
     assert detail["tool_calls"][0]["result"] == "Sunny"
+
+
+def test_round_activity_keeps_intermediate_output_failed_call_and_retry(env):
+    store, client = env
+    put(store)
+    trace(store)
+    record = store.sqlite.get_turn_trace("turn")
+    record["rounds"][0].update(
+        index=1,
+        response_text="I will try the weather tool.",
+        finish={"reason": "tool_calls"},
+        usage={"prompt_tokens": 10, "completion_tokens": 3},
+    )
+    record["rounds"][0]["tool_results"][0].update(status="error", result_preview="Temporary failure")
+    record["rounds"][1].update(
+        index=2,
+        response_text="I can try another source.",
+        finish={"reason": "retry"},
+        tool_calls=[{"function": "invalid"}],
+    )
+    record["rounds"].append({"index": 3, "response_text": "It is sunny.", "finish": {"reason": "stop"}})
+    record["timeline"] = [
+        {"round": 2, "kind": "tool_status", "status": "error", "label": "Invalid parameters; retrying."}
+    ]
+    store.sqlite.upsert_turn_trace(record, owner_user_id="alice")
+    result = client.get("/assistant/history/answer")
+    rounds = result.json()["rounds"]
+    assert [r["response_text"] for r in rounds] == [
+        "I will try the weather tool.",
+        "I can try another source.",
+        "It is sunny.",
+    ]
+    assert rounds[0]["tool_calls"][0]["status"] == "error"
+    assert rounds[0]["tool_calls"][0]["arguments"]["password"] == "[redacted]"
+    assert rounds[1]["finish_reason"] == "retry"
+    assert rounds[1]["events"][0]["status"] == "error"
+    assert "Do not expose" not in result.text

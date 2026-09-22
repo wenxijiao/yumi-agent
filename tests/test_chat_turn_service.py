@@ -111,7 +111,7 @@ def test_normal_provider_finish_is_internal(runtime, install_fakes):
 
     events = asyncio.run(_drain(ChatTurnService(runtime).stream_chat_turn("hi", "s_finish_stop")))
 
-    assert [event.type for event in events] == ["text", "turn_timing"]
+    assert [event.type for event in events] == ["turn_phase", "turn_phase", "text", "turn_timing"]
     assert events[-1].duration_ms >= 0
     assert events[-1].confirmation_wait_ms == 0
 

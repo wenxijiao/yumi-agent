@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import json
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, ConfigDict, Field
 from yumi.core.features.chat.pipeline import clear_session, generate_chat_events
 from yumi.core.platform.http.dependencies import CurrentIdentity
 from yumi.core.platform.http.schemas import ChatRequest
@@ -133,3 +135,49 @@ async def get_chat_turn_endpoint(identity: CurrentIdentity, turn_id: str):
         raise HTTPException(status_code=404, detail="Turn not found.")
     get_session_scope().ensure_session_owned_by_identity(identity, str(turn.get("session_id") or ""))
     return {"turn": turn}
+
+
+@router.get("/chat/turns/{turn_id}/activity")
+async def get_chat_turn_activity(identity: CurrentIdentity, turn_id: str):
+    from yumi.core.platform.storage.assistant_store import AssistantStore
+
+    sqlite = get_memory_factory().get_for_identity(identity).sqlite
+    trace = get_turn(turn_id) or sqlite.get_turn_trace(turn_id)
+    if trace is None:
+        raise HTTPException(404, "Turn not found.")
+    get_session_scope().ensure_session_owned_by_identity(identity, str(trace.get("session_id") or ""))
+    return AssistantStore(sqlite, identity.user_id).turn_activity(trace)
+
+
+class ClientTiming(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    input_ready_ms: int | None = Field(default=None, ge=0, le=86400000)
+    first_text_ms: int | None = Field(default=None, ge=0, le=86400000)
+    text_done_ms: int | None = Field(default=None, ge=0, le=86400000)
+    first_audio_ms: int | None = Field(default=None, ge=0, le=86400000)
+    audio_done_ms: int | None = Field(default=None, ge=0, le=86400000)
+
+
+@router.post("/chat/turns/{turn_id}/timing")
+async def record_client_timing(identity: CurrentIdentity, turn_id: str, body: ClientTiming):
+    """Owner-reported elapsed times; never mixed with trusted server durations."""
+    sqlite = get_memory_factory().get_for_identity(identity).sqlite
+    with sqlite.connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute(
+            "SELECT session_id,detail_json,summary_json FROM turn_traces WHERE turn_id=?", (turn_id,)
+        ).fetchone()
+        if row is None:
+            raise HTTPException(404, "Turn not found.")
+        get_session_scope().ensure_session_owned_by_identity(identity, row["session_id"])
+        detail, summary = json.loads(row["detail_json"]), json.loads(row["summary_json"])
+        # First observation wins: replay must not rewrite initial response latency.
+        timing = detail.setdefault("client_timing", {})
+        for name, value in body.model_dump(exclude_none=True).items():
+            timing.setdefault(name, value)
+        summary["client_timing"] = timing
+        conn.execute(
+            "UPDATE turn_traces SET detail_json=?,summary_json=? WHERE turn_id=?",
+            (json.dumps(detail), json.dumps(summary), turn_id),
+        )
+    return {"ok": True}

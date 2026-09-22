@@ -684,7 +684,12 @@ class SQLiteStore:
             for row in sorted(rows, key=lambda r: int(r.get("timestamp_num") or 0)):
                 self._write_event(conn, row, overwrite=False)
 
-    def upsert_event_from_message(self, message: dict[str, Any], *, overwrite: bool = True) -> None:
+    def upsert_event_from_message(
+        self, message: dict[str, Any], *, overwrite: bool = True, connection: sqlite3.Connection | None = None
+    ) -> None:
+        if connection is not None:
+            self._write_event(connection, message, overwrite=overwrite)
+            return
         with self.connect() as conn:
             self._write_event(conn, message, overwrite=overwrite)
 

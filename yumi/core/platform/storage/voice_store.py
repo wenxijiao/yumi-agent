@@ -125,7 +125,7 @@ class VoiceStore:
             ).fetchone()
         return self.get(row["id"]) if row else None
 
-    def save_reply(self, event: dict, audio_parts: list[tuple[bytes, str]]) -> dict:
+    def save_reply(self, event: dict, audio_parts: list[tuple[bytes, str]], *, timing: dict | None = None) -> dict:
         voice_id = str(uuid.uuid4())
         self.root.mkdir(parents=True, exist_ok=True)
         parts = []
@@ -169,6 +169,8 @@ class VoiceStore:
                     ),
                 )
                 metadata = json.loads(current["metadata_json"])
+                if timing:
+                    metadata["voice_timing"] = timing
                 metadata["voice"] = {
                     "id": voice_id,
                     "kind": "assistant",

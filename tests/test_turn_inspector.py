@@ -237,3 +237,39 @@ def test_trace_sink_persists_completed_turn_to_session_sqlite(tmp_path) -> None:
     assert stored["trace_schema_version"] == 1
     assert stored["prompt"] == "hello"
     assert stored["summary"]["model"] == "gpt-test"
+
+
+def test_activity_and_client_timing_require_owner_and_keep_first_observation(monkeypatch, tmp_path):
+    from types import SimpleNamespace
+
+    from fastapi import HTTPException
+    from yumi.core.features.chat import router
+
+    memory = Memory(session_id="chat-1", storage_dir=tmp_path)
+    _begin()
+    record_llm_request(
+        "chat-1", provider="test", model="test", messages=[{"role": "system", "content": "private prompt"}], tools=[]
+    )
+    record_stream_event("chat-1", {"type": "text", "content": "A reply"})
+    trace = end_turn("chat-1", total_prompt_tokens=10, total_completion_tokens=2, usage_model="test")
+    memory.sqlite.upsert_turn_trace(trace, owner_user_id="_local")
+    monkeypatch.setattr(router, "get_memory_factory", lambda: SimpleNamespace(get_for_identity=lambda _: memory))
+    client = TestClient(app)
+    activity = client.get("/chat/turns/turn-1/activity")
+    assert activity.status_code == 200
+    assert activity.json()["rounds"][0]["response_text"] == "A reply"
+    assert "private prompt" not in activity.text
+    path = "/chat/turns/turn-1/timing"
+    assert client.post(path, json={"first_text_ms": 120}).status_code == 200
+    assert client.post(path, json={"first_text_ms": 999, "first_audio_ms": 500}).status_code == 200
+    assert memory.sqlite.get_turn_trace("turn-1")["client_timing"] == {"first_text_ms": 120, "first_audio_ms": 500}
+    assert client.post(path, json={"first_text_ms": -1}).status_code == 422
+
+    def forbidden(*_):
+        raise HTTPException(403, "Forbidden")
+
+    monkeypatch.setattr(
+        router, "get_session_scope", lambda: SimpleNamespace(ensure_session_owned_by_identity=forbidden)
+    )
+    assert client.get("/chat/turns/turn-1/activity").status_code == 403
+    assert client.post(path, json={"first_text_ms": 42}).status_code == 403

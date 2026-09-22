@@ -194,6 +194,15 @@ def begin_turn(
                 _active_by_session.pop(str(oldest.get("session_id") or ""), None)
 
 
+def record_stage(session_id: str, name: str, duration_ms: float) -> None:
+    """Record cumulative application time separately from model/tool time."""
+    with _lock:
+        turn = _active_turn(session_id)
+        if turn is not None:
+            stages = turn.setdefault("stage_timings", {})
+            stages[name] = stages.get(name, 0) + max(0, round(duration_ms))
+
+
 def record_routing(session_id: str, routing: dict[str, Any]) -> None:
     with _lock:
         turn = _active_turn(session_id)
@@ -348,6 +357,7 @@ def record_tool_calls(session_id: str, *, loop: int, tool_calls: list[dict]) -> 
         names = []
         for call in safe_calls:
             fn = call.get("function", {}) if isinstance(call, dict) else {}
+            fn = fn if isinstance(fn, dict) else {}
             names.append(str(fn.get("name") or "unknown"))
         _event(
             turn,
@@ -416,6 +426,9 @@ def record_stream_event(session_id: str, event: dict[str, Any]) -> None:
                 turn["first_response_ms"] = int(
                     (time.perf_counter() - turn.get("_started", time.perf_counter())) * 1000
                 )
+            if content:
+                metric = "first_text_ms" if event_type == "text" else "first_thought_ms"
+                turn.setdefault(metric, int((time.perf_counter() - turn.get("_started", time.perf_counter())) * 1000))
             key = "response_text" if event_type == "text" else "reasoning_text"
             existing = str(round_record.get(key) or "")
             round_record[key] = existing + content
@@ -527,6 +540,9 @@ def _summary(turn: dict[str, Any]) -> dict[str, Any]:
         "duration_ms": turn.get("duration_ms"),
         "confirmation_wait_ms": turn.get("confirmation_wait_ms", 0),
         "first_response_ms": turn.get("first_response_ms"),
+        "first_text_ms": turn.get("first_text_ms"),
+        "first_thought_ms": turn.get("first_thought_ms"),
+        "stage_timings": turn.get("stage_timings", {}),
         "status": turn.get("status"),
         "provider": last.get("provider") or "",
         "model": last.get("model") or usage.get("model") or "",
@@ -544,17 +560,21 @@ def _summary(turn: dict[str, Any]) -> dict[str, Any]:
 
 
 def list_turns(*, session_id: str | None = None, limit: int = 30) -> list[dict[str, Any]]:
+    from yumi.core.platform.storage.privacy_guard import session_erased
+
     with _lock:
-        rows = list(_turns.values())
+        rows = [row for row in _turns.values() if not session_erased(row.get("session_id", ""))]
         if session_id:
             rows = [row for row in rows if row.get("session_id") == session_id]
         return [copy.deepcopy(_summary(row)) for row in reversed(rows[-max(1, min(100, int(limit))) :])]
 
 
 def get_turn(turn_id: str) -> dict[str, Any] | None:
+    from yumi.core.platform.storage.privacy_guard import session_erased
+
     with _lock:
         row = _turns.get(turn_id)
-        if row is None:
+        if row is None or session_erased(row.get("session_id", "")):
             return None
         public = copy.deepcopy(row)
     for round_record in public.get("rounds") or []:
@@ -569,6 +589,17 @@ def clear_turns() -> None:
     with _lock:
         _turns.clear()
         _active_by_session.clear()
+
+
+def clear_owner_turns(prefix: str, *, include_groups: bool = False) -> None:
+    from yumi.core.platform.storage.assistant_store import is_group_session
+
+    with _lock:
+        for key, row in list(_turns.items()):
+            sid = row.get("session_id", "")
+            if sid.startswith(prefix) and (include_groups or not is_group_session(sid)):
+                _turns.pop(key, None)
+                _active_by_session.pop(sid, None)
 
 
 __all__ = [

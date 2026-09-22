@@ -44,7 +44,7 @@ Write the UPDATED summary that merges both. Keep, with priority:
 3. Key outcomes of tool actions (things created/changed, ids if referenced later).
 4. The current topic thread, so the conversation can continue naturally.
 
-Rules: at most 250 words. Plain text, no headings. Write in the conversation's dominant language. Output ONLY the summary text."""
+Rules: at most 250 words. Plain text, no headings. Write in the conversation's dominant language. Do not prescribe a reply language or describe the conversation language as an ongoing setting. Reply-language settings are provided separately for each new request. Output ONLY the summary text."""
 
 
 def estimate_tokens(text: str) -> int:

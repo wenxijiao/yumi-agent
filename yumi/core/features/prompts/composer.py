@@ -193,6 +193,7 @@ def compose_messages(
     upload_mode: Literal["vision", "no_vision"],
     exclude_message_ids: set[str] | None = None,
     prompt_snapshot: PromptSnapshot | None = None,
+    response_language: str | None = None,
 ) -> list[dict]:
     """Build messages with system extras and optional image inlining (vision vs text-only).
 
@@ -242,7 +243,10 @@ def compose_messages(
     for note in tail_notes:
         messages.append({"role": "system", "content": note})
     if prompt:
-        messages.append({"role": "user", "content": prompt})
+        from yumi.core.features.chat.language import language_scoped_prompt
+
+        content = language_scoped_prompt(prompt, response_language) if response_language is not None else prompt
+        messages.append({"role": "user", "content": content})
 
     if prompt_snapshot is not None:
         prompt_snapshot.messages = deepcopy(messages)

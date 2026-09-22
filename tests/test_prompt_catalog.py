@@ -16,7 +16,7 @@ def test_catalog_exposes_version_and_content_hash() -> None:
         "prompt_version": CHAT_PROMPT_VERSION,
         "prompt_catalog_hash": CHAT_PROMPT_CATALOG_HASH,
     }
-    assert CHAT_PROMPT_VERSION == "1.2.0"
+    assert CHAT_PROMPT_VERSION == "1.2.1"
     assert len(CHAT_PROMPT_CATALOG_HASH) == 16
     int(CHAT_PROMPT_CATALOG_HASH, 16)
 

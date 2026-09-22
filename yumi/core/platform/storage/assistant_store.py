@@ -199,27 +199,42 @@ class AssistantStore:
         system prompts or other messages; even a malformed turn link must not
         allow activity from a different session to appear here.
         """
-        from yumi.core.platform.storage.tool_run_store import ToolRunStore
-        from yumi.core.platform.tools.trace import _truncate_args, _truncate_result_preview
-
         detail = {**message, "tool_calls": [], "activity_available": False}
         if message["role"] != "assistant" or not message.get("turn_id"):
             return detail
         trace = self.sqlite.get_turn_trace(message["turn_id"])
         if not trace or trace.get("session_id") != message["session_id"]:
             return detail
-        detail["activity_available"] = True
+        return {
+            **detail,
+            **self.turn_activity(trace),
+            "thought": "\n\n".join(
+                str(r.get("reasoning_text") or "")
+                for r in trace.get("rounds", [])
+                if str(r.get("reasoning_text") or "").strip()
+            )
+            or message.get("thought", ""),
+        }
+
+    def turn_activity(self, trace):
+        """Owner-visible round output and tool input/output, never hidden prompts."""
+        from yumi.core.platform.storage.tool_run_store import ToolRunStore
+        from yumi.core.platform.tools.trace import _truncate_args, _truncate_result_preview
+
+        message = {"turn_id": trace["id"], "session_id": trace["session_id"]}
+        detail = {"activity_available": True, "tool_calls": [], "rounds": [], "status": trace.get("status")}
         for key in ("duration_ms", "confirmation_wait_ms", "first_response_ms"):
             detail[key] = trace.get(key)
         reasoning = [str(r.get("reasoning_text") or "") for r in trace.get("rounds", [])]
         detail["thought"] = "\n\n".join(r for r in reasoning if r.strip()) or message.get("thought", "")
         runs = ToolRunStore(self.sqlite, self.owner)
-        for step in trace.get("rounds", []):
+        for number, step in enumerate(trace.get("rounds", []), 1):
+            first_call = len(detail["tool_calls"])
             calls = [c for c in step.get("tool_calls", []) if isinstance(c, dict)]
             results = [r for r in step.get("tool_results", []) if isinstance(r, dict)]
             used = set()
             for index, call in enumerate(calls):
-                fn = call.get("function") or {}
+                fn = call.get("function") if isinstance(call.get("function"), dict) else {}
                 result_index = next(
                     (
                         i
@@ -269,6 +284,24 @@ class AssistantStore:
                         "edge": result.get("edge"),
                     }
                 )
+            detail["rounds"].append(
+                {
+                    "index": step.get("index", number),
+                    "model": step.get("model", ""),
+                    "duration_ms": step.get("duration_ms"),
+                    "response_text": str(step.get("response_text") or ""),
+                    "reasoning_text": str(step.get("reasoning_text") or ""),
+                    "finish_reason": (step.get("finish") or {}).get("reason"),
+                    "usage": step.get("usage") or {},
+                    "tool_calls": detail["tool_calls"][first_call:],
+                    "events": [
+                        {"content": item.get("label", ""), "status": item.get("status", "unknown")}
+                        for item in trace.get("timeline", [])
+                        if item.get("round") == step.get("index", number)
+                        and item.get("kind") in ("tool_status", "error", "confirmation")
+                    ],
+                }
+            )
         return detail
 
     def reclassify_memory(self, memory_id: str, kind: str) -> dict | None:

@@ -15,6 +15,9 @@ router = APIRouter()
 async def stt_transcribe_endpoint(identity: CurrentIdentity, request: TranscribeRequest):
     _ = get_session_scope().qualify_session_http(identity, request.session_id)
     raw = decode_upload_payload(request.content_base64)
+    from yumi.core.platform.plugins.usage_guard import reserve_speech
+
+    reserve_speech(identity, audio=raw)
     try:
         from yumi.core.features.stt import SttError, SttNotConfiguredError, transcribe_audio
 

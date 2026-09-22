@@ -249,6 +249,7 @@ class MessageRepository:
         timestamp_num: int | None = None,
         message_id: str | None = None,
         thought: str | None = None,
+        vector: list[float] | None = None,
     ) -> dict:
         normalized_content = content.strip()
         if not normalized_content:
@@ -272,7 +273,7 @@ class MessageRepository:
 
         row = {
             "id": message_id or str(uuid.uuid4()),
-            "vector": self.embeddings.get_vector(normalized_content),
+            "vector": vector if vector is not None else self.embeddings.get_vector(normalized_content),
             "session_id": normalized_session_id,
             "role": normalized_role,
             "content": normalized_content,
