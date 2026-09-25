@@ -151,3 +151,33 @@ def test_voice_logout_revokes_nexus_credential_before_removing_local_copy(monkey
     logout_nexus()
     assert calls == [("GET", "/tenancy/connections"), ("DELETE", "/tenancy/connections/voice-device")]
     assert not credential.exists()
+
+
+def test_microphone_stop_unblocks_pending_read(monkeypatch):
+    import threading
+
+    from yumi.voice.audio_source import SoundDeviceSource
+
+    class Stream:
+        def __init__(self, **kwargs):
+            self.callback = kwargs["callback"]
+
+        def start(self):
+            pass
+
+        def abort(self):
+            pass
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr("sounddevice.RawInputStream", Stream)
+    source = SoundDeviceSource(sample_rate=16000, frame_length=1600)
+    source.start()
+    heard = []
+    reader = threading.Thread(target=lambda: heard.append(source.read_frame()))
+    reader.start()
+    source.stop()
+    reader.join(timeout=1)
+    assert not reader.is_alive()
+    assert heard == [b"\0\0" * 1600]

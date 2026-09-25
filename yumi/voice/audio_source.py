@@ -12,6 +12,8 @@ size lines up with what we read from the mic.
 
 from __future__ import annotations
 
+import queue
+import threading
 from typing import Protocol
 
 
@@ -48,9 +50,33 @@ class SoundDeviceSource:
         self.frame_length = int(frame_length)
         self.device = device
         self._stream = None
+        self._frames: queue.Queue[bytes] = queue.Queue(maxsize=16)
+        self._stopped = threading.Event()
 
     def start(self) -> None:
         import sounddevice as sd
+
+        self._frames = queue.Queue(maxsize=16)
+        self._stopped.clear()
+
+        def capture(indata, frames, _time_info, _status):
+            if self._stopped.is_set():
+                return
+            data = bytes(indata)
+            if frames != self.frame_length or len(data) != self.frame_length * 2:
+                return
+            try:
+                self._frames.put_nowait(data)
+            except queue.Full:
+                # Keep the freshest microphone frame if processing lags.
+                try:
+                    self._frames.get_nowait()
+                except queue.Empty:
+                    pass
+                try:
+                    self._frames.put_nowait(data)
+                except queue.Full:
+                    pass
 
         self._stream = sd.RawInputStream(
             samplerate=self.sample_rate,
@@ -58,22 +84,32 @@ class SoundDeviceSource:
             dtype="int16",
             channels=1,
             device=self.device,
+            callback=capture,
         )
         self._stream.start()
 
     def read_frame(self) -> bytes:
+        if self._stopped.is_set():
+            return b"\0\0" * self.frame_length
         if self._stream is None:
             raise RuntimeError("AudioSource not started")
-        data, _overflowed = self._stream.read(self.frame_length)
-        # ``data`` is a CFFI buffer for raw streams; bytes(...) is a memcpy.
-        return bytes(data)
+        while not self._stopped.is_set():
+            try:
+                return self._frames.get(timeout=0.2)
+            except queue.Empty:
+                continue
+        # A server shutdown signals stop while read_frame runs in an executor.
+        # Returning silence lets the voice loop observe its stop event.
+        return b"\0\0" * self.frame_length
 
     def stop(self) -> None:
+        self._stopped.set()
         if self._stream is not None:
             try:
-                self._stream.stop()
-                self._stream.close()
+                # Abort drops buffered input, including the spoken reply.
+                self._stream.abort()
             finally:
+                self._stream.close()
                 self._stream = None
 
 
