@@ -67,7 +67,10 @@ class ModelConfig(BaseModel):
     # Unset or null: those features use UTC for date windows; chat time fallback uses the host OS zone (see docs).
     # Legacy config key ``proactive_quiet_hours_timezone`` is still accepted on load.
     local_timezone: str | None = None
-    # Tool routing: core server tools stay loaded; edge tools are scoped.
+    # Tool routing: all catalogs are permission-scoped. on_demand exposes a small
+    # core set plus edge catalogs that fit the schema budget; larger catalogs use
+    # hybrid recall, with discovery and deterministic browsing as recovery paths.
+    # Legacy modes keep all core server tools loaded.
     # Modes: "sticky" (default) — edges the session actually uses (or names)
     # stay attached for the whole session, so the tools array only changes on
     # activation and the provider prompt cache survives between turns;

@@ -1,0 +1,92 @@
+[
+  {
+    "name": "music_search",
+    "description": "Search Apple Music songs on the user's Mac. Use artist + title, including alternate language titles when useful (e.g. aimyon / あいみょん, Naked Heart / 裸の心). Returns exact catalog IDs, artist, album and duration. This never starts playback. Match the requested artist/title; clarify ambiguous live, cover or alternate versions before playing.",
+    "params": {
+      "query": "Artist and song title, 1–200 characters",
+      "limit": "Maximum candidates, 1–20; default 8"
+    }
+  },
+  {
+    "name": "music_play",
+    "description": "Replace the Room Control queue and play an exact song selected from music_search within the last hour. Never invent a song ID. Starts audio-reactive room lights after successful playback when with_lights is true. Uses Mac output; never enables microphone. Requires local Apple Music authorization and subscription.",
+    "params": {
+      "song_id": "Exact id from music_search",
+      "with_lights": "Start playback-reactive lights, default true"
+    }
+  },
+  {
+    "name": "music_enqueue",
+    "description": "Append a song from music_search to the end of the Room Control queue without interrupting current playback.",
+    "params": {
+      "song_id": "Exact id from music_search"
+    }
+  },
+  {
+    "name": "music_control",
+    "description": "Control the Room Control Apple Music player. pause/stop restore lights started by this player. resume can re-enable playback-reactive lights. Does not control the separate Apple Music app.",
+    "params": {
+      "action": "One of pause, resume, stop, next, previous",
+      "with_lights": "For resume: enable playback-reactive lights, default true"
+    }
+  },
+  {
+    "name": "music_status",
+    "description": "Read current Room Control song, playback state, queue and lighting capture status. Does not play music or open account/permission prompts.",
+    "params": {}
+  },
+  {
+    "name": "music_lights",
+    "description": "Enable or stop playback-reactive room lights on the Mac. Enabling listens to Mac output, never the microphone; disabling only stops lights started by this player. Does not change music playback.",
+    "params": {
+      "enabled": "true to follow Mac playback, false to restore prior lighting"
+    }
+  },
+  {
+    "name": "lamp_status",
+    "description": "Read the current on/off state, brightness, color and connection status of the bedside and ceiling Tapo lights. Also reports the configured normal-lighting preset and active music capture. Does not change lights or capture audio.",
+    "params": {}
+  },
+  {
+    "name": "lamp_set_power",
+    "description": "Turn the selected room light(s) on or off, or toggle their current power state. 'both' applies the action to each connected lamp. Explicitly ask the user before changing lights if their request is ambiguous.",
+    "params": {
+      "lamp": "bedside, ceiling or both",
+      "action": "on, off or toggle"
+    }
+  },
+  {
+    "name": "lamp_set_brightness",
+    "description": "Set an absolute brightness on the selected room light(s). In music capture mode this sets each lamp's brightness ceiling. This does not change their on/off state.",
+    "params": {
+      "lamp": "bedside, ceiling or both",
+      "brightness": "Integer percentage from 1 to 100 inclusive"
+    }
+  },
+  {
+    "name": "lamp_set_color",
+    "description": "Set the selected room light(s) to warm/cool white or a hue/saturation color. White uses temperature in kelvin; rgb uses hue and saturation. This does not change their on/off state, brightness or music playback.",
+    "params": {
+      "lamp": "bedside, ceiling or both",
+      "kind": "white or rgb",
+      "temperature": "For white: integer 2500–6500 K; ignored for rgb; default 4000",
+      "hue": "For rgb: integer 0–359 degrees; ignored for white; default 0",
+      "saturation": "For rgb: integer 1–100 percent; ignored for white; default 100"
+    }
+  },
+  {
+    "name": "lighting_preset",
+    "description": "Control the user's configured normal white-lighting preset on both lamps. apply always turns on the preset; off always turns both lamps off; toggle is the Xbox Y-button behavior: when both already match the preset, turn both off, otherwise turn both on at the preset. Stops music capture when applying normal lighting.",
+    "params": {
+      "action": "apply, toggle or off"
+    }
+  },
+  {
+    "name": "music_capture_control",
+    "description": "Start, stop or toggle local audio-reactive lighting. source=microphone captures the Mac's selected input for singing/guitar; source=playback captures Mac output. Audio is analyzed locally and never uploaded to Yumi. start switches to the selected source. stop ends that source if active. toggle stops it if active or starts it otherwise. This does not play/pause Apple Music. Microphone starts require the user's confirmation in Yumi.",
+    "params": {
+      "source": "microphone or playback",
+      "action": "start, stop or toggle"
+    }
+  }
+]

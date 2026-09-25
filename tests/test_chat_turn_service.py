@@ -98,6 +98,32 @@ def test_happy_path_text_only_stream(runtime, install_fakes):
     assert bot.call_count == 1
 
 
+def test_context_and_tool_selection_prepare_concurrently(runtime, install_fakes, monkeypatch):
+    bot = _FakeBot(scripted_chunks=[[{"type": "text", "content": "hello"}]])
+    install_fakes(bot)
+
+    async def run():
+        context_started, routing_started = asyncio.Event(), asyncio.Event()
+
+        async def prefetch(self, ctx):
+            context_started.set()
+            await routing_started.wait()
+            return None
+
+        async def select(self, ctx, query):
+            routing_started.set()
+            await context_started.wait()
+            return None
+
+        monkeypatch.setattr(ChatTurnService, "_prefetch_runtime_context", prefetch)
+        monkeypatch.setattr(ChatTurnService, "_select_tools", select)
+        return await asyncio.wait_for(_drain(ChatTurnService(runtime).stream_chat_turn("hello", "overlap")), 1)
+
+    events = asyncio.run(run())
+    assert bot.call_count == 1
+    assert not any(e.type == "error" for e in events)
+
+
 def test_normal_provider_finish_is_internal(runtime, install_fakes):
     bot = _FakeBot(
         scripted_chunks=[
@@ -398,3 +424,87 @@ def test_turn_language_note_injected_from_latest_prompt(runtime, install_fakes):
     assert "suggests Japanese" in joined
     assert "most natural" in joined
     assert "MUST be in Japanese" not in joined
+
+
+def test_browse_activates_tools_in_the_next_model_request(runtime, install_fakes, monkeypatch):
+    """Exercise actual local dispatch -> activation result -> next provider tools."""
+    from types import SimpleNamespace
+
+    import yumi.core.features.chat.service as service
+    from yumi.core.platform.tools import routing, tool
+    from yumi.tools import edge_discovery_tools as discovery
+
+    registry = {}
+    monkeypatch.setattr(tool, "TOOL_REGISTRY", registry)
+    monkeypatch.setattr(routing, "TOOL_REGISTRY", registry)
+    monkeypatch.setattr("yumi.core.platform.dispatch.dispatcher.TOOL_REGISTRY", registry)
+    tool.register_tool(discovery.browse_app_tools, "Browse visible tools")
+    monkeypatch.setattr(discovery, "get_default_runtime", lambda: runtime)
+    name = "edge_room__music_play"
+    runtime.edge_registry.tools["room"] = {
+        name: {
+            "schema": {
+                "type": "function",
+                "function": {
+                    "name": name,
+                    "description": "Play a song",
+                    "parameters": {"type": "object", "properties": {}},
+                },
+            }
+        }
+    }
+    requests = []
+
+    class Bot(_FakeBot):
+        async def chat_stream(self, **kwargs):
+            requests.append(kwargs)
+            async for chunk in super().chat_stream(**kwargs):
+                yield chunk
+
+    bot = Bot(
+        [
+            [
+                {
+                    "type": "tool_call",
+                    "tool_calls": [
+                        {"id": "browse1", "function": {"name": "browse_app_tools", "arguments": {"device": "room"}}}
+                    ],
+                }
+            ],
+            [{"type": "text", "content": "Found the music tool."}],
+        ]
+    )
+    install_fakes(bot)
+    monkeypatch.setattr(
+        service, "select_tool_schemas", lambda **kw: SimpleNamespace(tools=[registry["browse_app_tools"]["schema"]])
+    )
+    events = asyncio.run(_drain(ChatTurnService(runtime).stream_chat_turn("play a song", "browse-integration")))
+    assert len(requests) == 2
+    assert name not in {s["function"]["name"] for s in requests[0]["tools"]}
+    assert name in {s["function"]["name"] for s in requests[1]["tools"]}
+    assert not any(e.type == "error" for e in events)
+
+    # On a later turn, a large catalog must not force the model to browse again
+    # for this already-discovered function, even for an implicit follow-up.
+    from yumi.core.features.config import ModelConfig
+
+    cfg = ModelConfig(edge_tools_routing_mode="on_demand", embedding_model=None)
+    monkeypatch.setattr(routing, "load_model_config", lambda: cfg)
+    monkeypatch.setattr(service, "select_tool_schemas", routing.select_tool_schemas)
+    for i in range(80):
+        noise = f"edge_factory__calibrate_{i}"
+        runtime.edge_registry.tools.setdefault("factory", {})[noise] = {
+            "schema": {
+                "type": "function",
+                "function": {
+                    "name": noise,
+                    "description": "Calibrate factory pressure sensors. " * 10,
+                    "parameters": {"type": "object", "properties": {}},
+                },
+            }
+        }
+    bot._calls = [[{"type": "text", "content": "Ready."}]]
+    events = asyncio.run(_drain(ChatTurnService(runtime).stream_chat_turn("再来一次", "browse-integration")))
+    assert len(requests) == 3
+    assert name in {s["function"]["name"] for s in requests[2]["tools"]}
+    assert not any(e.type == "error" for e in events)

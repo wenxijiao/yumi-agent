@@ -21,7 +21,7 @@ def token_estimate(value) -> int:
 
 def fit_tool_schemas(tools: list[dict], *, budget: int, priority_names: list[str] | None = None) -> list[dict]:
     """Keep discovery reachable and prefer the most recently discovered functions."""
-    priorities = ["discover_app_tools", *(priority_names or [])]
+    priorities = ["discover_app_tools", "browse_app_tools", *(priority_names or [])]
     rank = {name: index for index, name in enumerate(dict.fromkeys(priorities))}
     candidates = sorted(tools, key=lambda tool: rank.get(tool.get("function", {}).get("name"), len(rank)))
     chosen = set()

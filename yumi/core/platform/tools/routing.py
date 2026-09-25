@@ -1,7 +1,8 @@
 """Tool cataloging and routing for Yumi chat requests.
 
-On-demand mode starts with a small core set. Additional core and edge tools
-are discovered within the turn. Legacy sticky and per-turn modes remain available.
+On-demand mode exposes catalogs that fit its schema budget, otherwise recalls
+relevant functions alongside a small core set. Discovery and catalog browsing
+recover additional functions within the turn. Legacy sticky and per-turn modes remain available.
 """
 
 import math
@@ -85,6 +86,9 @@ def active_edge_keys_for_session(session_id: str) -> dict[str, float]:
 
 
 def clear_session_edges(session_id: str) -> None:
+    from yumi.core.platform.tools.session_tools import clear_session_tools
+
+    clear_session_tools(session_id)
     with _SESSION_EDGES_LOCK:
         _SESSION_EDGES.pop(str(session_id or "").strip(), None)
 
@@ -163,6 +167,10 @@ class ToolRoutingDecision:
     forced_edge_tools: list[ToolCatalogEntry] = field(default_factory=list)
     mentioned_edge_tools: list[ToolCatalogEntry] = field(default_factory=list)
     retrieved_edge_tools: list[ToolCatalogEntry] = field(default_factory=list)
+    retrieval_mode: str = "none"
+    retrieval_degraded: bool = False
+    retrieval_degraded_reason: str = ""
+    reused_tool_count: int = 0
 
 
 def _tool_name(schema: dict[str, Any]) -> str:
@@ -267,7 +275,6 @@ def _tokens(text: str) -> list[str]:
         out.append(token)
         if _NON_ASCII_RE.search(token):
             chars = [ch for ch in token if not ch.isspace()]
-            out.extend(chars)
             out.extend("".join(pair) for pair in zip(chars, chars[1:]))
     return out
 
@@ -335,7 +342,9 @@ def _cosine_similarity(a: Sequence[float], b: Sequence[float]) -> float:
     return dot / ((a_norm**0.5) * (b_norm**0.5))
 
 
-def _cached_embedding(model: str, text: str, *, persistent: bool = False) -> list[float] | None:
+def _cached_embedding(
+    model: str, text: str, *, persistent: bool = False, cache_only: bool = False
+) -> list[float] | None:
     provider = get_embed_provider()
     if provider is None or not model or not text.strip():
         return None
@@ -377,6 +386,8 @@ def _cached_embedding(model: str, text: str, *, persistent: bool = False) -> lis
                 vec = read_vector(key)
             except Exception:
                 logger.debug("Tool vector cache read skipped", exc_info=True)
+        if vec is None and cache_only:
+            return None
         if vec is None:
             from yumi.core.platform.runtime.usage_context import usage_operation
 
@@ -633,15 +644,28 @@ def select_tool_schemas(
         if entry.name not in pinned_names and entry.name not in forced_names_present
     ]
     retrieved_entries: list[ToolCatalogEntry] = []
+    retrieval_mode = "none"
+    retrieval_degraded = False
+    retrieval_degraded_reason = ""
+    reused_names: set[str] = set()
 
     routing_mode = str(getattr(cfg, "edge_tools_routing_mode", "per_turn") or "per_turn").strip().lower()
     if routing_mode not in {"on_demand", "sticky", "per_turn", "off"}:
         routing_mode = "per_turn"
     if dynamic_enabled and routing_mode == "on_demand":
-        # Discovery handles unfamiliar capabilities. Ordinary chat never waits
-        # for a semantic search or inherits an entire connected device.
+        from yumi.core.platform.providers.budget import fit_tool_schemas, token_estimate
+        from yumi.core.platform.tools.retrieval import (
+            INITIAL_SEMANTIC_BUDGET_SECONDS,
+            capability_query,
+            rank_tools,
+            with_companions,
+        )
+        from yumi.core.platform.tools.session_tools import recent_tools
+
+        # Small catalogs are already cheaper than an extra discovery round trip.
         common = {
             "discover_app_tools",
+            "browse_app_tools",
             "list_timers",
             "get_weather",
             "web_search",
@@ -649,8 +673,64 @@ def select_tool_schemas(
             "set_response_language",
             "read_file",
         }
+        extra_core = [entry for entry in core_entries if entry.name not in common]
+        visible = {e.name: e for e in core_entries + edge_entries}
+        recent_names = recent_tools(catalog.identity.user_id, session_id, set(visible))
+        recent = with_companions([visible[name] for name in recent_names], list(visible.values()))
+        recent_names = [e.name for e in recent]
+        forced_core = [e for e in extra_core if e.name in forced_names]
         core_entries = [entry for entry in core_entries if entry.name in common]
-        selected_edge = _dedupe_entries(pinned_entries + forced_entries)
+        schemas = [model_visible_tool_schema(e.schema) for e in core_entries + edge_entries]
+        priorities = [e.name for e in forced_entries + forced_core + pinned_entries]
+        if (
+            token_estimate([model_visible_tool_schema(e.schema) for e in visible.values()])
+            <= cfg.tool_schema_token_budget
+        ):
+            core_entries += extra_core
+            selected_edge = edge_entries
+            retrieval_mode = "full_catalog"
+        elif token_estimate(schemas) <= cfg.tool_schema_token_budget:
+            # Keep a stable small device catalog, while directly recalling a
+            # non-common core action (e.g. set_timer) without a discovery round.
+            core_matches = [
+                e for score, e in _score_edge_tools_lexical(capability_query(query_text), extra_core) if score > 0
+            ][:4]
+            core_entries = _dedupe_entries(
+                core_entries + forced_core + core_matches + [e for e in recent if e.kind == "core"]
+            )
+            selected_edge = edge_entries
+            priorities += [e.name for e in core_matches] + [e.name for e in edge_entries] + recent_names
+            retrieval_mode = "full_catalog"
+        else:
+            candidates = extra_core + edge_entries
+            ranked = rank_tools(
+                query_text,
+                candidates,
+                embed_model=cfg.embedding_model,
+                semantic_budget=INITIAL_SEMANTIC_BUDGET_SECONDS,
+            )
+            retrieval_mode, retrieval_degraded = ranked.mode, ranked.degraded
+            retrieval_degraded_reason = ranked.degraded_reason
+            recalled = with_companions([e for _, e in ranked.matches[: min(8, edge_limit)]], candidates)
+            core_entries = _dedupe_entries(
+                core_entries + forced_core + [e for e in recalled + recent if e.kind == "core"]
+            )
+            retrieved_entries = [e for e in recalled if e.kind == "edge"]
+            selected_edge = _dedupe_entries(base_entries + retrieved_entries + [e for e in recent if e.kind == "edge"])
+            priorities += [e.name for e in recalled] + [e.name for e in mentioned_entries] + recent_names
+        fitted = fit_tool_schemas(
+            [model_visible_tool_schema(e.schema) for e in core_entries + selected_edge],
+            budget=cfg.tool_schema_token_budget,
+            priority_names=priorities,
+        )
+        admitted = {_tool_name(schema) for schema in fitted}
+        core_entries = [e for e in core_entries if e.name in admitted]
+        selected_edge = [e for e in selected_edge if e.name in admitted]
+        retrieved_entries = [e for e in retrieved_entries if e.name in admitted]
+        reused_names = set(recent_names) & admitted
+        # Equal membership serializes identically regardless of ranking order.
+        core_entries.sort(key=lambda e: e.name)
+        selected_edge.sort(key=lambda e: e.name)
     elif not dynamic_enabled or routing_mode == "off":
         selected_edge = edge_entries
     elif edge_entries and len(edge_entries) <= always_expose_below:
@@ -726,6 +806,10 @@ def select_tool_schemas(
         forced_edge_tools=[entry for entry in forced_entries if entry.name not in pinned_names],
         mentioned_edge_tools=mentioned_only_entries,
         retrieved_edge_tools=retrieved_entries,
+        retrieval_mode=retrieval_mode,
+        retrieval_degraded=retrieval_degraded,
+        retrieval_degraded_reason=retrieval_degraded_reason,
+        reused_tool_count=len(reused_names),
     )
     record_tool_routing_trace(session_id=session_id, query=query, decision=decision)
     return decision
@@ -752,26 +836,19 @@ def search_edge_tools(
         entries = catalog.core_tools() + entries
     if not entries:
         return []
-    scored = _score_edge_tools(query or "", entries, embed_model=cfg.embedding_model)
-    out: list[dict[str, Any]] = []
-    # Zero lexical matches or weak semantic matches are not useful discoveries.
-    # A direct tool/device name match remains sufficient evidence.
-    lexical = {entry.name: score for score, entry in _score_edge_tools_lexical(query or "", entries)}
-    for score, entry in scored:
-        if lexical.get(entry.name, 0) <= 0 and (not cfg.embedding_model or score < 0.3):
-            continue
-        if len(out) >= max(1, min(50, int(limit))):
-            break
-        out.append(
-            {
-                "name": entry.name,
-                "description": (entry.description or "")[:300],
-                "device": entry.device_name or "Yumi",
-                "edge_key": entry.edge_key or "",
-                "score": round(float(score), 4),
-            }
-        )
-    return out
+    from yumi.core.platform.tools.retrieval import rank_tools
+
+    ranked = rank_tools(query or "", entries, embed_model=cfg.embedding_model)
+    return [
+        {
+            "name": entry.name,
+            "description": (entry.description or "")[:300],
+            "device": entry.device_name or "Yumi",
+            "edge_key": entry.edge_key or "",
+            "score": round(float(score), 4),
+        }
+        for score, entry in ranked.matches[: max(1, min(50, int(limit)))]
+    ]
 
 
 def record_tool_routing_trace(
@@ -792,6 +869,10 @@ def record_tool_routing_trace(
         "total_edge_count": decision.total_edge_tools,
         "dynamic_routing_enabled": decision.dynamic_routing_enabled,
         "elapsed_ms": decision.elapsed_ms,
+        "retrieval_mode": decision.retrieval_mode,
+        "retrieval_degraded": decision.retrieval_degraded,
+        "retrieval_degraded_reason": decision.retrieval_degraded_reason,
+        "reused_tool_count": decision.reused_tool_count,
         "selected_edge_tools": [entry.name for entry in decision.selected_edge_tools],
         "pinned_edge_count": len(decision.pinned_edge_tools),
         "forced_edge_count": len(decision.forced_edge_tools),

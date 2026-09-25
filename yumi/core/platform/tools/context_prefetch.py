@@ -105,9 +105,21 @@ def _edge_summary_lines() -> list[str]:
         confirm = sum(1 for entry in tools.values() if entry.get("require_confirmation"))
         dynamic = max(0, len(tools) - pinned - autorun)
         online = edge_key in ACTIVE_CONNECTIONS
+        preview = "; ".join(
+            f"{e.name.rsplit('__', 1)[-1]}: {e.description[:70]}"
+            for e in sorted(entries, key=lambda e: e.name)
+            if e.edge_key == edge_key
+        )[:350]
         lines.append(
             f"- {_edge_display_name(edge_key)}: {'online' if online else 'offline'}, "
-            f"{len(tools)} tool(s) ({dynamic} dynamic, {pinned} pinned, {autorun} autorun, {confirm} confirm)"
+            f"{len(tools)} tool(s) ({dynamic} dynamic, {pinned} pinned, {autorun} autorun, {confirm} confirm). "
+            f"Capability preview (not complete): {preview}"
+        )
+        if len(lines) >= 8:
+            break
+    if lines:
+        lines.append(
+            "Device/function previews may be incomplete. Use browse_app_tools for the complete visible catalog."
         )
     return lines
 

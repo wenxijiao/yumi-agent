@@ -355,17 +355,11 @@ class ChatTurnService:
         # get_user_context() and the agent always sees fresh state (mood, plans,
         # ...) before replying. Per-tool errors are swallowed inside the helper;
         # this guard only covers a total failure.
-        prefetch_started = time.perf_counter()
-        try:
-            from yumi.core.platform.storage.assistant_store import is_group_session
-
-            runtime_context = None if is_group_session(ctx.session_id) else await runtime_context_prompt_block()
-        except Exception as exc:
-            logger.debug("Context prefetch failed: %s", exc)
-            runtime_context = None
-        from yumi.core.platform.observability.turn_inspector import record_stage
-
-        record_stage(ctx.session_id, "context_prefetch_ms", (time.perf_counter() - prefetch_started) * 1000)
+        # These independent metadata reads share preparation time. In particular,
+        # a bounded semantic search should not add its wait after autorun context.
+        runtime_context, turn_tools = await asyncio.gather(
+            self._prefetch_runtime_context(ctx), self._select_tools(ctx, routing_query)
+        )
         _append_system_note(ctx, runtime_context)
         from yumi.core.features.assistant.personalization import preferences
         from yumi.core.platform.runtime.assistant_context import personal_store
@@ -383,7 +377,6 @@ class ChatTurnService:
         # and any change to the tools array invalidates the provider prompt
         # cache for the whole request. Newly activated edge tools are instead
         # appended to the frozen list below, preserving the existing prefix.
-        turn_tools = await self._select_tools(ctx, routing_query)
         sink.record_routing()
 
         while True:
@@ -591,6 +584,9 @@ class ChatTurnService:
                         "A tool timed out and its outcome is unknown. Do not retry the action automatically."
                     )
                 if result.status == "success":
+                    from yumi.core.platform.tools.session_tools import remember_tools
+
+                    remember_tools(get_current_identity().user_id, ctx.session_id, [result.func_name])
                     yield sink.emit(
                         ToolStatusEvent(
                             status="success",
@@ -628,10 +624,9 @@ class ChatTurnService:
                     }
                 )
 
-                # discover_app_tools activated an edge for the session; expose
-                # that edge's tools for the REST OF THIS TURN too, through the
-                # append-only forced-tools path (keeps the sent prefix stable).
-                if result.func_name == "discover_app_tools":
+                # Discovery/browsing exposes only the admitted functions for
+                # the rest of this turn, rechecking visibility and budget below.
+                if result.func_name in {"discover_app_tools", "browse_app_tools"}:
                     try:
                         payload = json.loads(str(result.result))
                         names = payload.get("activated_tool_names") or []
@@ -656,6 +651,19 @@ class ChatTurnService:
 
     # ---- helper paths -------------------------------------------------------
 
+    async def _prefetch_runtime_context(self, ctx: TurnContext):
+        from yumi.core.platform.observability.turn_inspector import record_stage
+        from yumi.core.platform.storage.assistant_store import is_group_session
+
+        started = time.perf_counter()
+        try:
+            return None if is_group_session(ctx.session_id) else await runtime_context_prompt_block()
+        except Exception as exc:
+            logger.debug("Context prefetch failed: %s", exc)
+            return None
+        finally:
+            record_stage(ctx.session_id, "context_prefetch_ms", (time.perf_counter() - started) * 1000)
+
     async def _select_tools(self, ctx: TurnContext, routing_query: str) -> list | None:
         ident = get_current_identity()
         try:
@@ -677,6 +685,10 @@ class ChatTurnService:
                 "total_edge_count": int(getattr(decision, "total_edge_tools", 0) or 0),
                 "dynamic_routing_enabled": bool(getattr(decision, "dynamic_routing_enabled", False)),
                 "elapsed_ms": int(getattr(decision, "elapsed_ms", 0) or 0),
+                "retrieval_mode": getattr(decision, "retrieval_mode", "none"),
+                "retrieval_degraded": bool(getattr(decision, "retrieval_degraded", False)),
+                "retrieval_degraded_reason": getattr(decision, "retrieval_degraded_reason", ""),
+                "reused_tool_count": getattr(decision, "reused_tool_count", 0),
                 "selected_edge_tools": [str(getattr(entry, "name", "")) for entry in selected_edge_tools],
                 "pinned_edge_tools": [
                     str(getattr(entry, "name", "")) for entry in (getattr(decision, "pinned_edge_tools", []) or [])

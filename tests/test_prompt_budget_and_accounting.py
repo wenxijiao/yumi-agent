@@ -75,19 +75,26 @@ def test_tool_budget_prefers_new_discovery_and_retains_discovery_function():
     assert [s["function"]["name"] for s in result] == ["discover_app_tools", "new"]
 
 
-def test_on_demand_chat_never_runs_embedding_search(monkeypatch):
+def test_on_demand_small_catalog_never_runs_embedding_search(monkeypatch):
     monkeypatch.setattr(routing, "load_model_config", lambda: ModelConfig(edge_tools_routing_mode="on_demand"))
     monkeypatch.setattr(
         routing, "TOOL_REGISTRY", {n: {"schema": schema(n)} for n in ("discover_app_tools", "read_file", "unused")}
     )
-    monkeypatch.setattr(routing, "_score_edge_tools", lambda *a, **k: pytest.fail("ordinary chat must not search"))
+    monkeypatch.setattr(
+        "yumi.core.platform.tools.retrieval.rank_tools", lambda *a, **k: pytest.fail("small catalog must not search")
+    )
     decision = routing.select_tool_schemas(
         query="hello",
         session_id="s",
         disabled_tools=set(),
         edge_registry={"lab": {"edge_lab__unused": {"schema": schema("edge_lab__unused")}}},
     )
-    assert [t["function"]["name"] for t in decision.tools] == ["discover_app_tools", "read_file"]
+    assert [t["function"]["name"] for t in decision.tools] == [
+        "discover_app_tools",
+        "read_file",
+        "unused",
+        "edge_lab__unused",
+    ]
 
 
 def test_discovery_obeys_personal_policy_and_does_not_expand_siblings(monkeypatch):

@@ -93,6 +93,12 @@ async def lifespan(app: FastAPI):
     else:
         set_embed_provider(None)
 
+    # Core tools need the same prebuilt vectors as connected devices.
+    from yumi.core.platform.tools.indexing import schedule_tool_index
+    from yumi.core.platform.tools.tool import TOOL_REGISTRY
+
+    schedule_tool_index(None, TOOL_REGISTRY)
+
     # Verify the LanceDB query index against SQLite (the source of truth) once at
     # startup; if it has drifted, rebuild it in the background. Cheap when in sync.
     try:

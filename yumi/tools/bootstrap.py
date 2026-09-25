@@ -10,7 +10,7 @@ from yumi.core.features.assistant.personalization import MEMORY_CLASSIFICATION_G
 from yumi.core.features.proactive.timer_tools import cancel_timer, list_timers, schedule_task, set_timer
 from yumi.core.platform.tools.tool import register_tool
 from yumi.tools.conversation_tools import read_conversation_record
-from yumi.tools.edge_discovery_tools import discover_app_tools
+from yumi.tools.edge_discovery_tools import browse_app_tools, discover_app_tools
 from yumi.tools.file_tools import list_files, read_file
 from yumi.tools.user_context_tools import (
     forget_user_context,
@@ -42,6 +42,23 @@ def init_yumi() -> None:
             "session_id": "Leave default so activation applies to the current session",
         },
         returns="Matching tools, the activated device, and its now-available tool names",
+    )
+
+    register_tool(
+        browse_app_tools,
+        "Browse the complete visible tool catalog without semantic search. With device='' list devices; "
+        "with a returned device_id or exact device name, list and activate a page of its functions. "
+        "Use when discovery has no suitable callable match, before claiming a capability is unavailable. "
+        "If a suitable function is already listed, use it directly, even if semantic ranking was degraded. "
+        "This only reads metadata; it never plays music or executes the listed functions. "
+        "Device previews are incomplete; follow next_offset to inspect more.",
+        params={
+            "device": "Empty to list devices, or a returned device_id / exact unique device name.",
+            "offset": "Start at 0, then use next_offset.",
+            "limit": "Page size 1–20; default 6. Reduce for large schemas.",
+            "catalog_revision": "Empty on first page; pass returned revision on subsequent pages. Restart if catalog_changed.",
+        },
+        returns="Visible device or function page, next_offset, and callable activated_tool_names.",
     )
 
     # ── timer tools ──
