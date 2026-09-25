@@ -522,9 +522,9 @@ def run_server_with_bridges(
         owner = (config.voice_owner_id or os.getenv("USER") or os.getenv("USERNAME") or "default").strip() or "default"
         server_env["YUMI_VOICE_ENABLED"] = "1"
         server_env["YUMI_VOICE_OWNER_ID"] = owner
-        notes.append(f"Voice: wake-word loop attached (owner={owner}, wake='{config.voice_wake_word}')")
-        if not (config.voice_porcupine_access_key or os.getenv("PV_ACCESS_KEY")):
-            notes.append("WARNING: PV_ACCESS_KEY missing — voice loop will fail to start.")
+        notes.append(f"Voice: wake-word loop attached (owner={owner}, wake='hey yumi')")
+        if not (getattr(config, "voice_sherpa_model_dir", None) or os.getenv("YUMI_VOICE_MODEL_DIR")):
+            notes.append("WARNING: Hey Yumi model missing — set voice_sherpa_model_dir or YUMI_VOICE_MODEL_DIR.")
 
     bridge_names = [n for n, on in (("Telegram", telegram), ("Discord", discord), ("LINE", line)) if on]
     for n in bridge_names:

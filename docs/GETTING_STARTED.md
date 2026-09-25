@@ -121,22 +121,20 @@ Useful commands:
 
 ## Voice (microphone wake-word)
 
-`yumi --server --voice` attaches a microphone wake-word loop to the running API. Say "hi yumi" and the next sentence you speak is transcribed with Whisper and dispatched as a chat turn, in parallel with Telegram, Discord, `--chat`, and `--ui`.
+`yumi --server --voice` attaches a local microphone wake-word loop to the running API. Say "Hey Yumi" and then speak your request. The same wake phrase also works with the separate `yumi --voice-client`, which can connect to a local server or your Nexus account.
 
 ```bash
 yumi --setup                     # enable Whisper (stt_provider=whisper)
-yumi --server --voice            # or:  yumi --server --telegram --voice
+pip install 'yumi-agent[voice-sherpa]'
+YUMI_VOICE_MODEL_DIR=/path/to/kws-model yumi --server --voice
 ```
 
-The Python packages for microphone capture, wake-word detection, VAD, and
-Whisper ship with `pip install yumi-agent`; Whisper weights are downloaded when
-you choose a local model.
+Download a compatible sherpa-onnx keyword-spotting model separately and check its license. Whisper weights are downloaded when you choose a local model.
 
 Required setup:
 
-1. **Picovoice access key** — sign up at [console.picovoice.ai](https://console.picovoice.ai/) (free tier covers personal use). Set `PV_ACCESS_KEY` in the environment, or save `voice_porcupine_access_key` in `~/.yumi/config.json`.
-2. **Wake-word file** — Picovoice's built-in keywords do **not** include "hi yumi"; train one in the console and download the `.ppn` file. Save it (suggested path: `~/.yumi/voice/hi-yumi.ppn`) and point `voice_porcupine_keyword_path` at it. Without a custom file Yumi falls back to the built-in `jarvis` keyword.
-3. **Microphone permission** — on macOS, open *System Settings → Privacy & Security → Microphone* and enable the terminal you launch Yumi from. Without permission `sounddevice` silently produces zero-filled audio.
+1. **Wake-word model** — set `YUMI_VOICE_MODEL_DIR` or `voice_sherpa_model_dir` in `~/.yumi/config.json` to a sherpa-onnx KWS model directory.
+2. **Microphone permission** — on macOS, open *System Settings → Privacy & Security → Microphone* and enable the terminal you launch Yumi from. Without permission `sounddevice` silently produces zero-filled audio.
 
 Speak after the server prints `voice: listening`. Each utterance produces log lines like:
 
@@ -151,6 +149,8 @@ voice: reply session=voice_alice text='Currently 17 °C and partly cloudy.'
 Voice writes to its own session, `voice_<voice_owner_id>`. When `voice_owner_id` matches a Telegram user id (`tg_<id>`) or a CLI session id (`chat_<id>`), Yumi automatically interleaves the most recent turns from those sibling sessions into each prompt — so you can ask in Telegram "what did I just say by voice?" and the answer is grounded in the spoken turns. The full list of voice-related fields lives in [Configuration → Voice](CONFIGURATION.md#voice).
 
 v1 limits: text-only replies (no spoken response), single owner per server, no barge-in, only macOS / Linux desktop (Docker has no microphone). The first utterance can take 5–10 seconds because Whisper warms up on demand.
+
+For spoken replies and Nexus sign-in, use the [Hey Yumi voice client](HEY_YUMI_VOICE_CLIENT.md). Run it on the computer with the microphone even if the API runs in Docker.
 
 ## Demo
 

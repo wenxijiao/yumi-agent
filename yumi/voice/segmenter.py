@@ -5,9 +5,8 @@ incoming frames to :class:`UtteranceCollector` until the speaker pauses (silence
 exceeds ``silence_ms``) or the utterance hits ``max_ms``.
 
 WebRTC VAD requires 10/20/30 ms frames at 8/16/32/48 kHz, mono int16. We
-target 16 kHz with whatever frame length Porcupine demands (typically 32 ms /
-512 samples) — slightly off-spec for VAD, so we slice each Porcupine frame
-into 30 ms VAD windows internally.
+target 16 kHz with the wake detector's frame length (100 ms / 1600 samples)
+and slice each capture frame into 30 ms VAD windows internally.
 """
 
 from __future__ import annotations

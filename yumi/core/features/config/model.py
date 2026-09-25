@@ -140,7 +140,9 @@ class ModelConfig(BaseModel):
     stt_language: str = "auto"
     # Voice session (mic capture + wake word). Only consulted when `yumi --server --voice` is passed;
     # the modifier sets YUMI_VOICE_ENABLED=1 which the API lifespan watches.
-    voice_wake_word: str = "hi yumi"
+    voice_wake_word: str = "hey yumi"  # legacy display setting; wake phrase is fixed
+    voice_sherpa_model_dir: str | None = None
+    voice_sherpa_keywords_file: str | None = None
     voice_porcupine_access_key: str | None = None
     voice_porcupine_keyword_path: str | None = None
     voice_porcupine_sensitivity: float = Field(default=0.5, ge=0.0, le=1.0)

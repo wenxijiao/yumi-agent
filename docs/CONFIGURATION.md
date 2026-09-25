@@ -102,10 +102,8 @@ Speech-to-text fields:
 
 Voice (microphone wake-word) fields — only consulted when running `yumi --server --voice`:
 
-- `voice_wake_word`: Wake phrase shown in banner output. Default: `hi yumi`. The actual matcher is the `.ppn` model below.
-- `voice_porcupine_access_key`: Picovoice access key. Environment variable: `PV_ACCESS_KEY`.
-- `voice_porcupine_keyword_path`: Filesystem path to a `.ppn` keyword file trained at [console.picovoice.ai](https://console.picovoice.ai/). When `null`, Yumi falls back to the built-in `jarvis` keyword (loud warning at startup).
-- `voice_porcupine_sensitivity`: Wake-word sensitivity, `0.0`–`1.0`. Higher catches more but false-fires more. Default: `0.5`.
+- `voice_sherpa_model_dir`: Directory containing the sherpa-onnx keyword-spotting model for the fixed phrase “Hey Yumi”. `YUMI_VOICE_MODEL_DIR` is also accepted.
+- `voice_sherpa_keywords_file`: Optional pre-tokenized sherpa-onnx keyword file for “Hey Yumi”. When omitted, Yumi generates it from the model's BPE model or lexicon.
 - `voice_input_device`: Optional `sounddevice` device index. `null` uses the OS default microphone.
 - `voice_vad_aggressiveness`: WebRTC VAD aggressiveness, `0`–`3`. Higher is stricter about classifying frames as speech. Default: `2`.
 - `voice_silence_ms`: Trailing silence (ms) that ends an utterance. Default: `800` (minimum `100`).
@@ -266,7 +264,7 @@ yumi --tool-routing --enable-edge-tool-routing --edge-tools-limit 20
 |---|---|
 | `YUMI_VOICE_ENABLED` | Set automatically by `yumi --server --voice`. `1` makes the API lifespan start the wake-word loop; you should not normally set this by hand. |
 | `YUMI_VOICE_OWNER_ID` | Same as `voice_owner_id` in config. Set automatically by the CLI helpers. |
-| `PV_ACCESS_KEY` | Picovoice access key. Overrides `voice_porcupine_access_key` when both are set. |
+| `YUMI_VOICE_MODEL_DIR` | sherpa-onnx wake-word model directory; used when `voice_sherpa_model_dir` is unset. |
 
 ## Telegram
 
@@ -352,20 +350,17 @@ Yumi exposes `POST /line/webhook`, verifies `X-Line-Signature`, and forwards cha
 
 ## Voice
 
-`yumi --server --voice` attaches a microphone wake-word session to the running API. After the wake word ("hi yumi") fires, Yumi records until you pause, transcribes with the configured Whisper model, and sends the transcript through the same `/chat` flow used by `--chat` / `--ui` / Telegram. Replies are spoken back aloud via TTS (and logged) — see [Spoken replies (TTS)](#spoken-replies-tts) below.
+`yumi --server --voice` attaches a microphone wake-word session to the running API. After “Hey Yumi” fires, Yumi records until you pause, transcribes with the configured STT model, and sends the transcript through the same chat flow used by `--chat` / `--ui` / Telegram. The separate [Hey Yumi voice client](HEY_YUMI_VOICE_CLIENT.md) also supports Nexus sign-in and spoken replies.
 
 ### Install
 
-`pip install yumi-agent` includes `sounddevice` (mic capture), `webrtcvad-wheels` (voice activity detection), `pvporcupine` (wake-word), and `faster-whisper` (transcription). Whisper weights are downloaded the first time you run `yumi --setup` and pick a model.
+Install `yumi-agent[voice-sherpa]` for the sherpa-onnx wake engine. The base package includes microphone capture, WebRTC VAD, and faster-whisper; model weights are separate.
 
 ### Setup
 
-1. **Picovoice access key** — sign up at [console.picovoice.ai](https://console.picovoice.ai/) (free for personal use) and copy your access key. Either:
-   - export `PV_ACCESS_KEY=...` in the shell that launches Yumi, or
-   - save `voice_porcupine_access_key` in `~/.yumi/config.json`.
-2. **Train a "hi yumi" wake-word** — Picovoice's built-in keywords do not include "hi yumi". In the console, create a custom keyword for English (or your language), download the resulting `.ppn` file, and save it (suggested: `~/.yumi/voice/hi-yumi.ppn`). Set `voice_porcupine_keyword_path` to that path. Without a custom file, Yumi falls back to the built-in `jarvis` keyword and prints a warning at startup.
-3. **Microphone permission** — on macOS, grant your terminal app microphone access in *System Settings → Privacy & Security → Microphone*. Without permission, `sounddevice` returns silent audio and the VAD never triggers.
-4. **Tune `voice_owner_id`** — set this to a stable identifier (your Telegram/Discord/LINE user id, or another stable account id). The voice session id is `voice_<owner_id>`; matching the suffix with `tg_<id>` / `dc_<id>` / `line_<id>` / `chat_<id>` is what makes cross-channel context (below) work.
+1. **Wake-word model** — download a compatible sherpa-onnx keyword-spotting model, check its license, and set `voice_sherpa_model_dir` or `YUMI_VOICE_MODEL_DIR`.
+2. **Microphone permission** — on macOS, grant your terminal app microphone access in *System Settings → Privacy & Security → Microphone*. Without permission, `sounddevice` returns silent audio and the VAD never triggers.
+3. **Tune `voice_owner_id`** — set this to a stable identifier (your Telegram/Discord/LINE user id, or another stable account id). The voice session id is `voice_<owner_id>`; matching the suffix with `tg_<id>` / `dc_<id>` / `line_<id>` / `chat_<id>` is what makes cross-channel context (below) work.
 
 ### Running
 
@@ -380,10 +375,10 @@ The merge happens in `yumi/core/features/memory/context.py::ContextBuilder._rece
 
 ### Voice loop details
 
-- **Frame size** — 16 kHz mono int16; Porcupine picks the frame length (typically 32 ms / 512 samples) and the same blocks are sliced into 30 ms windows for WebRTC VAD.
+- **Frame size** — 16 kHz mono int16; the sherpa-onnx loop reads 100 ms blocks and slices them into 30 ms windows for WebRTC VAD.
 - **End-of-utterance** — flush on `voice_silence_ms` of trailing silence, or `voice_max_utterance_ms` total length, whichever first.
 - **Whisper warm-up** — the API lifespan transcribes 1 s of silence at boot, so the first real utterance does not pay the full cold-start delay.
-- **Errors** — transcription / dispatch errors are logged and swallowed; the loop keeps listening. `KeyboardInterrupt` (Ctrl+C) cleanly stops the audio stream and closes the Porcupine handle.
+- **Errors** — transcription / dispatch errors are logged and swallowed; the loop keeps listening. `KeyboardInterrupt` (Ctrl+C) stops the audio stream and releases the sherpa-onnx model.
 
 ### v1 limits
 

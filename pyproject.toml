@@ -64,7 +64,6 @@ dependencies = [
     "huggingface-hub>=0.20",
     "sounddevice>=0.4.6",
     "webrtcvad-wheels>=2.0.14",
-    "pvporcupine>=3.0.0",
     "dashscope>=1.20.0",
 ]
 
@@ -145,6 +144,7 @@ dev = [
 # deps, cloud TTS/STT, and local FastEmbed support; model/embedding weights are
 # still downloaded on demand by setup/runtime.
 tts-local = ["qwen-tts"]
+voice-sherpa = ["sherpa-onnx>=1.12", "sentencepiece>=0.2", "pypinyin>=0.55"]
 all = [
     "qwen-tts",
 ]

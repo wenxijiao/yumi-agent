@@ -146,7 +146,7 @@ class VoiceModifierCommand(Command):
         parser.add_argument(
             "--voice",
             action="store_true",
-            help=("With --server: open a microphone wake-word session (say 'hi yumi'). Needs a Picovoice access key."),
+            help=("With --server: open a local microphone wake-word session (say 'hey yumi'). Needs a sherpa-onnx model."),
         )
 
     def matches(self, args):
@@ -215,6 +215,40 @@ class ChatCommand(Command):
         from yumi.cli import run_chat
 
         run_chat()
+
+
+class VoiceClientCommand(Command):
+    name = "voice-client"
+
+    def register(self, parser, mutex_group):
+        mutex_group.add_argument(
+            "--voice-client", action="store_true", help="Run Hey Yumi on this computer against local Yumi or Nexus"
+        )
+        parser.add_argument("--voice-mode", choices=["local", "nexus"], default="local")
+        parser.add_argument("--voice-server", default=None, help="Local or Nexus API URL")
+        parser.add_argument("--voice-device-name", default=None, help="Name shown for this Nexus voice device")
+        parser.add_argument("--voice-model-dir", default=None, help="Directory with a licensed sherpa-onnx KWS model")
+        parser.add_argument("--voice-keywords-file", default=None, help="sherpa-onnx keyword tokens for Hey Yumi")
+        parser.add_argument("--voice-input-device", type=int, default=None, help="Microphone device index")
+        parser.add_argument("--voice-no-browser", action="store_true", help="Print the Nexus sign-in link")
+        parser.add_argument("--voice-logout", action="store_true", help="Remove the saved Nexus voice credential")
+
+    def matches(self, args):
+        return bool(args.voice_client)
+
+    def run(self, args):
+        from yumi.voice.client import main
+
+        return main(
+            mode=args.voice_mode,
+            server=args.voice_server,
+            name=args.voice_device_name,
+            model_dir=args.voice_model_dir,
+            keywords_file=args.voice_keywords_file,
+            device=args.voice_input_device,
+            open_browser=not args.voice_no_browser,
+            logout=args.voice_logout,
+        )
 
 
 class EdgeCommand(Command):
@@ -503,6 +537,7 @@ _NON_SERVER_BASE_FLAGS = (
     "ui",
     "speak",
     "chat",
+    "voice_client",
     "edge",
     "run_edge",
     "demo",
@@ -592,6 +627,7 @@ def build_default_registry() -> CommandRegistry:
     # Registration order controls display order within help sections.
     registry.add(ServerCommand())
     registry.add(ChatCommand())
+    registry.add(VoiceClientCommand())
     registry.add(UICommand())
     registry.add(DemoCommand())
     registry.add(SpeakCommand())
@@ -613,6 +649,7 @@ def build_default_registry() -> CommandRegistry:
 
 __all__ = [
     "ChatCommand",
+    "VoiceClientCommand",
     "CleanupCommand",
     "CleanupModelsCommand",
     "CleanupMemoryCommand",

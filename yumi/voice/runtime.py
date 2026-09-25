@@ -17,13 +17,15 @@ from __future__ import annotations
 
 import asyncio
 import io
+import os
 import wave
 from collections.abc import Awaitable, Callable
 
 from yumi.logging_config import get_logger
 from yumi.voice.audio_source import AudioSource, SoundDeviceSource
 from yumi.voice.segmenter import UtteranceCollector, _VadBackend
-from yumi.voice.wake import PorcupineWake, WakeDetector
+from yumi.voice.sherpa_wake import SherpaHeyYumiWake
+from yumi.voice.wake import WakeDetector
 
 logger = get_logger(__name__)
 
@@ -81,8 +83,8 @@ async def run_voice_session(
     try:
         source.start()
     except Exception:
-        # Source.start() may fail before any resource is held; still close the wake detector
-        # so the Porcupine native handle isn't leaked for the rest of the process lifetime.
+        # Source.start() may fail before any resource is held; still release
+        # the wake detector's native model resources.
         try:
             wake.close()
         except Exception:
@@ -134,10 +136,12 @@ async def run_voice_session(
 
 def build_voice_components(cfg) -> tuple[AudioSource, WakeDetector, UtteranceCollector, VadFn]:
     """Construct the production audio source / wake / VAD from a ModelConfig."""
-    wake = PorcupineWake(
-        access_key=cfg.voice_porcupine_access_key,
-        keyword_path=cfg.voice_porcupine_keyword_path,
-        sensitivity=cfg.voice_porcupine_sensitivity,
+    model_dir = cfg.voice_sherpa_model_dir or os.getenv("YUMI_VOICE_MODEL_DIR")
+    if not model_dir:
+        raise RuntimeError("Set voice_sherpa_model_dir or YUMI_VOICE_MODEL_DIR for the Hey Yumi model")
+    wake = SherpaHeyYumiWake(
+        model_dir,
+        cfg.voice_sherpa_keywords_file,
     )
     try:
         source = SoundDeviceSource(
@@ -153,7 +157,7 @@ def build_voice_components(cfg) -> tuple[AudioSource, WakeDetector, UtteranceCol
         )
         vad_backend = _VadBackend(cfg.voice_vad_aggressiveness)
     except Exception:
-        # Release the Porcupine native handle if downstream construction failed.
+        # Release the sherpa-onnx model if downstream construction failed.
         try:
             wake.close()
         except Exception:
@@ -161,7 +165,7 @@ def build_voice_components(cfg) -> tuple[AudioSource, WakeDetector, UtteranceCol
         raise
 
     def is_speech(frame: bytes, sample_rate: int) -> bool:
-        # webrtcvad needs exactly 10/20/30 ms frames. Slice the Porcupine block
+        # webrtcvad needs exactly 10/20/30 ms frames. Slice the KWS block
         # into 30 ms windows; if any window classifies as speech, the frame is.
         window_samples = int(sample_rate * 30 / 1000)
         window_bytes = window_samples * 2

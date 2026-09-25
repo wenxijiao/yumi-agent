@@ -6,8 +6,8 @@ Production runs use :class:`SoundDeviceSource` (a thin wrapper over
 loop can be exercised without a real microphone.
 
 Frames are 16 kHz, mono, signed 16-bit little-endian PCM. The frame length
-(in samples) is fixed at construction so Porcupine's expected block size lines
-up with what we read from the mic.
+(in samples) is fixed at construction so the wake detector's expected block
+size lines up with what we read from the mic.
 """
 
 from __future__ import annotations
