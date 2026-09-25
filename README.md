@@ -139,7 +139,7 @@ Your app connects to the Yumi server over WebSocket and registers functions as t
 | `yumi --discord` | Run only the Discord bot; connects to the API like `yumi --chat` |
 | `yumi --server --line` | Start the API and a LINE webhook sidecar (default port 8788) |
 | `yumi --line` | Run only the LINE webhook server; core API must already be reachable |
-| `yumi --server --voice` | Start the API with a microphone wake-word loop (say "Hey Yumi" to talk) |
+| `yumi --voice` | Choose local Yumi or Nexus and talk after saying "Hey Yumi" |
 | `yumi --speak "..."` | Synthesize text with the configured TTS and play it (smoke test) |
 | `yumi --ui` | Start the web UI (chat, tools, settings) |
 | `yumi --chat` | Start terminal chat |
@@ -158,7 +158,7 @@ Your app connects to the Yumi server over WebSocket and registers functions as t
 - **Telegram** — chat with Yumi from a Telegram bot. Get a token from [@BotFather](https://t.me/BotFather), then run `yumi --server --telegram` (single machine) or `yumi --telegram` (bot only). Token, allowlist, and timer-push details: [Configuration → Telegram](docs/CONFIGURATION.md#telegram).
 - **Discord** — chat with Yumi from a Discord bot. Create an application + bot in the [Discord Developer Portal](https://discord.com/developers/applications), enable the Message Content intent, then run `yumi --server --discord` (single machine) or `yumi --discord` (bot only). Token, allowlist, and timer-push details: [Configuration → Discord](docs/CONFIGURATION.md#discord).
 - **LINE** — chat from LINE via the Messaging API webhook. Run `yumi --server --line` (single machine, default port 8788) or `yumi --line` (webhook sidecar only). Credentials and webhook setup: [Configuration → LINE](docs/CONFIGURATION.md#line).
-- **Voice** — say “Hey Yumi” to talk through your microphone. The wake phrase is detected locally with sherpa-onnx, then speech is transcribed and sent as a chat turn. `yumi --server --voice` attaches the microphone to a local server; `yumi --voice-client` can use a local server or your Nexus account with spoken replies. Install `yumi-agent[voice-sherpa]` and provide a compatible wake-word model. Setup: [Hey Yumi voice client](docs/HEY_YUMI_VOICE_CLIENT.md) and [Configuration → Voice](docs/CONFIGURATION.md#voice).
+- **Voice** — run `yumi --voice`, choose the local Yumi server or sign in to Nexus, then say “Hey Yumi” to talk through your microphone. The wake phrase is detected locally with sherpa-onnx; speech is transcribed and sent as a chat turn with a spoken reply. Install `yumi-agent[voice-sherpa]` and provide a compatible wake-word model. Setup: [Hey Yumi voice](docs/HEY_YUMI_VOICE_CLIENT.md) and [Configuration → Voice](docs/CONFIGURATION.md#voice).
 - **Spoken replies (TTS)** — Yumi can talk back. Pick a backend in `yumi --setup`: `system` (Windows SAPI, macOS `say`, or Linux `espeak`), `openai` (OpenAI TTS, reuses your `openai_api_key`), `gemini` (Gemini TTS, reuses your `gemini_api_key`), `grok` (xAI Grok TTS, reuses your `grok_api_key`), `dashscope` (Qwen3-TTS via the DashScope API), or `qwen` (Qwen3-TTS run locally on a GPU via the optional `[tts-local]` extra). In voice mode replies are spoken automatically; on Telegram / Discord, `/voice on` (`!voice on`) switches a chat to audio replies. Test any time with `yumi --speak "hello"`.
 
 ## Supported Providers

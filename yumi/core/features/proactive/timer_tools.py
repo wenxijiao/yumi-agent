@@ -3,9 +3,10 @@ from __future__ import annotations
 import json
 import re
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable
+from zoneinfo import ZoneInfo
 
 from yumi.core.platform.storage.sqlite_store import SQLiteStore, db_path_for_config_path
 
@@ -97,8 +98,17 @@ def _parse_weekday_tokens(day_part: str) -> list[int]:
     return sorted(set(weekdays))
 
 
-def _next_weekday(target_weekday: int, hour: int, minute: int) -> datetime:
-    now = datetime.now()
+def _local_now(tz_name: str | None = None) -> datetime:
+    if tz_name:
+        try:
+            return datetime.now(ZoneInfo(tz_name))
+        except Exception as exc:
+            raise ValueError(f"Invalid local timezone: {tz_name}") from exc
+    return datetime.now().astimezone()
+
+
+def _next_weekday(target_weekday: int, hour: int, minute: int, now: datetime | None = None) -> datetime:
+    now = now or _local_now()
     days_ahead = (target_weekday - now.weekday()) % 7
     candidate = now.replace(hour=hour, minute=minute, second=0, microsecond=0) + timedelta(days=days_ahead)
     if candidate <= now:
@@ -106,7 +116,7 @@ def _next_weekday(target_weekday: int, hour: int, minute: int) -> datetime:
     return candidate
 
 
-def _parse_when(when: str) -> dict:
+def _parse_when(when: str, tz_name: str | None = None) -> dict:
     """Parse a ``when`` string into a scheduling descriptor.
 
     Returns a dict with keys:
@@ -118,6 +128,7 @@ def _parse_when(when: str) -> dict:
     """
     raw = when.strip()
     text = raw.lower()
+    now = _local_now(tz_name)
 
     # ── recurring daily: "daily 07:00" / "every day 07:00" / "每天07:00" ──
     m = re.match(r"(?:daily|everyday|every\s+day)\s+(\d{1,2}:\d{2})$|(?:每天|每日)\s*(\d{1,2}:\d{2})$", text)
@@ -126,7 +137,7 @@ def _parse_when(when: str) -> dict:
         hour, minute = _parse_time(time_part)
         weekdays = list(range(7))
         nearest = min(
-            (_next_weekday(wd, hour, minute) for wd in weekdays),
+            (_next_weekday(wd, hour, minute, now) for wd in weekdays),
             key=lambda dt: dt,
         )
         return {
@@ -145,7 +156,7 @@ def _parse_when(when: str) -> dict:
         weekdays = _parse_weekday_tokens(day_part)
 
         nearest = min(
-            (_next_weekday(wd, hour, minute) for wd in weekdays),
+            (_next_weekday(wd, hour, minute, now) for wd in weekdays),
             key=lambda dt: dt,
         )
         return {
@@ -164,7 +175,7 @@ def _parse_when(when: str) -> dict:
         weekdays = _parse_weekday_tokens(day_part)
 
         nearest = min(
-            (_next_weekday(wd, hour, minute) for wd in weekdays),
+            (_next_weekday(wd, hour, minute, now) for wd in weekdays),
             key=lambda dt: dt,
         )
         return {
@@ -180,7 +191,7 @@ def _parse_when(when: str) -> dict:
     if m and m.group(1) in _WEEKDAY_NAMES:
         day_name, time_part = m.group(1), m.group(2)
         hour, minute = _parse_time(time_part)
-        target = _next_weekday(_WEEKDAY_NAMES[day_name], hour, minute)
+        target = _next_weekday(_WEEKDAY_NAMES[day_name], hour, minute, now)
         return {
             "next_fire_at": target,
             "recurring": False,
@@ -192,8 +203,8 @@ def _parse_when(when: str) -> dict:
     # ── absolute datetime: "2026-04-23 17:00" ──
     m = re.match(r"(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})$", text)
     if m:
-        target = datetime.strptime(f"{m.group(1)} {m.group(2)}", "%Y-%m-%d %H:%M")
-        if target <= datetime.now():
+        target = datetime.strptime(f"{m.group(1)} {m.group(2)}", "%Y-%m-%d %H:%M").replace(tzinfo=now.tzinfo)
+        if target <= now:
             raise ValueError(f"The specified time {raw} is in the past.")
         return {
             "next_fire_at": target,
@@ -207,7 +218,6 @@ def _parse_when(when: str) -> dict:
     m = re.match(r"(\d{1,2}:\d{2})$", text)
     if m:
         hour, minute = _parse_time(m.group(1))
-        now = datetime.now()
         target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
         if target <= now:
             target += timedelta(days=1)
@@ -233,14 +243,15 @@ def _advance_recurring(item: dict, after: datetime) -> datetime:
     time_str = item.get("time", "07:00")
     hour, minute = _parse_time(time_str)
 
-    candidates = [_next_weekday(wd, hour, minute) for wd in weekdays]
-    candidates = [c if c > after else c + timedelta(days=7) for c in candidates]
+    tz_name = item.get("timezone")
+    local_after = after.astimezone(ZoneInfo(tz_name)) if tz_name else after
+    candidates = [_next_weekday(wd, hour, minute, local_after) for wd in weekdays]
     return min(candidates)
 
 
 def calc_next_recurring_delay(item: dict) -> int:
     """Return seconds until the next occurrence of a recurring schedule."""
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     next_fire = _advance_recurring(item, now)
     item["next_fire_at"] = next_fire.isoformat()
     return max(1, int((next_fire - now).total_seconds()))
@@ -275,7 +286,7 @@ class SchedulerService:
         return SQLiteStore(db_path_for_config_path(self.schedules_path.with_name("config.json")))
 
     def _save_schedules(self) -> None:
-        items = [v for v in self.active_timers.values() if v.get("type") == "scheduled"]
+        items = list(self.active_timers.values())
         try:
             self._store().save_schedules(items)
         except Exception:
@@ -316,7 +327,7 @@ class SchedulerService:
         Called once at server startup from the app lifespan.
         """
         items = self._load_schedules()
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         changed = False
 
         for item in items:
@@ -325,12 +336,22 @@ class SchedulerService:
                 continue
 
             recurring = item.get("recurring", False)
-            next_fire_raw = item.get("next_fire_at", "")
+            next_fire_raw = item.get("next_fire_at") or item.get("fire_at", "")
             try:
                 next_fire = datetime.fromisoformat(next_fire_raw)
             except (ValueError, TypeError):
                 changed = True
                 continue
+            if next_fire.tzinfo is None:
+                # Old schedules stored wall time without an offset. Interpret
+                # it in the configured user timezone, not the Docker timezone.
+                from yumi.core.features.config import load_model_config
+
+                tz_name = item.get("timezone") or load_model_config().local_timezone
+                next_fire = next_fire.replace(tzinfo=_local_now(tz_name).tzinfo)
+                item["timezone"] = tz_name
+                item["next_fire_at"] = next_fire.isoformat()
+                changed = True
 
             if next_fire <= now:
                 if recurring:
@@ -338,8 +359,12 @@ class SchedulerService:
                     item["next_fire_at"] = next_fire.isoformat()
                     changed = True
                 else:
-                    changed = True
-                    continue
+                    # A short restart should not lose the action, but stale
+                    # smart-home commands must not execute hours or days late.
+                    if now - next_fire > timedelta(minutes=5):
+                        changed = True
+                        continue
+                    next_fire = now
 
             delay = max(1, int((next_fire - now).total_seconds()))
             if "owner_user_id" not in item:
@@ -377,8 +402,7 @@ class SchedulerService:
 
         info = self.active_timers.pop(timer_id)
 
-        if info.get("type") == "scheduled":
-            self._save_schedules()
+        self._save_schedules()
 
         if self._cancel_callback:
             self._cancel_callback(timer_id)
@@ -394,17 +418,21 @@ class SchedulerService:
             return "Error: description cannot be empty."
 
         timer_id = uuid.uuid4().hex[:8]
-        fire_at = datetime.now() + timedelta(seconds=delay_seconds)
+        now = datetime.now(timezone.utc)
+        fire_at = now + timedelta(seconds=delay_seconds)
 
         self.active_timers[timer_id] = {
             "id": timer_id,
             "type": "timer",
             "description": description,
             "fire_at": fire_at.isoformat(),
+            "next_fire_at": fire_at.isoformat(),
             "session_id": session_id,
             "owner_user_id": _owner_id(),
-            "created_at": datetime.now().isoformat(),
+            "created_at": now.isoformat(),
         }
+
+        self._save_schedules()
 
         if self._schedule_callback:
             self._schedule_callback(timer_id, delay_seconds, description, session_id)
@@ -419,13 +447,16 @@ class SchedulerService:
             return "Error: description cannot be empty."
 
         try:
-            parsed = _parse_when(when)
+            from yumi.core.features.config import load_model_config
+
+            tz_name = load_model_config().local_timezone
+            parsed = _parse_when(when, tz_name)
         except ValueError as exc:
             return f"Error: {exc}"
 
         timer_id = uuid.uuid4().hex[:8]
         next_fire: datetime = parsed["next_fire_at"]
-        delay_seconds = max(1, int((next_fire - datetime.now()).total_seconds()))
+        delay_seconds = max(1, int((next_fire - datetime.now(timezone.utc)).total_seconds()))
         recurring = parsed["recurring"]
 
         entry = {
@@ -433,6 +464,7 @@ class SchedulerService:
             "type": "scheduled",
             "description": description,
             "when_raw": parsed["when_raw"],
+            "timezone": tz_name,
             "recurring": recurring,
             "weekdays": parsed["weekdays"],
             "time": parsed["time"],
@@ -440,7 +472,7 @@ class SchedulerService:
             "fire_at": next_fire.isoformat(),
             "session_id": session_id,
             "owner_user_id": _owner_id(),
-            "created_at": datetime.now().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
         }
         self.active_timers[timer_id] = entry
         self._save_schedules()
@@ -502,11 +534,11 @@ def cancel_timer_for_owner(timer_id: str, owner_user_id: str | None = None) -> t
     return scheduler.cancel_timer_for_owner(timer_id, owner_user_id)
 
 
-def set_timer(delay_seconds: int, description: str, session_id: str = "default") -> str:
+async def set_timer(delay_seconds: int, description: str, session_id: str = "default") -> str:
     return scheduler.set_timer(delay_seconds, description, session_id)
 
 
-def schedule_task(when: str, description: str, session_id: str = "default") -> str:
+async def schedule_task(when: str, description: str, session_id: str = "default") -> str:
     return scheduler.schedule_task(when, description, session_id)
 
 
@@ -514,5 +546,5 @@ def list_timers() -> str:
     return scheduler.list_timers()
 
 
-def cancel_timer(timer_id: str) -> str:
+async def cancel_timer(timer_id: str) -> str:
     return scheduler.cancel_timer(timer_id)

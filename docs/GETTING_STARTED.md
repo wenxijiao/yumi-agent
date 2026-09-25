@@ -121,15 +121,15 @@ Useful commands:
 
 ## Voice (microphone wake-word)
 
-`yumi --server --voice` attaches a local microphone wake-word loop to the running API. Say "Hey Yumi" and then speak your request. The same wake phrase also works with the separate `yumi --voice-client`, which can connect to a local server or your Nexus account.
+Run `yumi --voice` on the computer with the microphone, choose the local Yumi server or sign in to Nexus, then say "Hey Yumi" and speak your request.
 
 ```bash
 yumi --setup                     # enable Whisper (stt_provider=whisper)
 pip install 'yumi-agent[voice-sherpa]'
-YUMI_VOICE_MODEL_DIR=/path/to/kws-model yumi --server --voice
+YUMI_VOICE_MODEL_DIR=/path/to/kws-model yumi --voice
 ```
 
-Download a compatible sherpa-onnx keyword-spotting model separately and check its license. Whisper weights are downloaded when you choose a local model.
+For the local choice, start `yumi --server` in another terminal. Download a compatible sherpa-onnx keyword-spotting model separately and check its license. Whisper weights are downloaded when you choose a local model.
 
 Required setup:
 

@@ -7,6 +7,7 @@ import base64
 import json
 import os
 import socket
+import sys
 import time
 import uuid
 import webbrowser
@@ -266,18 +267,51 @@ async def run_client(connection: VoiceConnection, wake: SherpaHeyYumiWake, devic
         source.stop()
 
 
-def main(*, mode: str, server: str | None, name: str | None, model_dir: str | None,
+def choose_mode() -> str:
+    """Choose the voice backend once, before opening the microphone."""
+    if not sys.stdin.isatty():
+        raise SystemExit("Choose --voice-mode local or --voice-mode nexus when running without a terminal.")
+    print("Hey Yumi — choose how to connect:")
+    print("  1) Local model (Yumi server on this computer)")
+    print("  2) Sign in to Yumi Nexus")
+    while True:
+        try:
+            answer = input("Choose 1 or 2: ").strip().lower()
+        except EOFError as exc:
+            raise SystemExit("No voice mode selected.") from exc
+        if answer in {"1", "local"}:
+            return "local"
+        if answer in {"2", "nexus"}:
+            return "nexus"
+        print("Please choose 1 or 2.")
+
+
+def main(*, mode: str | None, server: str | None, name: str | None, model_dir: str | None,
          keywords_file: str | None, device: int | None, open_browser: bool, logout: bool) -> int:
     if logout:
         logout_nexus()
         print("Voice device credentials removed from this computer.")
         return 0
+    mode = mode or choose_mode()
     if not model_dir:
-        raise SystemExit("Set --voice-model-dir for your licensed Hey Yumi model.")
+        from yumi.core.features.config import load_model_config
+
+        config = load_model_config()
+        model_dir = config.voice_sherpa_model_dir or os.getenv("YUMI_VOICE_MODEL_DIR")
+        keywords_file = keywords_file or config.voice_sherpa_keywords_file
+    if not model_dir:
+        raise SystemExit("Set --voice-model-dir, voice_sherpa_model_dir, or YUMI_VOICE_MODEL_DIR for Hey Yumi.")
     name = name or socket.gethostname() or "Yumi voice"
     wake = SherpaHeyYumiWake(model_dir, keywords_file)
     try:
         connection = connect(mode, server, name, open_browser=open_browser)
+        if mode == "local":
+            try:
+                connection.request("GET", "/assistant", timeout=10)
+            except requests.RequestException as exc:
+                raise SystemExit(
+                    f"Cannot reach local Yumi at {connection.base_url}. Start `yumi --server` first."
+                ) from exc
         asyncio.run(run_client(connection, wake, device))
     except KeyboardInterrupt:
         print("\nVoice client stopped.")

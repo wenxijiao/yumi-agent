@@ -67,13 +67,13 @@ def test_discord_with_server_is_valid():
     assert validate_cross_command_flags(_parse(["--server", "--discord"])) is None
 
 
-def test_voice_requires_server():
-    err = validate_cross_command_flags(_parse(["--voice"]))
-    assert err and "--server" in err
+def test_voice_is_standalone():
+    assert validate_cross_command_flags(_parse(["--voice"])) is None
+    assert _select_name(["--voice"]) == "voice"
 
 
-def test_voice_with_server_is_valid():
-    assert validate_cross_command_flags(_parse(["--server", "--voice"])) is None
+def test_voice_with_server_is_rejected():
+    assert validate_cross_command_flags(_parse(["--server", "--voice"])) is not None
 
 
 def test_edge_tool_flags_require_tool_routing():

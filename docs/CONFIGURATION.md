@@ -100,7 +100,7 @@ Speech-to-text fields:
 - `stt_model_dir`: Optional Whisper model cache directory. `null` uses Yumi's default (cloud providers ignore it).
 - `stt_language`: Language hint. Default: `auto`.
 
-Voice (microphone wake-word) fields — only consulted when running `yumi --server --voice`:
+Voice (microphone wake-word) fields — consulted when running `yumi --voice`:
 
 - `voice_sherpa_model_dir`: Directory containing the sherpa-onnx keyword-spotting model for the fixed phrase “Hey Yumi”. `YUMI_VOICE_MODEL_DIR` is also accepted.
 - `voice_sherpa_keywords_file`: Optional pre-tokenized sherpa-onnx keyword file for “Hey Yumi”. When omitted, Yumi generates it from the model's BPE model or lexicon.
@@ -262,7 +262,7 @@ yumi --tool-routing --enable-edge-tool-routing --edge-tools-limit 20
 
 | Variable | Description |
 |---|---|
-| `YUMI_VOICE_ENABLED` | Set automatically by `yumi --server --voice`. `1` makes the API lifespan start the wake-word loop; you should not normally set this by hand. |
+| `YUMI_VOICE_ENABLED` | Legacy server-side wake loop setting; use `yumi --voice` on the microphone computer for local or Nexus voice. |
 | `YUMI_VOICE_OWNER_ID` | Same as `voice_owner_id` in config. Set automatically by the CLI helpers. |
 | `YUMI_VOICE_MODEL_DIR` | sherpa-onnx wake-word model directory; used when `voice_sherpa_model_dir` is unset. |
 
@@ -350,7 +350,7 @@ Yumi exposes `POST /line/webhook`, verifies `X-Line-Signature`, and forwards cha
 
 ## Voice
 
-`yumi --server --voice` attaches a microphone wake-word session to the running API. After “Hey Yumi” fires, Yumi records until you pause, transcribes with the configured STT model, and sends the transcript through the same chat flow used by `--chat` / `--ui` / Telegram. The separate [Hey Yumi voice client](HEY_YUMI_VOICE_CLIENT.md) also supports Nexus sign-in and spoken replies.
+`yumi --voice` starts a microphone wake-word session on this computer. Choose the local Yumi server or sign in to Nexus. After “Hey Yumi” fires, Yumi records until you pause, transcribes your speech, sends it through the existing chat flow, and speaks its reply. See [Hey Yumi voice](HEY_YUMI_VOICE_CLIENT.md).
 
 ### Install
 
@@ -360,16 +360,15 @@ Install `yumi-agent[voice-sherpa]` for the sherpa-onnx wake engine. The base pac
 
 1. **Wake-word model** — download a compatible sherpa-onnx keyword-spotting model, check its license, and set `voice_sherpa_model_dir` or `YUMI_VOICE_MODEL_DIR`.
 2. **Microphone permission** — on macOS, grant your terminal app microphone access in *System Settings → Privacy & Security → Microphone*. Without permission, `sounddevice` returns silent audio and the VAD never triggers.
-3. **Tune `voice_owner_id`** — set this to a stable identifier (your Telegram/Discord/LINE user id, or another stable account id). The voice session id is `voice_<owner_id>`; matching the suffix with `tg_<id>` / `dc_<id>` / `line_<id>` / `chat_<id>` is what makes cross-channel context (below) work.
+3. **Backend** — for a local model, start `yumi --server` separately. For Nexus, choose sign-in in the voice menu; your device credential is saved locally and reused on later runs.
 
 ### Running
 
-- **`yumi --server --voice`** — API + voice loop in one process tree. The CLI sets `YUMI_VOICE_ENABLED=1` and `YUMI_VOICE_OWNER_ID` for the API child process; the API lifespan starts a background asyncio task for the loop and cancels it on shutdown.
-- **`yumi --server --telegram --voice`** — same, plus the Telegram bot. All three (API, bot, voice) live in the same process tree and are stopped together by `Ctrl+C`.
+- **`yumi --voice`** — show the local/Nexus choice and start the wake loop. Use `--voice-mode local` or `--voice-mode nexus` to skip the menu in a script. Stop with `Ctrl+C`.
 
 ### Cross-channel context
 
-Voice / Telegram / Discord / LINE / `--chat` each persist to their own session (`voice_alice`, `tg_alice`, `dc_alice`, `line_alice`, `chat_alice`). Each chat turn fetches the most recent N messages from the **current** session **plus** any sibling sessions that share the owner suffix, merges them by timestamp, and renders sibling turns with a `(via voice)` / `(via telegram)` / `(via discord)` / `(via line)` / `(via chat)` tag so the model can distinguish channels. `yumi --chat` uses random UUID session ids by default, so its history is included only when you pass an explicit `session_id` matching the voice owner.
+Voice uses the personal conversation of the selected local server or Nexus account, so it sees the same tools and conversation as that backend.
 
 The merge happens in `yumi/core/features/memory/context.py::ContextBuilder._recent_transcript`. The cap is roughly twice `memory_max_recent_messages` after merge to keep peers from crowding out the current channel. There is no schema change — peer messages are read with a single `session_id IN (...)` query against the existing `chat_history` LanceDB table.
 
@@ -382,13 +381,12 @@ The merge happens in `yumi/core/features/memory/context.py::ContextBuilder._rece
 
 ### v1 limits
 
-- Single owner per server instance — multiple humans sharing a microphone all get the same `voice_<owner>` session.
-- macOS / Linux desktop only. Docker has no microphone, and voice cannot run on a remote `--server`.
+- macOS / Linux desktop only. Run the voice client on the computer with the microphone; the server may run in Docker or on another machine.
 - No barge-in. The model finishes its turn before the next utterance is processed.
 
 ## Spoken replies (TTS)
 
-Yumi can speak its replies. In voice mode (`--server --voice`) replies are spoken automatically; on Telegram / Discord, `/voice on` (`!voice on`) switches a chat to audio replies; `yumi --speak "hello"` is a quick smoke test. Configure it in `yumi --setup` (step 4) or directly in `~/.yumi/config.json`.
+Yumi can speak its replies. In voice mode (`yumi --voice`) replies are spoken automatically; on Telegram / Discord, `/voice on` (`!voice on`) switches a chat to audio replies; `yumi --speak "hello"` is a quick smoke test. Configure it in `yumi --setup` (step 4) or directly in `~/.yumi/config.json`.
 
 ### Backends
 

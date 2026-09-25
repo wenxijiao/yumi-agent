@@ -70,10 +70,14 @@ PUBLIC_EDGE_LABEL_FILES = {
     "CHANGELOG.md",
     "docs/EDGE_TOOLS.md",
     "docs/HTTP_API.md",
+    "docs/HEY_YUMI_VOICE_CLIENT.md",
+    "tests/voice/test_voice_client.py",
+    "yumi/cli/__init__.py",
     "yumi/cli/commands.py",
     "yumi/edge/connection.py",
     "yumi/edge/template/env.template",
     "yumi/edge/template/yumi_tools/README.md",
+    "yumi/voice/client.py",
 }
 
 
@@ -81,6 +85,10 @@ def _public_edge_client_reference(path: Path, text: str, match: re.Match[str]) -
     relative = path.relative_to(ROOT).as_posix()
     if relative in PUBLIC_EDGE_LABEL_FILES and match.group(0).casefold() == "yumi nexus":
         return True
+    if relative == "yumi/voice/client.py" and match.group(0) == "/nexus/":
+        return text[match.end() :].startswith("edge-login/")
+    if relative in {"yumi/voice/client.py", "tests/voice/test_voice_client.py"} and match.group(0) == "tenancy":
+        return text[match.start() - 1 : match.end() + len("/connections")] == "/tenancy/connections"
     return (
         relative == "yumi/edge/login.py"
         and match.group(0) == "/nexus/"

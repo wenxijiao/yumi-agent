@@ -35,6 +35,7 @@ async def _timer_fire(timer_id: str, delay: int, description: str, session_id: s
 
     if not recurring:
         scheduler.active_timers.pop(timer_id, None)
+        scheduler._save_schedules()
     TIMER_TASKS.pop(timer_id, None)
 
     from yumi.core.features.chat.pipeline import generate_chat_events

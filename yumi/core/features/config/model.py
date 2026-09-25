@@ -138,7 +138,7 @@ class ModelConfig(BaseModel):
     stt_model: str | None = None
     stt_model_dir: str | None = None
     stt_language: str = "auto"
-    # Voice session (mic capture + wake word). Only consulted when `yumi --server --voice` is passed;
+    # Voice session (mic capture + wake word). The model path is also used by `yumi --voice`;
     # the modifier sets YUMI_VOICE_ENABLED=1 which the API lifespan watches.
     voice_wake_word: str = "hey yumi"  # legacy display setting; wake phrase is fixed
     voice_sherpa_model_dir: str | None = None

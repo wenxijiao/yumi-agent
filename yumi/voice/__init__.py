@@ -1,4 +1,4 @@
-"""Microphone voice session for ``yumi --server --voice``.
+"""Microphone voice session for ``yumi --voice``.
 
 Submodules:
 

@@ -76,7 +76,8 @@ def init_yumi() -> None:
             "and show up in a list — if the deployment has a calendar-style tool (e.g. "
             "``create_event``, ``add_task``, ``create_reminder``), route those there instead so "
             "the user can see, edit and find them later. "
-            "Timer state lives in process memory and is invisible to the user."
+            "The timer is persisted across server restarts and visible through list_timers. "
+            "Only call once per requested action; if the tool returns an error, report it instead of retrying blindly."
         ),
         params={
             "delay_seconds": "Seconds until the timer fires (e.g. 60 for one minute)",
@@ -102,7 +103,8 @@ def init_yumi() -> None:
             "manage in their app. If the deployment exposes a calendar-style tool (e.g. "
             "``create_event``, ``add_task``, ``create_reminder``), prefer that — those items "
             "are persisted, editable, surfaced in a UI, and survive a server restart. "
-            "schedule_task lives only in process memory."
+            "This schedule is persisted across server restarts and visible through list_timers. "
+            "For relative requests such as 'in 20 minutes', use set_timer instead of calculating a clock time."
         ),
         params={
             "when": (

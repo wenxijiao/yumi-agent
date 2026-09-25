@@ -85,7 +85,7 @@ class CommandRegistry:
         first-run guide instead of one long flat option list.
         """
         group_specs = (
-            ("Run locally", ("server", "chat", "voice-client", "ui", "demo", "speak")),
+            ("Run locally", ("server", "chat", "ui", "demo", "speak")),
             ("Connect your app", ("edge", "run-edge", "tool-routing")),
             ("Setup and maintenance", ("setup", "config", "cleanup", "cleanup-memory")),
             ("Messaging and voice", ("telegram", "discord", "line", "voice")),

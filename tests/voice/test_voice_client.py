@@ -4,8 +4,9 @@ import argparse
 import json
 from types import SimpleNamespace
 
+import pytest
 from yumi.cli.commands import build_default_registry, validate_cross_command_flags
-from yumi.voice.client import VoiceConnection, logout_nexus, voice_turn
+from yumi.voice.client import VoiceConnection, choose_mode, logout_nexus, voice_turn
 from yumi.voice.sherpa_wake import SherpaHeyYumiWake
 
 
@@ -27,13 +28,29 @@ class Response:
         pass
 
 
-def test_voice_client_command_is_standalone():
+def test_voice_command_is_standalone():
     parser = argparse.ArgumentParser()
     build_default_registry().install(parser)
-    args = parser.parse_args(["--voice-client", "--voice-mode", "nexus"])
-    assert args.voice_client
+    args = parser.parse_args(["--voice", "--voice-mode", "nexus"])
+    assert args.voice
     assert args.voice_mode == "nexus"
     assert validate_cross_command_flags(args) is None
+
+
+def test_voice_menu_offers_local_or_nexus(monkeypatch, capsys):
+    monkeypatch.setattr("yumi.voice.client.sys.stdin", SimpleNamespace(isatty=lambda: True))
+    answers = iter(["bad", "2"])
+    monkeypatch.setattr("builtins.input", lambda _: next(answers))
+    assert choose_mode() == "nexus"
+    output = capsys.readouterr().out
+    assert "Local model" in output
+    assert "Yumi Nexus" in output
+
+
+def test_voice_without_terminal_requires_explicit_mode(monkeypatch):
+    monkeypatch.setattr("yumi.voice.client.sys.stdin", SimpleNamespace(isatty=lambda: False))
+    with pytest.raises(SystemExit, match="--voice-mode"):
+        choose_mode()
 
 
 def test_voice_turn_uses_personal_account_voice_pipeline(monkeypatch):

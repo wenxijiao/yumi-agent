@@ -61,9 +61,8 @@ class ServerCommand(Command):
         telegram = bool(args.telegram)
         discord = bool(getattr(args, "discord", False))
         line = bool(args.line)
-        voice = bool(getattr(args, "voice", False))
-        if telegram or discord or line or voice:
-            run_server_with_bridges(telegram=telegram, discord=discord, line=line, voice=voice)
+        if telegram or discord or line:
+            run_server_with_bridges(telegram=telegram, discord=discord, line=line, voice=False)
         else:
             run_server()
 
@@ -132,30 +131,6 @@ class LineStandaloneCommand(Command):
         run_line_standalone()
 
 
-class VoiceModifierCommand(Command):
-    """``--voice`` modifier: attach a microphone wake-word loop to ``--server``.
-
-    Like ``--telegram``, this flag lives outside the mutex group and only acts
-    as a modifier of ``--server``. There is no standalone mode in v1, so
-    :meth:`matches` always returns False.
-    """
-
-    name = "voice"
-
-    def register(self, parser, mutex_group):
-        parser.add_argument(
-            "--voice",
-            action="store_true",
-            help=("With --server: open a local microphone wake-word session (say 'hey yumi'). Needs a sherpa-onnx model."),
-        )
-
-    def matches(self, args):
-        return False
-
-    def run(self, args):  # pragma: no cover - modifier-only
-        return None
-
-
 # ── lifecycle / setup commands ─────────────────────────────────────────────
 
 
@@ -217,14 +192,14 @@ class ChatCommand(Command):
         run_chat()
 
 
-class VoiceClientCommand(Command):
-    name = "voice-client"
+class VoiceCommand(Command):
+    name = "voice"
 
     def register(self, parser, mutex_group):
         mutex_group.add_argument(
-            "--voice-client", action="store_true", help="Run Hey Yumi on this computer against local Yumi or Nexus"
+            "--voice", action="store_true", help="Talk to Yumi by voice on this computer (local model or Nexus)"
         )
-        parser.add_argument("--voice-mode", choices=["local", "nexus"], default="local")
+        parser.add_argument("--voice-mode", choices=["local", "nexus"], default=None)
         parser.add_argument("--voice-server", default=None, help="Local or Nexus API URL")
         parser.add_argument("--voice-device-name", default=None, help="Name shown for this Nexus voice device")
         parser.add_argument("--voice-model-dir", default=None, help="Directory with a licensed sherpa-onnx KWS model")
@@ -234,7 +209,7 @@ class VoiceClientCommand(Command):
         parser.add_argument("--voice-logout", action="store_true", help="Remove the saved Nexus voice credential")
 
     def matches(self, args):
-        return bool(args.voice_client)
+        return bool(args.voice)
 
     def run(self, args):
         from yumi.voice.client import main
@@ -537,7 +512,7 @@ _NON_SERVER_BASE_FLAGS = (
     "ui",
     "speak",
     "chat",
-    "voice_client",
+    "voice",
     "edge",
     "run_edge",
     "demo",
@@ -601,15 +576,15 @@ def validate_cross_command_flags(args: argparse.Namespace) -> str | None:
         if any(_flag_is_selected(args, flag) for flag in _NON_SERVER_BASE_FLAGS):
             return f"Cannot combine --telegram/--discord/--line with {flag_list}."
 
-    if getattr(args, "voice", False):
-        if getattr(args, "discord", False):
-            return "Cannot combine --voice with --discord."
-        if getattr(args, "line", False):
-            return "Cannot combine --voice with --line."
-        if any(_flag_is_selected(args, flag) for flag in _NON_SERVER_BASE_FLAGS):
-            return f"Cannot combine --voice with {flag_list}."
-        if not getattr(args, "server", False):
-            return "--voice is a modifier; it must be combined with --server."
+    if not getattr(args, "voice", False) and any(
+        getattr(args, flag, None) is not None
+        for flag in ("voice_mode", "voice_server", "voice_device_name", "voice_model_dir", "voice_keywords_file", "voice_input_device")
+    ):
+        return "Voice options require --voice."
+    if not getattr(args, "voice", False) and (
+        getattr(args, "voice_no_browser", False) or getattr(args, "voice_logout", False)
+    ):
+        return "Voice options require --voice."
     return None
 
 
@@ -627,7 +602,7 @@ def build_default_registry() -> CommandRegistry:
     # Registration order controls display order within help sections.
     registry.add(ServerCommand())
     registry.add(ChatCommand())
-    registry.add(VoiceClientCommand())
+    registry.add(VoiceCommand())
     registry.add(UICommand())
     registry.add(DemoCommand())
     registry.add(SpeakCommand())
@@ -643,13 +618,12 @@ def build_default_registry() -> CommandRegistry:
     registry.add(TelegramStandaloneCommand())
     registry.add(DiscordStandaloneCommand())
     registry.add(LineStandaloneCommand())
-    registry.add(VoiceModifierCommand())
     return registry
 
 
 __all__ = [
     "ChatCommand",
-    "VoiceClientCommand",
+    "VoiceCommand",
     "CleanupCommand",
     "CleanupModelsCommand",
     "CleanupMemoryCommand",
@@ -664,7 +638,6 @@ __all__ = [
     "TelegramStandaloneCommand",
     "ToolRoutingCommand",
     "UICommand",
-    "VoiceModifierCommand",
     "build_default_registry",
     "validate_cross_command_flags",
 ]

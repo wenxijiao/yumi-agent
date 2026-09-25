@@ -41,7 +41,7 @@ async def voice_dispatch(prompt: str, *, owner_id: str) -> None:
     """Run one voice-originated chat turn end-to-end.
 
     Drains the event stream and surfaces assistant text via the logger so the
-    operator running ``yumi --server --voice`` can see Yumi's reply on the
+    operator running ``yumi --voice`` can see Yumi's reply on the
     server console. Does not raise on chat errors — they're logged and swallowed
     so the voice loop keeps listening.
     """
