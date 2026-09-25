@@ -71,6 +71,8 @@ def test_registered_timer_tool_starts_on_event_loop_and_survives_restart(tmp_pat
         })
         await asyncio.wait_for(scheduled.wait(), timeout=1)
         assert "Timer '" in result
+        assert "in 1200 seconds" in result
+        assert "(at " not in result
 
     asyncio.run(invoke())
     restored = SchedulerService(schedules_path=tmp_path / "schedules.json")

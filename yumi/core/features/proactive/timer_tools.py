@@ -438,8 +438,8 @@ class SchedulerService:
             self._schedule_callback(timer_id, delay_seconds, description, session_id)
 
         return (
-            f"Timer '{timer_id}' set. It will fire in {delay_seconds} seconds "
-            f"(at {fire_at.strftime('%H:%M:%S')}). Description: {description}"
+            f"Timer '{timer_id}' set. It will fire in {delay_seconds} seconds. "
+            f"Description: {description}"
         )
 
     def schedule_task(self, when: str, description: str, session_id: str = "default") -> str:
