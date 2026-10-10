@@ -97,6 +97,31 @@ class TurnTimingEvent(BaseModel):
     first_response_ms: int | None = None
 
 
+class TurnCompleteEvent(BaseModel):
+    """A registered terminal tool succeeded; no generated reply follows."""
+
+    model_config = _BaseConfig
+    type: Literal["turn_complete"] = "turn_complete"
+    turn_id: str
+    reply: Literal["none"] = "none"
+    reason: Literal["tool_success"] = "tool_success"
+    voice_capture: Literal["pause"] = "pause"
+    media_watch: str | None = None
+
+
+class MediaPrepareEvent(BaseModel):
+    """Wait for this voice client's speaker before invoking a music tool."""
+
+    type: Literal["media_prepare"] = "media_prepare"
+    turn_id: str
+    preparation_id: str
+
+
+class VoiceStandbyEvent(BaseModel):
+    type: Literal["voice_standby"] = "voice_standby"
+    turn_id: str
+
+
 class ErrorEvent(BaseModel):
     """Pipeline-level failure.
 
@@ -119,6 +144,9 @@ ChatEvent = Annotated[
         ErrorEvent,
         TurnTimingEvent,
         TurnPhaseEvent,
+        TurnCompleteEvent,
+        MediaPrepareEvent,
+        VoiceStandbyEvent,
     ],
     Field(discriminator="type"),
 ]

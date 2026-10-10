@@ -22,7 +22,7 @@ __all__ = ["__version__", "YumiAgent", "register", "run", "run_in_background", "
 try:
     __version__ = version("yumi-agent")
 except PackageNotFoundError:
-    __version__ = "0.0.4"
+    __version__ = "0.0.5"
 
 if TYPE_CHECKING:
     from yumi.sdk import YumiAgent
@@ -58,6 +58,7 @@ def register(
     timeout: int | None = None,
     require_confirmation: bool = False,
     confirmation_template: str | dict[str, str] | None = None,
+    reply_on_success: bool = True,
     mode: str = "dynamic",
     context_args: dict | None = None,
     context_label: str | None = None,
@@ -85,6 +86,7 @@ def register(
         timeout=timeout,
         require_confirmation=require_confirmation,
         confirmation_template=confirmation_template,
+        reply_on_success=reply_on_success,
         mode=mode,
         context_args=context_args,
         context_label=context_label,

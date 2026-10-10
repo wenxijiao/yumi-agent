@@ -87,6 +87,152 @@ async def _drain(stream):
     return [ev async for ev in stream]
 
 
+@pytest.mark.parametrize(
+    ("payload", "silent"),
+    [
+        ({"ok": True, "playback": {"state": "paused"}}, True),
+        ({"ok": False, "error": "failed"}, False),
+        ({"ok": True, "error": "incomplete"}, False),
+        ({"ok": "true"}, False),
+        ("Error executing player", False),
+    ],
+)
+def test_registered_terminal_tool_ends_without_extra_model_round(runtime, install_fakes, monkeypatch, payload, silent):
+    from yumi.core.platform.tools.tool import TOOL_REGISTRY, register_tool
+
+    name = "terminal_playback_test"
+    monkeypatch.setitem(TOOL_REGISTRY, name, {})
+    register_tool(lambda: payload, "Play a track", name=name, reply_on_success=False)
+    bot = _FakeBot(
+        [
+            [{"type": "tool_call", "tool_calls": [{"id": "play", "function": {"name": name, "arguments": {}}}]}],
+            [{"type": "text", "content": "Feedback required"}],
+        ]
+    )
+    install_fakes(bot)
+    events = asyncio.run(_drain(ChatTurnService(runtime).stream_chat_turn("play music", "silent-tool")))
+    completion = [e for e in events if e.type == "turn_complete"]
+    assert bool(completion) is silent
+    assert bot.call_count == (1 if silent else 2)
+    if silent:
+        assert completion[0].voice_capture == "pause"
+        assert completion[0].reply == "none"
+        assert not any(e.type == "text" for e in events)
+
+
+@pytest.mark.parametrize("second_kind", ["normal", "missing", "silent"])
+def test_terminal_tool_does_not_hide_other_results_or_missing_calls(runtime, install_fakes, monkeypatch, second_kind):
+    from yumi.core.platform.tools.tool import TOOL_REGISTRY, register_tool
+
+    ran = []
+    for name, reply in [("terminal_first", False), ("terminal_second", second_kind == "normal")]:
+        monkeypatch.setitem(TOOL_REGISTRY, name, {})
+        if name == "terminal_second" and second_kind == "missing":
+            monkeypatch.delitem(TOOL_REGISTRY, name)
+            continue
+
+        def call(name=name):
+            ran.append(name)
+            return {"ok": True}
+
+        register_tool(call, "Test", name=name, reply_on_success=reply)
+    bot = _FakeBot(
+        [
+            [
+                {
+                    "type": "tool_call",
+                    "tool_calls": [
+                        {"id": name, "function": {"name": name, "arguments": {}}}
+                        for name in ["terminal_first", "terminal_second"]
+                    ],
+                }
+            ],
+            [{"type": "text", "content": "Other result or missing action"}],
+        ]
+    )
+    install_fakes(bot)
+    events = asyncio.run(_drain(ChatTurnService(runtime).stream_chat_turn("do both", "silent-batch")))
+    assert bool([e for e in events if e.type == "turn_complete"]) == (second_kind == "silent")
+    assert set(ran) == ({"terminal_first"} if second_kind == "missing" else {"terminal_first", "terminal_second"})
+
+
+@pytest.mark.parametrize("readiness", ["legacy", "ready", "unready", "timeout"])
+@pytest.mark.parametrize("music_tool", ["music_play", "music_play_request"])
+def test_music_completion_persists_monitor_for_the_executed_edge(
+    runtime, install_fakes, monkeypatch, readiness, music_tool
+):
+    from yumi.core.features.chat import media_prepare
+    from yumi.core.platform.observability.turn_inspector import get_turn
+    from yumi.core.platform.plugins import get_current_identity
+    from yumi.core.platform.runtime.assistant_context import message_media
+    from yumi.core.platform.runtime.edge_naming import edge_tool_key_prefix
+
+    prefix = edge_tool_key_prefix("Room")
+    played = []
+    acknowledged = []
+    monkeypatch.setattr(media_prepare, "PREPARE_TIMEOUT", 0.01)
+
+    class Peer:
+        async def send_json(self, frame):
+            assert frame["name"] == music_tool
+            assert readiness == "legacy" or acknowledged == [True]
+            played.append(True)
+            runtime.edge_registry.pending_tool_calls[frame["call_id"]]["future"].set_result(
+                '{"ok":true,"playback":{"state":"paused"}}'
+            )
+
+    runtime.edge_registry.active_connections["Room"] = Peer()
+    runtime.edge_registry.tools["Room"] = {
+        prefix + name: {
+            "reply_on_success": name != music_tool,
+            "schema": {
+                "type": "function",
+                "function": {"name": prefix + name, "parameters": {"type": "object", "properties": {}}},
+            },
+        }
+        for name in [music_tool, "music_status"]
+    }
+    bot = _FakeBot(
+        [
+            [
+                {
+                    "type": "tool_call",
+                    "tool_calls": [{"id": "play", "function": {"name": prefix + music_tool, "arguments": {}}}],
+                }
+            ]
+        ]
+    )
+    install_fakes(bot)
+
+    async def run():
+        token = message_media.set({"prepare_media_output": readiness != "legacy"})
+        events = []
+        try:
+            async for event in ChatTurnService(runtime).stream_chat_turn("play", "music-monitor"):
+                events.append(event)
+                if event.type == "media_prepare":
+                    assert not played
+                    if readiness != "timeout":
+                        acknowledged.append(readiness == "ready")
+                        media_prepare.acknowledge(get_current_identity().user_id, event.preparation_id, acknowledged[0])
+            assert not media_prepare._pending
+            return events
+        finally:
+            message_media.reset(token)
+
+    events = asyncio.run(run())
+    if readiness in {"unready", "timeout"}:
+        assert not played
+        assert any(e.type == "error" and e.code == "MEDIA_OUTPUT_NOT_READY" for e in events)
+        assert not any(e.type == "turn_complete" for e in events)
+        assert bot.call_count == 1
+        return
+    completion = next(e for e in events if e.type == "turn_complete")
+    assert completion.media_watch == completion.turn_id
+    assert get_turn(completion.turn_id)["media_watch"] == {"edge": "Room", "tool": prefix + "music_status"}
+    assert bot.call_count == 1
+
+
 def test_happy_path_text_only_stream(runtime, install_fakes):
     bot = _FakeBot(scripted_chunks=[[{"type": "text", "content": "hello"}]])
     install_fakes(bot)
@@ -508,3 +654,29 @@ def test_browse_activates_tools_in_the_next_model_request(runtime, install_fakes
     assert len(requests) == 3
     assert name in {s["function"]["name"] for s in requests[2]["tools"]}
     assert not any(e.type == "error" for e in events)
+
+
+def test_voice_end_tool_emits_standby_without_pausing_wake_or_another_model_round(runtime, install_fakes, monkeypatch):
+    from yumi.core.platform.runtime.assistant_context import message_media
+    from yumi.core.platform.tools.tool import TOOL_REGISTRY, register_tool
+    from yumi.tools.voice_tools import end_voice_conversation
+
+    name = "end_voice_conversation"
+    monkeypatch.setitem(TOOL_REGISTRY, name, {})
+    register_tool(end_voice_conversation, "End voice", reply_on_success=False)
+    bot = _FakeBot(
+        [[{"type": "tool_call", "tool_calls": [{"id": "end", "function": {"name": name, "arguments": {}}}]}]]
+    )
+    install_fakes(bot)
+
+    async def run():
+        token = message_media.set({"voice_session_controls": True})
+        try:
+            events = await _drain(ChatTurnService(runtime).stream_chat_turn("I need to leave now", "voice-end"))
+            assert [e.type for e in events].count("voice_standby") == 1
+            assert not any(e.type in {"turn_complete", "text", "error"} for e in events)
+            assert bot.call_count == 1
+        finally:
+            message_media.reset(token)
+
+    asyncio.run(run())

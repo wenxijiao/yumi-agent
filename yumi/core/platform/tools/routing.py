@@ -539,9 +539,13 @@ class ToolCatalog:
         self.edge_registry = edge_registry
 
     def core_tools(self) -> list[ToolCatalogEntry]:
+        from yumi.core.platform.runtime.assistant_context import message_media
+
         out: list[ToolCatalogEntry] = []
         for name, tool_data in TOOL_REGISTRY.items():
             if name in self.disabled_tools:
+                continue
+            if name == "end_voice_conversation" and not (message_media.get() or {}).get("voice_session_controls"):
                 continue
             schema = tool_data.get("schema") or {}
             out.append(
@@ -664,6 +668,7 @@ def select_tool_schemas(
 
         # Small catalogs are already cheaper than an extra discovery round trip.
         common = {
+            "end_voice_conversation",
             "discover_app_tools",
             "browse_app_tools",
             "list_timers",

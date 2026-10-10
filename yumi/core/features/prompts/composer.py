@@ -227,6 +227,14 @@ def compose_messages(
             }
 
     tail_notes: list[str] = []
+    from yumi.core.features.prompts.catalog import VOICE_RESPONSE_INSTRUCTION
+    from yumi.core.platform.runtime.assistant_context import message_media
+
+    if (message_media.get() or {}).get("reply"):
+        from yumi.core.features.prompts.voice_history import compact_voice_history
+
+        messages = compact_voice_history(messages)
+        tail_notes.append(VOICE_RESPONSE_INSTRUCTION)
     if cfg.chat_append_current_time:
         line = format_user_facing_time(datetime.now(timezone.utc), cfg.local_timezone)
         tail_notes.append(CURRENT_TIME_TEMPLATE.format(time=line))

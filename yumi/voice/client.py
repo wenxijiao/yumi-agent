@@ -3,13 +3,11 @@
 from __future__ import annotations
 
 import asyncio
-import base64
 import json
 import os
 import socket
 import sys
 import time
-import uuid
 import webbrowser
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,9 +15,6 @@ from urllib.parse import urlsplit
 
 import requests
 
-from yumi.voice.audio_source import SoundDeviceSource
-from yumi.voice.runtime import pcm_to_wav_bytes
-from yumi.voice.segmenter import UtteranceCollector, _VadBackend
 from yumi.voice.sherpa_wake import SherpaHeyYumiWake
 
 NEXUS_URL = "https://api.yumi.nexus"
@@ -71,9 +66,7 @@ def _save_connection(server: str, name: str, token: str) -> None:
 
 
 def _login_request(server: str, action: str, body: dict) -> dict:
-    response = requests.post(
-        server + "/nexus/edge-login/" + action, json=body, timeout=20, allow_redirects=False
-    )
+    response = requests.post(server + "/nexus/edge-login/" + action, json=body, timeout=20, allow_redirects=False)
     if response.status_code == 429 and action == "token":
         return {"status": "slow_down"}
     response.raise_for_status()
@@ -154,117 +147,43 @@ def logout_nexus() -> None:
     CLIENT_FILE.unlink(missing_ok=True)
 
 
-def voice_turn(connection: VoiceConnection, wav: bytes) -> str:
-    snapshot = connection.request("GET", "/assistant").json()
-    state = snapshot.get("conversation", snapshot)
-    session_id = state["session_id"]
-    revision = state.get("revision")
-    recording = connection.request(
-        "POST", "/assistant/voice",
-        json={
-            "request_id": str(uuid.uuid4()),
-            "session_id": session_id,
-            "content_base64": base64.b64encode(wav).decode("ascii"),
-        },
-        timeout=120,
-    ).json()
-    print(f"You: {recording['transcript']}")
-    response = connection.request(
-        "POST", "/chat",
-        json={
-            "prompt": recording["transcript"],
-            "session_id": session_id,
-            "personal": True,
-            "voice_id": recording["id"],
-            "reply_voice": True,
-            "revision": revision,
-            "channel": "app",
-        },
-        stream=True,
-        timeout=(10, 300),
-    )
-    pieces: list[str] = []
-    turn_id = ""
-    try:
-        for line in response.iter_lines():
-            if not line:
-                continue
-            event = json.loads(line)
-            kind = event.get("type")
-            if kind == "turn_phase":
-                turn_id = event.get("turn_id") or turn_id
-            elif kind == "text":
-                pieces.append(str(event.get("content") or ""))
-            elif kind == "tool_confirmation":
-                # Never grant a tool action just because a wake word was heard.
-                connection.request(
-                    "POST", "/tools/confirm",
-                    json={"call_id": event["call_id"], "decision": "deny"},
-                )
-                print("Tool action needs confirmation in the Yumi app; denied for this voice turn.")
-            elif kind == "error":
-                raise RuntimeError(str(event.get("content") or "Yumi chat failed"))
-    finally:
-        response.close()
-    reply = "".join(pieces).strip()
-    print(f"Yumi: {reply}")
-    if turn_id and reply:
-        summary = connection.request(
-            "POST", "/assistant/voice/reply", json={"turn_id": turn_id}, timeout=320
-        ).json()
-        from yumi.core.features.tts.playback import play_audio
-        from yumi.core.features.tts.types import SpeechAudio
+async def run_client(
+    connection,
+    wake,
+    device,
+    output_device=None,
+    followup_seconds=20,
+    cue_volume=70,
+    audio_mode="full-duplex",
+    silence_ms=2500,
+):
+    from yumi.voice.conversation import VoiceSession
+    from yumi.voice.duplex import DuplexAudio
+    from yumi.voice.media_wait import wait_for_media
 
-        for part in range(int(summary.get("part_count") or 0)):
-            audio = connection.request("GET", f"/assistant/voice/{summary['id']}/audio?part={part}", timeout=90)
-            mime = audio.headers.get("content-type", "")
-            fmt = "mp3" if "mpeg" in mime else "ogg" if "ogg" in mime else "wav"
-            play_audio(SpeechAudio(data=audio.content, format=fmt))
-    return reply
+    resume = False
+    while True:
+        if audio_mode == "half-duplex":
+            from yumi.voice.half_duplex import HalfDuplexAudio
 
-
-async def run_client(connection: VoiceConnection, wake: SherpaHeyYumiWake, device: int | None) -> None:
-    source = SoundDeviceSource(sample_rate=wake.sample_rate, frame_length=wake.frame_length, device=device)
-    collector = UtteranceCollector(sample_rate=wake.sample_rate, frame_length=wake.frame_length)
-    vad = _VadBackend(2)
-
-    def is_speech(frame: bytes, sample_rate: int) -> bool:
-        window = sample_rate * 30 // 1000 * 2
-        return any(vad.is_speech(frame[i : i + window], sample_rate) for i in range(0, len(frame) - window + 1, window))
-
-    print("Listening for Hey Yumi. Press Ctrl+C to stop.")
-    source.start()
-    collecting = False
-    loop = asyncio.get_running_loop()
-    try:
-        while True:
-            frame = await loop.run_in_executor(None, source.read_frame)
-            if not collecting:
-                if wake.process(frame):
-                    collecting = True
-                    collector.reset()
-                    print("Listening…")
-                continue
-            utterance = collector.feed(frame, is_speech=is_speech(frame, source.sample_rate))
-            if utterance is None:
-                continue
-            collecting = False
-            source.stop()  # avoid recording the spoken reply or a buffered copy of it
-            try:
-                await asyncio.to_thread(
-                    voice_turn, connection, pcm_to_wav_bytes(utterance, sample_rate=source.sample_rate)
-                )
-            except requests.HTTPError as exc:
-                if exc.response is not None and exc.response.status_code == 401:
-                    raise RuntimeError("Voice device sign-in expired; restart the client to sign in again") from exc
-                print(f"Voice turn failed: {exc}")
-            except Exception as exc:
-                print(f"Voice turn failed: {exc}")
-            finally:
-                source.start()
-                print("Listening for Hey Yumi.")
-    finally:
-        source.stop()
+            audio = HalfDuplexAudio(device, output_device)
+        else:
+            audio = DuplexAudio(device, output_device)
+        audio.cue_volume = cue_volume
+        session = VoiceSession(connection, audio, wake, followup_seconds=followup_seconds, silence_ms=silence_ms)
+        session.start_awake = resume
+        try:
+            result = await session.run()
+            if result != "paused" or not session.media_watch:
+                return result
+            # Close first, including fallback paths; polling never opens input.
+            audio.close()
+            if not await wait_for_media(session.http, session.media_watch):
+                return "paused"
+            resume = True
+            wake.reset()
+        finally:
+            await session.close()
 
 
 def choose_mode() -> str:
@@ -286,35 +205,76 @@ def choose_mode() -> str:
         print("Please choose 1 or 2.")
 
 
-def main(*, mode: str | None, server: str | None, name: str | None, model_dir: str | None,
-         keywords_file: str | None, device: int | None, open_browser: bool, logout: bool) -> int:
+def main(
+    *,
+    mode: str | None,
+    server: str | None,
+    name: str | None,
+    model_dir: str | None,
+    keywords_file: str | None,
+    device: int | None,
+    open_browser: bool,
+    logout: bool,
+    output_device: int | None = None,
+    list_devices: bool = False,
+    followup_seconds: int = 20,
+    wake_sensitivity: str = "balanced",
+    cue_volume: int = 70,
+    audio_mode: str | None = None,
+    silence_ms: int = 2500,
+) -> int:
+    import contextlib
+
     if logout:
         logout_nexus()
         print("Voice device credentials removed from this computer.")
         return 0
-    mode = mode or choose_mode()
-    if not model_dir:
-        from yumi.core.features.config import load_model_config
+    if list_devices:
+        import sounddevice
 
-        config = load_model_config()
-        model_dir = config.voice_sherpa_model_dir or os.getenv("YUMI_VOICE_MODEL_DIR")
-        keywords_file = keywords_file or config.voice_sherpa_keywords_file
-    if not model_dir:
-        raise SystemExit("Set --voice-model-dir, voice_sherpa_model_dir, or YUMI_VOICE_MODEL_DIR for Hey Yumi.")
+        print(sounddevice.query_devices())
+        return 0
+    mode = mode or choose_mode()
+    from yumi.core.features.config import load_model_config
+    from yumi.voice.duplex import device_settings, select_input_device
+    from yumi.voice.local_server import local_server
+    from yumi.voice.models import ensure_model
+
+    config = load_model_config()
+    audio_mode = audio_mode or config.voice_audio_mode
+    device = device if device is not None else config.voice_input_device
+    try:
+        device = select_input_device(device, output_device)
+        device_settings(device, output_device)
+    except Exception as exc:
+        raise SystemExit(
+            f"Audio device unavailable: {exc}. Check microphone permissions and --voice --voice-list-devices."
+        ) from exc
+    model_dir = model_dir or os.getenv("YUMI_VOICE_MODEL_DIR") or config.voice_sherpa_model_dir or ensure_model()
+    keywords_file = keywords_file or config.voice_sherpa_keywords_file
     name = name or socket.gethostname() or "Yumi voice"
-    wake = SherpaHeyYumiWake(model_dir, keywords_file)
+    wake = SherpaHeyYumiWake(model_dir, keywords_file, sensitivity=wake_sensitivity)
     try:
         connection = connect(mode, server, name, open_browser=open_browser)
-        if mode == "local":
-            try:
-                connection.request("GET", "/assistant", timeout=10)
-            except requests.RequestException as exc:
-                raise SystemExit(
-                    f"Cannot reach local Yumi at {connection.base_url}. Start `yumi --server` first."
-                ) from exc
-        asyncio.run(run_client(connection, wake, device))
+        backend = local_server(connection, auto_start=not server) if mode == "local" else contextlib.nullcontext()
+        with backend:
+            while (
+                asyncio.run(
+                    run_client(
+                        connection, wake, device, output_device, followup_seconds, cue_volume, audio_mode, silence_ms
+                    )
+                )
+                == "paused"
+            ):
+                if not sys.stdin.isatty():
+                    break
+                input("Microphone released. Press Enter to resume Hey Yumi, or Ctrl+C to quit: ")
+                wake.reset()
     except KeyboardInterrupt:
         print("\nVoice client stopped.")
+    except Exception as exc:
+        print(f"Cannot run voice: {exc}", file=sys.stderr)
+        return 1
     finally:
         wake.close()
     return 0

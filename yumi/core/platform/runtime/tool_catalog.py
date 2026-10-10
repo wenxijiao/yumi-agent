@@ -11,6 +11,7 @@ _TOOL_RUNTIME_METADATA_KEYS = {
     "require_confirmation",
     "always_include",
     "confirmation_template",
+    "reply_on_success",
 }
 
 

@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 from yumi.cli.commands import build_default_registry, validate_cross_command_flags
-from yumi.voice.client import VoiceConnection, choose_mode, logout_nexus, voice_turn
+from yumi.voice.client import VoiceConnection, choose_mode, logout_nexus
 from yumi.voice.sherpa_wake import SherpaHeyYumiWake
 
 
@@ -37,6 +37,18 @@ def test_voice_command_is_standalone():
     assert validate_cross_command_flags(args) is None
 
 
+def test_voice_audio_mode_is_explicit_and_scoped_to_voice():
+    parser = argparse.ArgumentParser()
+    build_default_registry().install(parser)
+    args = parser.parse_args(["--voice", "--voice-audio-mode", "half-duplex"])
+    assert args.voice_audio_mode == "half-duplex"
+    assert validate_cross_command_flags(args) is None
+    args = parser.parse_args(["--voice-audio-mode", "half-duplex"])
+    assert validate_cross_command_flags(args) is not None
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--voice", "--voice-audio-mode", "invalid"])
+
+
 def test_voice_menu_offers_local_or_nexus(monkeypatch, capsys):
     monkeypatch.setattr("yumi.voice.client.sys.stdin", SimpleNamespace(isatty=lambda: True))
     answers = iter(["bad", "2"])
@@ -51,39 +63,6 @@ def test_voice_without_terminal_requires_explicit_mode(monkeypatch):
     monkeypatch.setattr("yumi.voice.client.sys.stdin", SimpleNamespace(isatty=lambda: False))
     with pytest.raises(SystemExit, match="--voice-mode"):
         choose_mode()
-
-
-def test_voice_turn_uses_personal_account_voice_pipeline(monkeypatch):
-    calls = []
-    played = []
-
-    def request(self, method, path, **kwargs):
-        calls.append((method, path, kwargs))
-        if path == "/assistant":
-            return Response({"session_id": "u_alice__personal_1", "revision": 4})
-        if path == "/assistant/voice":
-            return Response({"id": "voice-1", "transcript": "set a reminder"})
-        if path == "/chat":
-            return Response(events=[
-                {"type": "turn_phase", "turn_id": "turn-1", "phase": "preparing"},
-                {"type": "text", "content": "Done."},
-            ])
-        if path == "/assistant/voice/reply":
-            return Response({"id": "reply-1", "part_count": 1})
-        if path == "/assistant/voice/reply-1/audio?part=0":
-            return Response()
-        raise AssertionError(path)
-
-    monkeypatch.setattr(VoiceConnection, "request", request)
-    monkeypatch.setattr("yumi.core.features.tts.playback.play_audio", played.append)
-    assert voice_turn(VoiceConnection("https://api.yumi.nexus", "token"), b"RIFFdemo") == "Done."
-    upload = calls[1][2]["json"]
-    chat = calls[2][2]["json"]
-    assert upload["session_id"] == "u_alice__personal_1"
-    assert chat["personal"] is True
-    assert chat["voice_id"] == "voice-1"
-    assert chat["revision"] == 4
-    assert played[0].data == b"RIFFdemo"
 
 
 def test_wake_hit_is_checked_after_each_decode():
@@ -198,3 +177,14 @@ def test_microphone_stop_unblocks_pending_read(monkeypatch):
     reader.join(timeout=1)
     assert not reader.is_alive()
     assert heard == [b"\0\0" * 1600]
+
+
+def test_voice_feedback_options_are_bounded_and_require_voice_mode():
+    parser = argparse.ArgumentParser()
+    build_default_registry().install(parser)
+    args = parser.parse_args(["--voice", "--voice-wake-sensitivity", "high", "--voice-cue-volume", "90"])
+    assert (args.voice_wake_sensitivity, args.voice_cue_volume) == ("high", 90)
+    assert validate_cross_command_flags(args) is None
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--voice", "--voice-cue-volume", "101"])
+    assert validate_cross_command_flags(parser.parse_args(["--voice-cue-volume", "0"]))

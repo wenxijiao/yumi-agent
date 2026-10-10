@@ -447,6 +447,7 @@ Field names vary slightly by language, but the contract is the same.
 | Handler | `handler`, `Handler` | Code called when Yumi invokes the tool |
 | Timeout | `timeout`, `Timeout` | Per-tool execution timeout in seconds |
 | Confirmation | `require_confirmation`, `requireConfirmation`, `RequireConfirmation` | Ask user before invocation |
+| Terminal success (Python) | `reply_on_success=False` | Return JSON `ok: true` to end without another model reply. Voice releases capture until Enter. Other SDKs retain default replies. See `docs/TOOL_REGISTRATION.md`. |
 | **Exposure mode** | `mode` (`"dynamic"` \| `"pinned"` \| `"autorun"`) | How the tool is exposed (see Tool Design Rules). Default `"dynamic"`. |
 | Context args / label | `contextArgs`, `contextLabel` | Fixed args + label for a `mode="autorun"` tool |
 | Proactive use | `allow_proactive`, `allowProactive`, `AllowProactive` | Permit unattended proactive calls |

@@ -19,11 +19,23 @@ from yumi.tools.user_context_tools import (
     set_response_language,
     update_user_context,
 )
+from yumi.tools.voice_tools import end_voice_conversation
 from yumi.tools.web_tools import fetch_webpage, get_weather, web_search
 
 
 def init_yumi() -> None:
     """Register all built-in server tools."""
+
+    register_tool(
+        end_voice_conversation,
+        "End the current spoken conversation and return the voice client to wake-word standby. "
+        "Use when the user is saying goodbye or clearly wants to stop chatting for now, in any language. "
+        "Do not use for quoted farewells, song titles, negated requests, or ordinary acknowledgements. "
+        "If other actions are requested, finish and verify them first, then call this tool alone. "
+        "It does not exit the program, stop music, clear history, or turn off wake-word detection. "
+        "The client plays a short closing tone; do not add a spoken reply or follow-up question.",
+        reply_on_success=False,
+    )
 
     # ── tool discovery (sticky edge routing's escape hatch) ──
 

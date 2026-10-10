@@ -205,6 +205,46 @@ class VoiceCommand(Command):
         parser.add_argument("--voice-model-dir", default=None, help="Directory with a licensed sherpa-onnx KWS model")
         parser.add_argument("--voice-keywords-file", default=None, help="sherpa-onnx keyword tokens for Hey Yumi")
         parser.add_argument("--voice-input-device", type=int, default=None, help="Microphone device index")
+        parser.add_argument("--voice-output-device", type=int, default=None, help="Speaker device index")
+        parser.add_argument(
+            "--voice-list-devices", action="store_true", help="List microphones and speakers, then exit"
+        )
+        parser.add_argument(
+            "--voice-followup-seconds",
+            type=int,
+            choices=range(0, 121),
+            metavar="0-120",
+            default=None,
+            help="Seconds to continue without Hey Yumi after a reply (default: 20)",
+        )
+        parser.add_argument(
+            "--voice-wake-sensitivity",
+            choices=["low", "balanced", "high"],
+            default=None,
+            help="Wake sensitivity (default: balanced); high may cause more false wakes",
+        )
+        parser.add_argument(
+            "--voice-cue-volume",
+            type=int,
+            choices=range(101),
+            metavar="0-100",
+            default=None,
+            help="Local feedback tone volume (default: 70)",
+        )
+        parser.add_argument(
+            "--voice-audio-mode",
+            choices=["full-duplex", "half-duplex"],
+            default=None,
+            help="half-duplex releases the microphone during spoken replies; Enter stops playback",
+        )
+        parser.add_argument(
+            "--voice-silence-ms",
+            type=int,
+            choices=range(800, 10001),
+            metavar="800-10000",
+            default=None,
+            help="Pause before submitting speech, in milliseconds (default: 2500)",
+        )
         parser.add_argument("--voice-no-browser", action="store_true", help="Print the Nexus sign-in link")
         parser.add_argument("--voice-logout", action="store_true", help="Remove the saved Nexus voice credential")
 
@@ -221,6 +261,13 @@ class VoiceCommand(Command):
             model_dir=args.voice_model_dir,
             keywords_file=args.voice_keywords_file,
             device=args.voice_input_device,
+            audio_mode=args.voice_audio_mode,
+            silence_ms=args.voice_silence_ms if args.voice_silence_ms is not None else 2500,
+            wake_sensitivity=args.voice_wake_sensitivity or "balanced",
+            cue_volume=args.voice_cue_volume if args.voice_cue_volume is not None else 70,
+            output_device=args.voice_output_device,
+            list_devices=args.voice_list_devices,
+            followup_seconds=args.voice_followup_seconds if args.voice_followup_seconds is not None else 20,
             open_browser=not args.voice_no_browser,
             logout=args.voice_logout,
         )
@@ -578,11 +625,26 @@ def validate_cross_command_flags(args: argparse.Namespace) -> str | None:
 
     if not getattr(args, "voice", False) and any(
         getattr(args, flag, None) is not None
-        for flag in ("voice_mode", "voice_server", "voice_device_name", "voice_model_dir", "voice_keywords_file", "voice_input_device")
+        for flag in (
+            "voice_mode",
+            "voice_server",
+            "voice_device_name",
+            "voice_model_dir",
+            "voice_keywords_file",
+            "voice_input_device",
+            "voice_output_device",
+            "voice_followup_seconds",
+            "voice_wake_sensitivity",
+            "voice_cue_volume",
+            "voice_audio_mode",
+            "voice_silence_ms",
+        )
     ):
         return "Voice options require --voice."
     if not getattr(args, "voice", False) and (
-        getattr(args, "voice_no_browser", False) or getattr(args, "voice_logout", False)
+        getattr(args, "voice_no_browser", False)
+        or getattr(args, "voice_logout", False)
+        or getattr(args, "voice_list_devices", False)
     ):
         return "Voice options require --voice."
     return None

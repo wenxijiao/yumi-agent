@@ -1,6 +1,6 @@
 """Pydantic model for ~/.yumi/config.json."""
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -147,6 +147,7 @@ class ModelConfig(BaseModel):
     voice_porcupine_keyword_path: str | None = None
     voice_porcupine_sensitivity: float = Field(default=0.5, ge=0.0, le=1.0)
     voice_input_device: int | None = None
+    voice_audio_mode: Literal["full-duplex", "half-duplex"] = "full-duplex"
     voice_vad_aggressiveness: int = Field(default=2, ge=0, le=3)
     voice_silence_ms: int = Field(default=800, ge=100, le=10000)
     voice_max_utterance_ms: int = Field(default=15000, ge=1000, le=60000)
@@ -170,6 +171,7 @@ class ModelConfig(BaseModel):
     # sweet, at a brisk natural pace". Ignored by providers without support.
     tts_style: str | None = None
     tts_style_zh: str | None = None  # Optional Mandarin-only delivery guidance.
+    tts_style_ja: str | None = None  # Overrides built-in natural Japanese delivery guidance.
 
     @field_validator("search_provider")
     @classmethod

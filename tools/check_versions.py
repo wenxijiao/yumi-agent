@@ -28,6 +28,7 @@ def _json_version(path: str) -> str:
 
 def declared_versions() -> dict[str, str]:
     return {
+        "Install alias": _match("packaging/yumi/pyproject.toml", r'^version = "([^\"]+)"'),
         "Python package": _match("pyproject.toml", r'^version = "([^"]+)"'),
         "Python fallback": _match("yumi/__init__.py", r'^\s*__version__ = "([^"]+)"'),
         "TypeScript SDK": _json_version("yumi/sdk/typescript/package.json"),

@@ -413,6 +413,14 @@ def record_tool_result(
         )
 
 
+def record_media_watch(session_id: str, binding: dict) -> None:
+    """Persist a server-selected read-only playback target with the turn."""
+    with _lock:
+        turn = _active_turn(session_id)
+        if turn is not None:
+            turn["media_watch"] = dict(binding)
+
+
 def record_stream_event(session_id: str, event: dict[str, Any]) -> None:
     with _lock:
         turn = _active_turn(session_id)

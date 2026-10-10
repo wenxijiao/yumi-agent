@@ -285,6 +285,7 @@ def test_streamed_reply_is_playable_before_remaining_synthesis_and_shared_on_rec
     async def run():
         release = asyncio.Event()
         calls = []
+        contexts = []
 
         async def synthesize(text):
             calls.append(text)
@@ -292,7 +293,9 @@ def test_streamed_reply_is_playable_before_remaining_synthesis_and_shared_on_rec
                 await release.wait()
             return SimpleNamespace(data=wav(500), format="wav")
 
-        monkeypatch.setattr(tts, "create_tts_provider", lambda: SimpleNamespace(synthesize=synthesize))
+        monkeypatch.setattr(
+            tts, "create_tts_provider", lambda: SimpleNamespace(synthesize=synthesize, prepare_reply=contexts.append)
+        )
         identity = Identity(user_id="_local")
         response = await voice_api.stream_reply_voice(identity, voice_api.VoiceReply(turn_id="turn1"))
         iterator = response.body_iterator
@@ -308,6 +311,7 @@ def test_streamed_reply_is_playable_before_remaining_synthesis_and_shared_on_rec
         await same_job.task
         assert same_job.result["part_count"] == 2
         assert len(calls) == 2
+        assert contexts == ["First sentence. Second sentence."]
         cached = await voice_api.prepare_reply_voice(identity, voice_api.VoiceReply(turn_id="turn1"))
         assert cached["id"] == same_job.result["id"]
         assert len(reservations) == 1

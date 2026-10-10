@@ -8,6 +8,14 @@ import re
 _CODE_FENCE_RE = re.compile(r"```.*?```", re.DOTALL)
 _INLINE_CODE_RE = re.compile(r"`[^`]*`")
 _URL_RE = re.compile(r"https?://\S+")
+_QUOTED_RE = re.compile(r'《[^》]*》|「[^」]*」|“[^”]*”|"[^"\n]*"')
+# A foreign title is an object of the request, not its conversational language.
+_CHINESE_REQUEST_RE = re.compile(
+    r"我(?:想|要|觉得|覺得|说|說)|你(?:能|可以|好|觉得|覺得)|帮我|幫我|请(?:帮|問|问|播放|放)|听一下|聽一下"
+)
+_ENGLISH_REQUEST_RE = re.compile(
+    r"^(?:please\b|(?:can|could|would|will) you\b|i (?:want|would|need|think)\b|play\b|tell me\b)", re.I
+)
 
 _KANA_RE = re.compile(r"[\u3040-\u30ff\u31f0-\u31ff]")
 _CJK_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
@@ -119,6 +127,23 @@ def _looks_like_english(text: str) -> bool:
     return False
 
 
+def request_language(prompt: str) -> str | None:
+    """A strong hint only for clear request grammar or a single-language sentence."""
+    text = _QUOTED_RE.sub(" ", _text_for_language_detection(prompt))
+    if _CHINESE_REQUEST_RE.search(text) and not _ENGLISH_REQUEST_RE.search(text):
+        return "Chinese"
+    if _ENGLISH_REQUEST_RE.search(text) and not _CHINESE_REQUEST_RE.search(text):
+        return "English"
+    language = detect_prompt_language(text)
+    if language == "English" and not _CJK_RE.search(text) and not _KANA_RE.search(text):
+        return language
+    if language == "Chinese" and not _LATIN_RE.search(text):
+        return language
+    if language == "Japanese" and not _LATIN_RE.search(text):
+        return language
+    return None
+
+
 def detect_prompt_language(prompt: str) -> str | None:
     """Best-effort language label for the latest user prompt.
 
@@ -175,11 +200,20 @@ def build_turn_language_note(prompt: str, preferred_language: str = "auto") -> s
                 "Apply this to tool-use updates as well as the final answer. An explicit language, translation, or mixed-language request "
                 "in the current user message takes priority. Old history and retrieved material do not change this preference."
             )
-    language = detect_prompt_language(prompt)
+    request_hint = request_language(prompt)
+    language = request_hint or detect_prompt_language(prompt)
     hint = f"A script-based hint suggests {language}." if language else "The message has no reliable language hint."
+    anchor = (
+        f"The current request's conversational language is {request_hint}. Use {request_hint} for your own reply "
+        "and tool-use updates unless this message explicitly requests another language or translation. "
+        "Foreign song titles, names and quotations keep their original spelling, but do not switch the reply language.\n"
+        if request_hint
+        else ""
+    )
     return (
         "[Turn language]\n"
-        "By default, reply in the language the user uses for this turn. Do not infer the response language from "
+        + anchor
+        + "By default, reply in the language the user uses for this turn. Do not infer the response language from "
         "earlier conversation history, the app interface language, stable memory, runtime context, retrieved "
         "documents, or tool results.\n"
         f"{hint} This is a weak hint, not an instruction to force that language. Read the user's actual wording.\n"
@@ -207,6 +241,12 @@ def language_scoped_prompt(prompt: str, preferred_language: str) -> str:
             "For mixed-language input, choose the most natural language or combination. "
             "Do not continue an earlier reply language just because it appears in the history."
         )
+        language = request_language(prompt)
+        if language:
+            instruction += (
+                f" The current request's conversational language is {language}; write your own reply in {language}. "
+                "Keep foreign titles and names as written without switching the rest of the reply."
+            )
     else:
         instruction = (
             f"Reply to the following user message in {json.dumps(label, ensure_ascii=False)}. "

@@ -42,6 +42,12 @@ class OpenAiSttProvider(SpeechToTextProvider):
 
         lang = (language or self._language or "auto").strip().lower()
         request: dict = {"model": self._model, "file": (filename, audio)}
+        if self._model in {"gpt-4o-mini-transcribe", "gpt-4o-transcribe"}:
+            request["prompt"] = (
+                "Transcribe only the speech actually heard, in its original language and script. "
+                "The speaker may switch languages between utterances. Preserve those switches. "
+                "Do not translate, answer the speaker, or invent words from silence."
+            )
         if lang and lang != "auto":
             request["language"] = lang
 

@@ -47,6 +47,45 @@ def test_invalid_mode_raises():
         a.register(lambda: 1, "desc", mode="bogus", name="bad")
 
 
+def test_terminal_policy_roundtrips_registration_but_is_not_a_model_argument(monkeypatch):
+    from yumi.core.features.edge import api
+    from yumi.core.platform.runtime.tool_catalog import model_visible_tool_schema
+    from yumi.sdk.python.agent_client import _wire_tool_schema
+
+    monkeypatch.setattr(api, "EDGE_TOOLS_REGISTRY", {})
+    monkeypatch.setattr("yumi.core.platform.tools.indexing.schedule_tool_index", lambda *a: None)
+    a = _agent()
+    a.register(lambda: {"ok": True}, "Play", name="play", reply_on_success=False)
+    a.register(lambda: "status", "Status", name="status")
+    wire = _wire_tool_schema(a._tools["play"])
+    assert wire["reply_on_success"] is False
+    assert "reply_on_success" not in wire["function"]["parameters"]["properties"]
+    assert "reply_on_success" not in _wire_tool_schema(a._tools["status"])
+    api._mount_edge_tools("fixture", "edge_fixture__", [wire])
+    entry = api.EDGE_TOOLS_REGISTRY["fixture"]["edge_fixture__play"]
+    assert entry["reply_on_success"] is False
+    assert "reply_on_success" not in entry["schema"]
+    assert "reply_on_success" not in model_visible_tool_schema(wire)
+    with pytest.raises(ValueError, match="boolean"):
+        a.register(lambda: None, "Bad", name="bad", reply_on_success="false")
+
+
+def test_sdk_dictionary_result_is_valid_json_for_success_contract():
+    import asyncio
+    import json
+
+    a = _agent()
+    a.register(lambda: {"ok": True, "song": "夜に駆ける"}, "Play", name="play", reply_on_success=False)
+    messages = []
+
+    class Socket:
+        async def send(self, raw):
+            messages.append(json.loads(raw))
+
+    asyncio.run(a._handle_tool_call(Socket(), {"name": "play", "call_id": "one", "arguments": {}}))
+    assert json.loads(messages[0]["result"]) == {"ok": True, "song": "夜に駆ける"}
+
+
 def test_deprecated_flags_still_honored():
     a = _agent()
     a.register(lambda: 1, "desc", always_include=True, name="old")

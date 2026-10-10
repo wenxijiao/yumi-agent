@@ -1,0 +1,30 @@
+name: Publish yumi install alias
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python tools/check_versions.py
+      - run: python -m pip install build twine
+      - name: Verify matching agent version is already on PyPI
+        run: |
+          python - <<'PY'
+          import json, tomllib, urllib.request
+          from pathlib import Path
+          version = tomllib.loads(Path('packaging/yumi/pyproject.toml').read_text())['project']['version']
+          with urllib.request.urlopen(f'https://pypi.org/pypi/yumi-agent/{version}/json') as response:
+              assert json.load(response)['info']['version'] == version
+          PY
+      - run: python -m build packaging/yumi --outdir dist
+      - run: python -m twine check dist/*
+      - uses: pypa/gh-action-pypi-publish@release/v1

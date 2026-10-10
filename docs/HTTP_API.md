@@ -74,9 +74,41 @@ Each line is one JSON object and includes a `type` field. Common values:
 | `thought` | Reasoning / thought chain (when enabled) | `content` |
 | `tool_status` | Tool execution status | `status` (e.g. `running` / `success` / `error`), `content` |
 | `tool_confirmation` | Tool call waiting for user confirmation | `call_id`, `tool_name`, `full_tool_name`, `arguments` |
+| `turn_complete` | Registered terminal tools succeeded; no further model reply | `turn_id`, `reply: "none"`, `reason: "tool_success"`, `voice_capture: "pause"` |
 | `error` | Error message | `content` |
 
 Clients should `json.loads` each line and branch on `type`.
+
+`turn_complete` is an explicit successful silent completion, not an empty-model
+error. Clients should not synthesize a reply for that turn. Voice clients close
+capture/output streams and wait for manual resume; continue draining the stream
+for timing metadata. It is emitted only under the registered `reply_on_success`
+policy, not from model text or from arbitrary fields in a tool result.
+`GET /chat/capabilities` advertises this as `silent_tool_completion: true`.
+
+Voice clients may opt in with `prepare_media_output: true` when
+`GET /chat/capabilities` advertises `media_output_preparation: true`. After tool
+permission/confirmation checks, terminal music playback emits `media_prepare`
+with `turn_id` and an opaque `preparation_id`. The client releases its microphone,
+verifies the native speaker route, and posts
+`{"preparation_id":"<32 hex chars>","ready":true}` to
+`/assistant/voice/media-ready`. This account-bound, single-use handshake does not
+approve a tool. A negative acknowledgement, cancellation, or an 8-second timeout
+prevents the entire tool batch from executing. Late or duplicate acknowledgements
+return 404. The rendezvous is worker-local, like chat cancellation; multi-worker
+deployments require routing affinity or a shared rendezvous implementation.
+Clients that do not opt in retain the existing behavior.
+
+For terminal Room Control playback, `turn_complete.media_watch` contains the
+current turn ID. `POST /assistant/voice/playback` with `{"turn_id":"<32 hex chars>"}`
+returns `state`: `playing`, `inactive` (paused/stopped with a retained queue),
+`ended` (empty queue, no current song), or `unknown`. The endpoint calls only the
+same device's read-only `music_status`, never a model or a playback command. The
+server selects and persists the binding; clients cannot specify a tool or edge.
+Ownership, current tool visibility, and confirmation policies are checked on each
+request, including cached reads. Monitors expire after 24 hours. Offline is
+`unknown`, never `ended`. `media_playback_watch: true` advertises support; core
+and enterprise voice-credential route permissions must both be updated.
 
 ### `curl` example
 
@@ -198,3 +230,12 @@ Yumi is still in the **0.x** stage. For HTTP integrations, treat the documented 
 ### Reopen an uploaded image
 
 `GET /uploads/content?path=<URL-encoded path returned by POST /uploads>` returns the original image bytes. It requires the same identity as the upload owner; unavailable, non-image, outside-root, and other users' paths return 404. Responses use `Cache-Control: private, no-store`. The app preserves the raw upload envelope for model context while showing only the original caption and private image thumbnails in chat and history.
+
+### Voice standby control
+
+`GET /chat/capabilities` advertises `voice_session_controls: true`. An opted-in
+`POST /chat` request with the same flag makes `end_voice_conversation` available.
+Verified successful execution alone emits `voice_standby` with the current
+`turn_id`, ending generation without TTS. The client plays its closing cue and
+ends the follow-up window, retaining wake detection. This is distinct from
+`turn_complete.voice_capture: pause`, which releases capture for music.

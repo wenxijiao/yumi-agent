@@ -100,9 +100,9 @@ Speech-to-text fields:
 - `stt_model_dir`: Optional Whisper model cache directory. `null` uses Yumi's default (cloud providers ignore it).
 - `stt_language`: Language hint. Default: `auto`.
 
-Voice (microphone wake-word) fields — consulted when running `yumi --voice`:
+Voice fields (the CLI uses the model and input-device fields; VAD/session fields below configure the legacy server microphone runtime):
 
-- `voice_sherpa_model_dir`: Directory containing the sherpa-onnx keyword-spotting model for the fixed phrase “Hey Yumi”. `YUMI_VOICE_MODEL_DIR` is also accepted.
+- `voice_sherpa_model_dir`: Optional override directory containing the sherpa-onnx keyword-spotting model for the fixed phrase “Hey Yumi”; otherwise the CLI downloads its pinned default. `YUMI_VOICE_MODEL_DIR` is also accepted.
 - `voice_sherpa_keywords_file`: Optional pre-tokenized sherpa-onnx keyword file for “Hey Yumi”. When omitted, Yumi generates it from the model's BPE model or lexicon.
 - `voice_input_device`: Optional `sounddevice` device index. `null` uses the OS default microphone.
 - `voice_vad_aggressiveness`: WebRTC VAD aggressiveness, `0`–`3`. Higher is stricter about classifying frames as speech. Default: `2`.
@@ -504,3 +504,14 @@ environment:
 ```
 
 See [`docker-compose.yml`](../docker-compose.yml) and [`Dockerfile`](../Dockerfile). You still need a reachable LLM (for example Ollama on the host); set `OLLAMA_HOST` or model env vars as appropriate.
+
+### Voice feedback and Japanese speech
+
+The voice client supports Enter-to-wake, `--voice-cue-volume 0–100` (default 70),
+and `--voice-wake-sensitivity low|balanced|high` (default balanced). High sensitivity
+can cause more false wakes. These flags do not change the fixed Hey Yumi phrase.
+
+Gemini TTS applies natural Japanese delivery guidance automatically.
+`tts_style_ja` / `YUMI_TTS_STYLE_JA` overrides it while preserving `tts_voice` and
+`tts_style`. `tts_style_zh` remains the separate Mandarin override. Full-reply
+language context is retained for streamed sentence groups.

@@ -83,3 +83,38 @@ def test_grok_stt_error_status_raises(monkeypatch):
     provider = GrokSttProvider(api_key="xai")
     with pytest.raises(SttError, match="Grok STT failed"):
         asyncio.run(provider.transcribe(b"audio", filename="voice.wav"))
+
+
+@pytest.mark.parametrize(
+    "model,prompted",
+    [
+        ("gpt-4o-mini-transcribe", True),
+        ("gpt-4o-transcribe", True),
+        ("whisper-1", False),
+        ("custom-compatible-model", False),
+    ],
+)
+def test_openai_transcription_preserves_source_language_without_locking_auto(monkeypatch, model, prompted):
+    from types import SimpleNamespace
+
+    calls = []
+
+    class Client:
+        def __init__(self, **kwargs):
+            self.audio = SimpleNamespace(transcriptions=self)
+
+        async def create(self, **kwargs):
+            calls.append(kwargs)
+            return SimpleNamespace(text="Hello, how are you?")
+
+        async def close(self):
+            pass
+
+    monkeypatch.setattr("openai.AsyncOpenAI", Client)
+    monkeypatch.setattr("yumi.core.features.config.credentials.get_api_credentials", lambda: {"openai_api_key": "fake"})
+    result = asyncio.run(OpenAiSttProvider(model=model).transcribe(b"audio", filename="voice.wav"))
+    assert result.text == "Hello, how are you?"
+    assert "language" not in calls[0]
+    assert ("prompt" in calls[0]) is prompted
+    if prompted:
+        assert "Do not translate" in calls[0]["prompt"]

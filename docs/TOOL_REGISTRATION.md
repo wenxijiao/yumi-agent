@@ -122,6 +122,9 @@ Common Python Edge options:
 - `func`, `description`, `name`, `params`, `returns`: Same meaning as server-local registration.
 - `timeout`: Optional per-tool execution timeout in seconds.
 - `require_confirmation`: If `true`, the user must approve before the server invokes this Edge tool.
+- `reply_on_success`: Default `true`. Set `false` for a terminal action such as
+  starting music; see the successful completion contract below. Available in the
+  Python SDK, `yumi.register`, server-local `register_tool`, and the wire protocol.
 - `mode`: `"dynamic"` (default), `"pinned"` (schema exposed every turn), or `"autorun"` (run before every reply and inject result as context).
 - `context_args`: Fixed arguments for a `mode="autorun"` tool.
 - `context_label`: Label shown when a `mode="autorun"` result is injected.
@@ -139,6 +142,43 @@ import yumi
 yumi.register(get_weather, "Get weather", allow_proactive=True)
 yumi.run(edge_name="Weather App")
 ```
+
+## Successful completion without another reply
+
+```python
+async def play_track(song_id: str):
+    await player.play(song_id)
+    return {"ok": True}  # Set ok=false and include error on failure.
+
+agent.register(play_track, "Play the selected track as the last requested action.",
+               reply_on_success=False)
+```
+
+`reply_on_success` is registration metadata, not a model-controlled function
+argument. The default `true` preserves existing behavior. With `false`, an
+explicit JSON object with `ok: true` and no non-empty `error` ends the turn after
+the tool results are saved, without calling the model again. Python handlers may
+return a dictionary (the SDK serializes it as JSON) or a JSON string. Plain text,
+missing/invalid `ok`, `ok: false`, exceptions, timeouts, denied calls, and partial
+failures do not silently complete. Normal confirmation and access checks apply.
+
+This is for a final action, not a data lookup: describe that clearly so the model
+does other requested work first. All calls in the current batch must opt in and
+succeed. A batch containing other tools still receives normal follow-up so their
+results are not lost. Existing assistant text before the call remains in history.
+
+On terminal success the server emits `turn_complete` with `reply: "none"` and
+`voice_capture: "pause"`. `yumi --voice` stops requesting TTS and closes its audio
+streams immediately, then drains the HTTP stream normally. The process remains
+alive waiting for Enter or a supported player's verified completion; no microphone is held while waiting. Voice wake and
+voice interruption are unavailable until capture resumes. This signal confirms
+tool execution, not that a media player has already reached a particular state.
+
+The Room Control `music_play` registration uses this policy. Search, status,
+enqueue, and mixed control functions retain their normal reply behavior. The
+wire field is optional, so old registrations keep working; explicit SDK keyword
+support currently covers Python. Generated/vendor SDK copies need updating when
+opting in, together with the server and voice client.
 
 ## Other Edge SDKs
 

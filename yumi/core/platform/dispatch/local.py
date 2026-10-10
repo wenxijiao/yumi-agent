@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 
 from yumi.core.platform.dispatch.context import ToolInvocation, ToolResult
 from yumi.core.platform.tools.tool import execute_registered_tool
@@ -20,7 +21,8 @@ class LocalToolExecutor:
                 execute_registered_tool(inv.func_name, inv.args),
                 timeout=self.timeout,
             )
-            return ToolResult(func_name=inv.func_name, result=str(result), status="success")
+            text = json.dumps(result, ensure_ascii=False) if isinstance(result, (dict, list)) else str(result)
+            return ToolResult(func_name=inv.func_name, result=text, status="success")
         except asyncio.TimeoutError:
             return ToolResult(
                 func_name=inv.func_name,

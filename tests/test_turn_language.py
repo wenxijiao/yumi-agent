@@ -44,3 +44,26 @@ def test_mixed_language_messages_are_not_forced_by_script_detection():
         assert "MUST be in" not in note
         assert "explicit language" in note
         assert "app interface language" in note
+
+
+def test_request_language_ignores_foreign_song_titles():
+    from yumi.core.features.chat.language import language_scoped_prompt, request_language
+
+    cases = [
+        ("我想听夜に駆ける，可以吗？", "Chinese"),
+        ("帮我放一下《夜に駆ける》。", "Chinese"),
+        ("Can you play 夜に駆ける for me?", "English"),
+        ("Hello, how are you?", "English"),
+        ("Finish. See you later.", "English"),
+        ("夜に駆けるを聞きたい。", "Japanese"),
+        ("今日はどうだった？", "Japanese"),
+    ]
+    for prompt, language in cases:
+        assert request_language(prompt) == language
+        assert f"Use {language} for your own reply" in build_turn_language_note(prompt)
+        assert f"write your own reply in {language}" in language_scoped_prompt(prompt, "auto")
+    # Explicit settings and translation requests remain authoritative.
+    assert 'saved default response language label is "Japanese"' in build_turn_language_note(
+        "Hello, how are you?", "ja"
+    )
+    assert "explicit request" in language_scoped_prompt("Translate hello into Japanese", "auto")

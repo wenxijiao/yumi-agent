@@ -115,6 +115,9 @@ def _reply_job(identity, body):
                 async def synthesize_reply():
                     parts = []
                     provider = create_tts_provider()
+                    prepare = getattr(provider, "prepare_reply", None)
+                    if prepare:
+                        prepare(" ".join(chunks))
                     first_part_ms = None
                     for index, text in enumerate(chunks):
                         current = store.reply_event(body.turn_id)

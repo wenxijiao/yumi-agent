@@ -136,6 +136,7 @@ class ToolDispatcher:
                         tool_message_name=raw_call_name,
                         tool_call_id=tool_call_id,
                         args=args,
+                        reply_on_success=TOOL_REGISTRY[func_name].get("reply_on_success", True) is not False,
                     )
                 )
                 continue
@@ -303,6 +304,8 @@ class ToolDispatcher:
                 # (session owner for internal/proactive turns) — the model has
                 # no channel to influence this value.
                 caller_user_id=effective_caller_user_id(ctx.owner_uid),
+                reply_on_success=self.runtime.edge_registry.tools[target_edge][func_name].get("reply_on_success", True)
+                is not False,
             ),
             None,
         )

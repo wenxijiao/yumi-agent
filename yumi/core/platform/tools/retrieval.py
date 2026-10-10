@@ -25,7 +25,23 @@ from yumi.core.platform.tools.routing import (
 # Small offline vocabulary for common capabilities, not app/tool/artist names.
 # This is a fallback, not a claim of universal cross-language semantic search.
 _CAPABILITY_ALIASES = {
-    "music song search play": ("音乐", "音樂", "听歌", "聽歌", "想听", "想聽", "放歌", "放首", "音楽", "聴きたい"),
+    "music song search play": (
+        "音乐",
+        "音樂",
+        "听歌",
+        "聽歌",
+        "想听",
+        "想聽",
+        "放歌",
+        "放首",
+        "音楽",
+        "聴きたい",
+        "聞きたい",
+        "ききたい",
+        "曲を",
+        "曲が",
+        "流して",
+    ),
     "play playback": ("播放", "再生"),
     "light lamp brightness": ("开灯", "開燈", "关灯", "關燈", "灯光", "燈光", "亮度", "照明"),
     "timer reminder schedule": ("提醒", "定时", "定時", "闹钟", "鬧鐘", "リマインダー"),

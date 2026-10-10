@@ -90,6 +90,27 @@ jobs:
           /tmp/clean/bin/python -c "import yumi; from yumi.core.platform.runtime import get_default_runtime; from yumi.core.features.chat.service import ChatTurnService; print('standalone import OK')"
           /tmp/clean/bin/yumi --help
 
+  voice-install:
+    name: Voice wheel (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libportaudio2
+      - run: python -m pip install build pytest
+      - run: python -m build --wheel --outdir voice-dist
+      - run: python -m build packaging/yumi --wheel --outdir voice-dist
+      - run: python -m pip install --find-links voice-dist yumi==0.0.5
+      - run: python -c "from yumi.voice.duplex import DuplexAudio; from yumi.voice.sherpa_wake import SherpaHeyYumiWake"
+      - run: python -m pytest tests/voice tests/test_chat_cancellation.py -q
+
   typescript:
     name: TypeScript SDK
     runs-on: ubuntu-latest

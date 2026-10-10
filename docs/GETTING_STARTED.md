@@ -121,36 +121,18 @@ Useful commands:
 
 ## Voice (microphone wake-word)
 
-Run `yumi --voice` on the computer with the microphone, choose the local Yumi server or sign in to Nexus, then say "Hey Yumi" and speak your request.
+Run `yumi --voice` on the computer with the microphone. Choose the local model
+or sign in to Nexus, then say **Hey Yumi**. First-run wake-model download is
+automatic; local mode starts a server if needed. Replies have a 20-second
+wake-free follow-up window, and speaking during a reply interrupts it.
 
-```bash
-yumi --setup                     # enable Whisper (stt_provider=whisper)
-pip install 'yumi-agent[voice-sherpa]'
-YUMI_VOICE_MODEL_DIR=/path/to/kws-model yumi --voice
+```sh
+pip install -e .   # current source; this client requires the 0.0.5 release
+yumi --voice
 ```
 
-For the local choice, start `yumi --server` in another terminal. Download a compatible sherpa-onnx keyword-spotting model separately and check its license. Whisper weights are downloaded when you choose a local model.
-
-Required setup:
-
-1. **Wake-word model** — set `YUMI_VOICE_MODEL_DIR` or `voice_sherpa_model_dir` in `~/.yumi/config.json` to a sherpa-onnx KWS model directory.
-2. **Microphone permission** — on macOS, open *System Settings → Privacy & Security → Microphone* and enable the terminal you launch Yumi from. Without permission `sounddevice` silently produces zero-filled audio.
-
-Speak after the server prints `voice: listening`. Each utterance produces log lines like:
-
-```
-voice: wake-word triggered
-voice: utterance captured 1840 ms
-voice: transcript='whats the weather in auckland'
-voice: dispatching session=voice_alice
-voice: reply session=voice_alice text='Currently 17 °C and partly cloudy.'
-```
-
-Voice writes to its own session, `voice_<voice_owner_id>`. When `voice_owner_id` matches a Telegram user id (`tg_<id>`) or a CLI session id (`chat_<id>`), Yumi automatically interleaves the most recent turns from those sibling sessions into each prompt — so you can ask in Telegram "what did I just say by voice?" and the answer is grounded in the spoken turns. The full list of voice-related fields lives in [Configuration → Voice](CONFIGURATION.md#voice).
-
-v1 limits: text-only replies (no spoken response), single owner per server, no barge-in, only macOS / Linux desktop (Docker has no microphone). The first utterance can take 5–10 seconds because Whisper warms up on demand.
-
-For spoken replies and Nexus sign-in, use the [Hey Yumi voice client](HEY_YUMI_VOICE_CLIENT.md). Run it on the computer with the microphone even if the API runs in Docker.
+See [Hey Yumi voice](HEY_YUMI_VOICE_CLIENT.md) for installation/release status,
+device selection, local speech setup, Nexus sign-in, and current limitations.
 
 ## Demo
 

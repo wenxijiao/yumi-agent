@@ -266,6 +266,8 @@ def _wire_tool_schema(tool_entry: dict) -> dict:
         sch["confirmation_template"] = tool_entry["confirmation_template"]
     if tool_entry.get("require_confirmation"):
         sch["require_confirmation"] = True
+    if tool_entry.get("reply_on_success") is False:
+        sch["reply_on_success"] = False
     if tool_entry.get("always_include"):
         sch["always_include"] = True
     if tool_entry.get("allow_proactive"):
@@ -553,6 +555,7 @@ class YumiAgent:
         timeout: int | None = None,
         require_confirmation: bool = False,
         confirmation_template: str | dict[str, str] | None = None,
+        reply_on_success: bool = True,
         mode: str = "dynamic",
         context_args: dict[str, Any] | None = None,
         context_label: str | None = None,
@@ -614,6 +617,10 @@ class YumiAgent:
             require_confirmation: If True, the user must approve in the
                 Yumi UI or terminal chat before the server invokes this tool
                 on the edge.
+            reply_on_success: Set False for a terminal action such as playing
+                music. Return JSON with ok=true to finish without another model
+                reply. Voice clients release the mic until Enter. Errors and
+                mixed tool batches still receive a reply. Default True.
             mode: Exposure mode — "dynamic" (default), "pinned", or "autorun"
                 (see above).
             context_args: Fixed arguments for a ``mode="autorun"`` tool.
@@ -626,6 +633,8 @@ class YumiAgent:
             proactive_context_args: Deprecated — use ``context_args``.
             proactive_context_description: Deprecated — use ``context_label``.
         """
+        if type(reply_on_success) is not bool:
+            raise ValueError("reply_on_success must be a boolean")
         # Map the `mode` API onto the existing wire flags (one mode per tool).
         if mode == "pinned":
             always_include = True
@@ -660,6 +669,7 @@ class YumiAgent:
             "callable": func,
             "require_confirmation": require_confirmation,
             "confirmation_template": confirmation_template,
+            "reply_on_success": reply_on_success,
             "always_include": always_include,
             "allow_proactive": allow_proactive,
             "proactive_context": proactive_context,
@@ -959,6 +969,8 @@ class YumiAgent:
 
             try:
                 result = await exec_task
+                if isinstance(result, (dict, list)):
+                    result = json.dumps(result, ensure_ascii=False)
             except asyncio.CancelledError:
                 cancelled = True
                 result = f"Cancelled: Tool '{tool_name}' execution was cancelled by server."

@@ -7,11 +7,16 @@ from pydantic import BaseModel, Field
 
 class ChatRequest(BaseModel):
     prompt: str
+    client_request_id: str | None = Field(
+        default=None, pattern=r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+    )
     session_id: str = "default"
     think: bool = False
     personal: bool = False
     voice_id: str | None = Field(default=None, max_length=80)
     reply_voice: bool = False
+    prepare_media_output: bool = False
+    voice_session_controls: bool = False
     revision: int | None = Field(default=None, ge=1)
     channel: str = Field(default="app", pattern="^(app|telegram|discord|line)$")
 

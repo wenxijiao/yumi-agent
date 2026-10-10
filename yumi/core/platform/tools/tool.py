@@ -146,6 +146,7 @@ def register_tool(
     proactive_context_description: str | None = None,
     default_require_confirmation: bool = False,
     confirmation_template: str | dict[str, str] | None = None,
+    reply_on_success: bool = True,
 ) -> None:
     """Register a plain function as a Yumi tool (non-decorator API).
 
@@ -172,7 +173,11 @@ def register_tool(
             injection defense by default.
         confirmation_template: Optional user-facing action, e.g. "Check weather in {city}".
             Supports only named parameter placeholders; a locale-to-template mapping is also accepted.
+        reply_on_success: False ends a successful terminal action without another model reply.
+            Requires a JSON result with ok=true. Voice capture pauses until Enter.
     """
+    if type(reply_on_success) is not bool:
+        raise ValueError("reply_on_success must be a boolean")
     schema = _build_tool_schema(
         func,
         description,
@@ -187,6 +192,8 @@ def register_tool(
     tool_name = schema["function"]["name"]
     if confirmation_template:
         schema["confirmation_template"] = confirmation_template
+    if not reply_on_success:
+        schema["reply_on_success"] = False
     if not is_valid_tool_name(tool_name):
         raise ValueError(
             f"Tool name {tool_name!r} is invalid: use only letters, digits, '_' or '-' "
@@ -201,6 +208,7 @@ def register_tool(
         "proactive_context_description": proactive_context_description,
         "default_require_confirmation": default_require_confirmation,
         "confirmation_template": confirmation_template,
+        "reply_on_success": reply_on_success,
     }
 
 

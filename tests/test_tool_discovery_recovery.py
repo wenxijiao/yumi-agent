@@ -95,6 +95,7 @@ def test_actual_twelve_music_tools_fit_first_request_without_search(setup, monke
         "播放音乐",
         "想聽 YOASOBI 的歌",
         "YOASOBI の音楽を聴きたい",
+        "それ、夜にかけるを聞きたい。",
         "play music by yoasobe",
         "RoomMusicMacMini 播放音乐",
     ],
@@ -522,4 +523,3 @@ def test_current_room_edge_name_and_shared_description_keep_music_chain(setup, n
         e.name for e in decision.selected_edge_tools
     }
     assert token_estimate(decision.tools) <= cfg.tool_schema_token_budget
-

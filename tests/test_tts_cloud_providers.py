@@ -200,4 +200,38 @@ def test_mandarin_delivery_override_does_not_change_japanese_or_other_languages(
         ("中文示例", "ja-JP"),
         ("안녕하세요", "auto"),
     ]:
-        assert provider._speech_prompt(text, language) == f"Say the following {provider._style}:\n\n{text}"
+        prompt = provider._speech_prompt(text, language)
+        assert provider._chinese_style not in prompt
+        assert provider._style in prompt
+        assert prompt.endswith("Transcript:\n" + text)
+
+
+def test_japanese_has_native_delivery_without_changing_other_languages():
+    from yumi.core.features.tts.gemini_provider import DEFAULT_JAPANESE_STYLE
+
+    provider = object.__new__(GeminiTtsProvider)
+    provider._style = "bright and lively"
+    provider._chinese_style = "Mandarin guidance"
+    for text, language in [("おかえりなさい。今日もお疲れさまでした。", "auto"), ("東京", "ja-JP")]:
+        prompt = provider._speech_prompt(text, language)
+        assert DEFAULT_JAPANESE_STYLE in prompt
+        assert "without adding words or translating" in prompt
+        assert prompt.endswith(text)
+    for text in [
+        "欢迎回家，今天过得怎么样？",
+        "Welcome home. How was your day?",
+        "正在播放《夜に駆ける》，这首歌是你喜欢的歌曲。",
+    ]:
+        assert DEFAULT_JAPANESE_STYLE not in provider._speech_prompt(text, "auto")
+
+
+def test_full_reply_keeps_japanese_delivery_across_foreign_name_chunks():
+    from yumi.core.features.tts.gemini_provider import DEFAULT_JAPANESE_STYLE
+
+    provider = object.__new__(GeminiTtsProvider)
+    provider._language = "auto"
+    provider._style = "warm"
+    provider._chinese_style = "Mandarin guidance"
+    provider.prepare_reply("おかえりなさい。次の曲を再生します。YOASOBI")
+    assert DEFAULT_JAPANESE_STYLE in provider._speech_prompt("YOASOBI", "auto")
+    assert DEFAULT_JAPANESE_STYLE not in provider._speech_prompt("hello", "en-US")

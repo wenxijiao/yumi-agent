@@ -102,3 +102,25 @@ def test_current_prompt_is_final_user_layer_not_recent_history_duplicate():
         assert user_texts[-1] == "current question"
         assert sum("current question" in text for text in user_texts) == 1
         assert any("older note" in text for text in user_texts)
+
+
+def test_spoken_music_policy_only_applies_to_voice_replies():
+    from yumi.core.features.prompts.catalog import VOICE_RESPONSE_INSTRUCTION
+    from yumi.core.platform.runtime.assistant_context import message_media
+
+    with tempfile.TemporaryDirectory() as td:
+        memory = Memory(session_id="voice_policy", storage_dir=td, max_recent=20)
+        for reply in (False, True):
+            token = message_media.set({"reply": reply})
+            try:
+                messages = compose_messages(
+                    memory,
+                    prompt="play music",
+                    tools=None,
+                    ephemeral_messages=[],
+                    cfg=ModelConfig(),
+                    upload_mode="vision",
+                )
+            finally:
+                message_media.reset(token)
+            assert any(m.get("content") == VOICE_RESPONSE_INSTRUCTION for m in messages) == reply

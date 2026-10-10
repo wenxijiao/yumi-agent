@@ -1,4 +1,4 @@
-"""Offline Hey Yumi detection using a user-supplied sherpa-onnx KWS model.
+"""Offline Hey Yumi detection using a sherpa-onnx KWS model.
 
 Model weights are intentionally not distributed with yumi-agent: the selected
 model's commercial and redistribution license must be checked separately.
@@ -17,13 +17,16 @@ class SherpaHeyYumiWake:
     sample_rate = 16000
     frame_length = 1600  # 100 ms, matching sherpa-onnx's microphone example
 
-    def __init__(self, model_dir: str, keywords_file: str | None = None) -> None:
+    def __init__(self, model_dir: str, keywords_file: str | None = None, *, sensitivity: str = "balanced") -> None:
         try:
             import numpy as np
             import sherpa_onnx
         except ImportError as exc:
-            raise RuntimeError("Install the optional wake-word engine: pip install 'yumi-agent[voice-sherpa]'") from exc
+            raise RuntimeError("Reinstall voice dependencies: pip install --upgrade yumi-agent") from exc
 
+        thresholds = {"low": 0.35, "balanced": 0.25, "high": 0.18}
+        if sensitivity not in thresholds:
+            raise ValueError("Wake sensitivity must be low, balanced, or high")
         root = Path(model_dir).expanduser()
         files = {}
         for part in ("encoder", "decoder", "joiner"):
@@ -46,15 +49,40 @@ class SherpaHeyYumiWake:
             bpe = root / "bpe.model"
             lexicon = root / "en.phone"
             if bpe.is_file():
-                command = [str(Path(sys.executable).with_name("sherpa-onnx-cli")), "text2token", "--tokens", str(files["tokens"]),
-                           "--tokens-type", "bpe", "--bpe-model", str(bpe)]
-                raw.write_text("HEY YUMI\n")
+                command = [
+                    sys.executable,
+                    "-c",
+                    "from sherpa_onnx.cli import cli; cli()",
+                    "text2token",
+                    "--tokens",
+                    str(files["tokens"]),
+                    "--tokens-type",
+                    "bpe",
+                    "--bpe-model",
+                    str(bpe),
+                ]
+                # GigaSpeech's Y/UM/I spelling path often misses the name and
+                # confuses "yummy". Encode its spoken /juː miː/ pronunciation;
+                # the displayed and accepted wake phrase remains Hey Yumi.
+                raw.write_text("HEY YOU ME @HEY_YUMI\n")
             elif lexicon.is_file():
-                command = [str(Path(sys.executable).with_name("sherpa-onnx-cli")), "text2token", "--tokens", str(files["tokens"]),
-                           "--tokens-type", "phone+ppinyin", "--lexicon", str(lexicon)]
-                raw.write_text("HEY YUMI @HEY_YUMI\n")
+                command = [
+                    sys.executable,
+                    "-c",
+                    "from sherpa_onnx.cli import cli; cli()",
+                    "text2token",
+                    "--tokens",
+                    str(files["tokens"]),
+                    "--tokens-type",
+                    "phone+ppinyin",
+                    "--lexicon",
+                    str(lexicon),
+                ]
+                raw.write_text("HEY YOU ME @HEY_YUMI\n")
             else:
-                raise RuntimeError("Model needs bpe.model or en.phone to prepare Hey Yumi; supply --voice-keywords-file")
+                raise RuntimeError(
+                    "Model needs bpe.model or en.phone to prepare Hey Yumi; supply --voice-keywords-file"
+                )
             try:
                 subprocess.run([*command, str(raw), str(words)], check=True, capture_output=True)
             except (OSError, subprocess.CalledProcessError) as exc:
@@ -70,6 +98,8 @@ class SherpaHeyYumiWake:
             joiner=str(files["joiner"]),
             keywords_file=str(words),
             num_threads=1,
+            keywords_score=1.0,
+            keywords_threshold=thresholds[sensitivity],
             provider="cpu",
         )
         self._stream = self._spotter.create_stream()
@@ -91,12 +121,16 @@ class SherpaHeyYumiWake:
                     result = {"keyword": result}
             keyword = (
                 str(result.get("keyword") or "").casefold().replace("_", " ").strip()
-                if isinstance(result, dict) else ""
+                if isinstance(result, dict)
+                else ""
             )
             if keyword == "hey yumi":
                 self._spotter.reset_stream(self._stream)
                 return True
         return False
+
+    def reset(self) -> None:
+        self._stream = self._spotter.create_stream()
 
     def close(self) -> None:
         self._stream = None

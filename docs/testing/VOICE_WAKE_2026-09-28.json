@@ -1,0 +1,6599 @@
+{
+  "method": "macOS say synthetic speech; no microphone",
+  "summary": {
+    "baseline": {
+      "hits": 19,
+      "positives": 64,
+      "false_hits": 16,
+      "negatives": 256
+    },
+    "updated": {
+      "hits": 53,
+      "positives": 64,
+      "false_hits": 2,
+      "negatives": 256
+    }
+  },
+  "rows": [
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Samantha",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Samantha",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Eddy (English (US))",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Eddy (English (US))",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Karen",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Karen",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Daniel",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Daniel",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tessa",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tessa",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Rishi",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Rishi",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Tingting",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Tingting",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.4
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey Yumi.",
+      "label": "wake",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey Yumi, tell me the time.",
+      "label": "command",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": true,
+      "hits": [
+        1.7
+      ]
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey Siri.",
+      "label": "siri",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hello Yumi.",
+      "label": "hello",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Play some music.",
+      "label": "music",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey yummy.",
+      "label": "yummy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Can you hear me?",
+      "label": "hear",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey you.",
+      "label": "you",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "Hey Amy.",
+      "label": "amy",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 16000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 1.0,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "baseline",
+      "voice": "Kyoko",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    },
+    {
+      "variant": "updated",
+      "voice": "Kyoko",
+      "text": "The weather is nice today.",
+      "label": "weather",
+      "rate": 8000,
+      "volume": 0.15,
+      "positive": false,
+      "hits": []
+    }
+  ]
+}

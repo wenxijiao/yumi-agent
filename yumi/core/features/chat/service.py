@@ -371,6 +371,20 @@ class ChatTurnService:
             else "auto"
         )
         _append_system_note(ctx, build_turn_language_note(ctx.prompt, language))
+        from yumi.core.platform.runtime.assistant_context import message_media
+
+        if (message_media.get() or {}).get("voice_session_controls"):
+            _append_system_note(
+                ctx,
+                "[Voice session lifecycle]\n"
+                "The microphone stays in follow-up mode unless you call end_voice_conversation. "
+                "A text-only goodbye DOES NOT end the voice session. When the user's current message "
+                "means they are done talking for now, call end_voice_conversation with no spoken reply. "
+                "For example, 'I need to go, let's leave it here' ends this conversation; "
+                "'play the song Goodbye' does not. Apply the user's meaning in any language, not just "
+                "these examples. Finish any other requested actions first, then call it alone. "
+                "Ordinary thanks, quotations and negations do not end a conversation.",
+            )
 
         # Tool routing runs ONCE per turn. Re-selecting inside the loop churned
         # the tool list between iterations (forced edge tools grow mid-turn),
@@ -565,7 +579,30 @@ class ChatTurnService:
                         )
                     )
 
-            results = await dispatcher.run_all(approved, ctx)
+            from yumi.core.features.chat.media_prepare import needs_preparation, preparation, wait_until_ready
+            from yumi.core.platform.dispatch.context import ToolResult
+            from yumi.core.platform.http.events import MediaPrepareEvent
+
+            media_ready = True
+            if needs_preparation(approved):
+                with preparation(get_current_identity().user_id) as (preparation_id, ready):
+                    yield sink.emit(MediaPrepareEvent(turn_id=ctx.turn_id, preparation_id=preparation_id))
+                    media_ready = await wait_until_ready(ready)
+            if media_ready:
+                results = await dispatcher.run_all(approved, ctx)
+            else:
+                # Preserve paired tool messages without executing ANY action in
+                # this batch, and finish instead of allowing an automatic retry.
+                results = [
+                    ToolResult(
+                        func_name=inv.func_name,
+                        original_tool_name=inv.original_tool_name,
+                        target_edge=inv.target_edge,
+                        status="error",
+                        result=json.dumps({"ok": False, "error": "Speaker not ready; tool was not executed."}),
+                    )
+                    for inv in approved
+                ]
             for inv, result in zip(approved, results):
                 ctx.tool_loop_events.append(
                     {
@@ -584,6 +621,7 @@ class ChatTurnService:
                         "A tool timed out and its outcome is unknown. Do not retry the action automatically."
                     )
                 if result.status == "success":
+                    from yumi.core.features.chat.media_feedback import playback_feedback
                     from yumi.core.platform.tools.session_tools import remember_tools
 
                     remember_tools(get_current_identity().user_id, ctx.session_id, [result.func_name])
@@ -591,6 +629,7 @@ class ChatTurnService:
                         ToolStatusEvent(
                             status="success",
                             content=inv.action_summary or f"Tool {result.display_label} finished successfully.",
+                            **playback_feedback(inv, result),
                         )
                     )
                 else:
@@ -648,6 +687,38 @@ class ChatTurnService:
                 prompt_snapshot=ctx.prompt_snapshot,
             )
             current_prompt = None  # subsequent iterations use ephemeral_messages only
+            if not media_ready:
+                yield sink.emit(
+                    ErrorEvent(
+                        code="MEDIA_OUTPUT_NOT_READY",
+                        content="Music was not started because the speaker did not become ready. "
+                        "Close other apps using the microphone and try again.",
+                    )
+                )
+                return
+            from yumi.core.features.chat.reply_policy import silent_success
+            from yumi.core.platform.http.events import TurnCompleteEvent
+
+            if silent_success(approved, results, requested_count=len(outcome.tcalls)):
+                from yumi.core.platform.http.events import VoiceStandbyEvent
+                from yumi.core.platform.runtime.assistant_context import message_media
+
+                if (
+                    len(approved) == 1
+                    and approved[0].kind == "local"
+                    and approved[0].func_name == "end_voice_conversation"
+                    and (message_media.get() or {}).get("voice_session_controls")
+                ):
+                    yield sink.emit(VoiceStandbyEvent(turn_id=ctx.turn_id))
+                    return
+                from yumi.core.features.chat.media_watch import watch_binding
+                from yumi.core.platform.observability.turn_inspector import record_media_watch
+
+                binding = watch_binding(approved, dispatcher.runtime)
+                if binding:
+                    record_media_watch(ctx.session_id, binding)
+                yield sink.emit(TurnCompleteEvent(turn_id=ctx.turn_id, media_watch=ctx.turn_id if binding else None))
+                return
 
     # ---- helper paths -------------------------------------------------------
 

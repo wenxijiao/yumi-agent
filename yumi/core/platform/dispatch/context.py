@@ -81,6 +81,7 @@ class ToolInvocation:
     caller_user_id: str | None = None
     approval: str = "automatic"
     action_summary: str | None = None
+    reply_on_success: bool = True
 
 
 @dataclass

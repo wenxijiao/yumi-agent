@@ -16,6 +16,9 @@ class TtsNotConfiguredError(TtsError):
 
 
 class TextToSpeechProvider(ABC):
+    def prepare_reply(self, text: str) -> None:
+        """Optional full-reply context for consistent delivery across audio parts."""
+
     @abstractmethod
     async def synthesize(
         self,

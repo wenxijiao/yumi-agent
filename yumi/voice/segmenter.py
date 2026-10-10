@@ -69,6 +69,9 @@ class UtteranceCollector:
         is met the collector's internal state is cleared and the caller gets
         the full PCM (suitable for wrapping into a WAV).
         """
+        # Silence before speech is not an utterance, and must never be sent to STT.
+        if not self._frames and not is_speech:
+            return None
         self._frames.append(frame)
         self._elapsed_ms += self._frame_ms
         if is_speech:

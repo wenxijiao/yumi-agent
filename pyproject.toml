@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "yumi-agent"
-version = "0.0.4"
+version = "0.0.5"
 description = "Yumi — open-source self-hosted AI agent framework: cross-language tool edges + Telegram/LINE/Discord chat"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
@@ -64,6 +64,11 @@ dependencies = [
     "huggingface-hub>=0.20",
     "sounddevice>=0.4.6",
     "webrtcvad-wheels>=2.0.14",
+    "sherpa-onnx>=1.12",
+    "sentencepiece>=0.2",
+    "pypinyin>=0.55",
+    "pywebrtc-audio>=0.2.0,<0.3",
+    "numpy>=1.24",
     "dashscope>=1.20.0",
 ]
 

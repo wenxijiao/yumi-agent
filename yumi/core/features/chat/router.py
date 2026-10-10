@@ -7,7 +7,7 @@ import json
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictBool
 from yumi.core.features.chat.pipeline import clear_session, generate_chat_events
 from yumi.core.platform.http.dependencies import CurrentIdentity
 from yumi.core.platform.http.schemas import ChatRequest
@@ -17,6 +17,61 @@ from yumi.core.platform.runtime.accessors import stream_event
 from yumi.core.platform.security.audit import audit_event
 
 router = APIRouter()
+
+
+class CancelChatRequest(BaseModel):
+    client_request_id: str = Field(pattern=r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$")
+
+
+@router.get("/chat/capabilities")
+async def chat_capabilities(identity: CurrentIdentity):
+    return {
+        "request_cancellation": True,
+        "voice_reply_stream": True,
+        "silent_tool_completion": True,
+        "media_playback_watch": True,
+        "media_output_preparation": True,
+        "voice_session_controls": True,
+    }
+
+
+class PlaybackStatusRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    turn_id: str = Field(pattern=r"^[a-f0-9]{32}$")
+
+
+class MediaReadyRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    preparation_id: str = Field(pattern=r"^[a-f0-9]{32}$")
+    ready: StrictBool
+
+
+@router.post("/assistant/voice/media-ready")
+async def voice_media_ready(identity: CurrentIdentity, body: MediaReadyRequest):
+    from yumi.core.features.chat.media_prepare import acknowledge
+
+    acknowledge(identity.user_id, body.preparation_id, body.ready)
+    return {"ok": True}
+
+
+@router.post("/assistant/voice/playback")
+async def voice_playback_status(identity: CurrentIdentity, body: PlaybackStatusRequest):
+    from yumi.core.features.chat.media_watch import playback_state
+    from yumi.core.platform.runtime.accessors import get_runtime
+
+    sqlite = get_memory_factory().get_for_identity(identity).sqlite
+    trace = get_turn(body.turn_id) or sqlite.get_turn_trace(body.turn_id)
+    if not trace:
+        raise HTTPException(404, "Playback monitor not found.")
+    return await playback_state(identity, trace, get_runtime())
+
+
+@router.post("/chat/cancel")
+async def cancel_chat_endpoint(identity: CurrentIdentity, body: CancelChatRequest):
+    from yumi.core.features.chat.cancellation import cancel
+
+    stopped = await cancel(identity.user_id, body.client_request_id)
+    return {"status": "cancelled" if stopped else "cancelling"}
 
 
 @router.post("/chat")
@@ -54,8 +109,16 @@ async def chat_endpoint(request: Request, identity: CurrentIdentity, body: ChatR
     audit_event("chat_request", identity.user_id, session_id=sid)
 
     async def generate():
+        from yumi.core.features.chat import cancellation
         from yumi.core.platform.runtime.assistant_context import active_requests, message_media, source_channel
 
+        try:
+            if body.client_request_id and not cancellation.register(identity.user_id, body.client_request_id):
+                yield stream_event("error", code="CANCELLED", content="Request was cancelled or already completed.")
+                return
+        except HTTPException as exc:
+            yield stream_event("error", code=str(exc.status_code), content=str(exc.detail))
+            return
         task = asyncio.current_task()
         token = source_channel.set(body.channel if body.personal else None)
         active_requests.setdefault(sid, set()).add(task)
@@ -65,7 +128,12 @@ async def chat_endpoint(request: Request, identity: CurrentIdentity, body: ChatR
             voice = media_store.claim(body.voice_id, sid) if body.voice_id and media_store else None
             claimed = voice is not None
             media_token = message_media.set(
-                {"input": media_store.summary(voice) if voice and media_store else None, "reply": body.reply_voice}
+                {
+                    "input": media_store.summary(voice) if voice and media_store else None,
+                    "reply": body.reply_voice,
+                    "prepare_media_output": body.prepare_media_output,
+                    "voice_session_controls": body.voice_session_controls,
+                }
             )
             if store and store.get("state")["session_id"] != sid:
                 yield stream_event(
@@ -84,6 +152,8 @@ async def chat_endpoint(request: Request, identity: CurrentIdentity, body: ChatR
         except HTTPException as exc:
             yield stream_event("error", code=str(exc.status_code), content=str(exc.detail))
         finally:
+            if body.client_request_id:
+                cancellation.finish(identity.user_id, body.client_request_id)
             if media_token is not None:
                 message_media.reset(media_token)
             if claimed and media_store:
