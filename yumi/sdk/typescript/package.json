@@ -30,6 +30,6 @@
   "devDependencies": {
     "@types/ws": "^8.0.0",
     "@types/node": "^25.9.3",
-    "typescript": "^5.0.0"
+    "typescript": "^7.0.2"
   }
 }
