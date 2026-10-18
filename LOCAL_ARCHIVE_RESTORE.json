@@ -1,0 +1,29 @@
+{
+  "archived_on": "2026-10-18",
+  "original_path": "/Users/vincent/Desktop/Projects/Yumi/yumi-agent",
+  "repository": "wenxijiao/yumi-agent",
+  "original_head": "dcad8e168d3c858a2cb17a9c52fca7cb1f761e9a",
+  "refs": {
+    "refs/heads/archive/local-cleanup-2026-10-18/branches/codex/edge-connection-0.0.4": "b1a41982e84e7506d09739bb93294b492565ed52",
+    "refs/heads/archive/local-cleanup-2026-10-18/branches/codex/migration-20260921/saved-branches/main": "094a517b66d40dee7cdbba9ec9dcec35ac55f23a",
+    "refs/heads/archive/local-cleanup-2026-10-18/branches/codex/migration-20260921/saved-branches/release/v0.4.0": "e1ca7e7f86e46b4760dc5eadc5378175c04611cf",
+    "refs/heads/archive/local-cleanup-2026-10-18/branches/codex/migration-20260921/snapshot": "ec3ae59d8c98362bc747da70b310f3cb6acc4bb2",
+    "refs/heads/archive/local-cleanup-2026-10-18/branches/codex/migration-20260921/stash-0": "c01c98b3bff13bcce3600d5cc01f97b234edf0ed",
+    "refs/heads/archive/local-cleanup-2026-10-18/branches/main": "dcad8e168d3c858a2cb17a9c52fca7cb1f761e9a",
+    "refs/heads/archive/local-cleanup-2026-10-18/branches/release/v0.4.0": "e1ca7e7f86e46b4760dc5eadc5378175c04611cf",
+    "refs/tags/archive/local-cleanup-2026-10-18/original-tags/archive/pre-pypi-v0.2.0": "31822c304dc5ec89d16ec6b341d6aec8a9751196",
+    "refs/tags/archive/local-cleanup-2026-10-18/original-tags/pypi-0.0.4": "26c7088d12aa858ccea929420729f06d8d8ac42d",
+    "refs/tags/archive/local-cleanup-2026-10-18/original-tags/v0.0.1": "43ee6988260b58bd049b38d2b890ccef06428d92",
+    "refs/tags/archive/local-cleanup-2026-10-18/original-tags/v0.0.2": "c641e63a75d76cf612427d048ff5d11df53c20f6",
+    "refs/tags/archive/local-cleanup-2026-10-18/original-tags/v0.0.3": "6e3ab7a415868c25c316544e2742cf185af72740",
+    "refs/heads/archive/local-cleanup-2026-10-18/stashes/0": "c01c98b3bff13bcce3600d5cc01f97b234edf0ed"
+  },
+  "stashes": {
+    "stash@{0}": {
+      "sha": "c01c98b3bff13bcce3600d5cc01f97b234edf0ed",
+      "remote_ref": "refs/heads/archive/local-cleanup-2026-10-18/stashes/0"
+    }
+  },
+  "recovered_ignored_source_files": [],
+  "note": "Local environment secrets and private original media are preserved separately on the owner computer."
+}
